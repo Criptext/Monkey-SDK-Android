@@ -613,7 +613,7 @@ public class CriptextLib{
 						//BORRO DE LA LISTA
 						for(int i=0;i<messagesToDelete.size();i++){
 							System.out.println("MONKEY - Borrando de la lista");
-							messagesToSendAfterOpen.remove(messagesToSendAfterOpen.get(i));
+							messagesToSendAfterOpen.remove(messagesToDelete.get(i));
 						}
 					}
 				}
@@ -1023,7 +1023,7 @@ public class CriptextLib{
 			json.put("args", args);
 			json.put("cmd", MessageTypes.MOKProtocolSet);
 
-			if(asynConnSocket.isConnected()){
+			if(asynConnSocket.isConnected()){ //Aqui hay nullpointerexception
 				System.out.println("MONKEY - Enviando Set:"+json.toString());
 				asynConnSocket.sendMessage(json);
 			}	
