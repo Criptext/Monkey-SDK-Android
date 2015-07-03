@@ -984,35 +984,34 @@ public class CriptextLib{
 			}				            
 		}
 	}
-	
-	public void sendGet(String since){
+
+	public void sendGet(String since, boolean requestGroups){
 
 		try {
 
 			JSONObject args=new JSONObject();
 			JSONObject json=new JSONObject();
 
-			args.put("messages_since",since);            	
+			args.put("messages_since",since);
 			args.put("delay", ""+secondsDelay);
 			args.put("blocks", ""+portionsMessages);
-			
+			args.put("G", requestGroups ? 1 : 0);
 			json.put("args", args);
 			json.put("cmd", MessageTypes.MOKProtocolGet);
 
 			if(asynConnSocket.isConnected()){
 				System.out.println("MONKEY - Enviando Get:"+json.toString());
 				asynConnSocket.sendMessage(json);
-			}	
+			}
 			else
 				System.out.println("MONKEY - no pudo enviar Get - socket desconectado");
 
 		} catch (Exception e) {
 			e.printStackTrace();
-		}	
-		
-		lastMessageId=since;		
+		}
+
+		lastMessageId=since;
 	}
-	
 	public void sendSet(String online){
 
 		try {
