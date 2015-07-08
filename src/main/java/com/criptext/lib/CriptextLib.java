@@ -182,7 +182,7 @@ public class CriptextLib{
 	 * Start Session in Criptext
 	 * 
 	 * @param fullname name of the user
-	 * @param sessionId session id of the user, empty for the fisrt time
+	 * @param sessionId session id of the user, empty for the fisrt time unless restore
 	 * @param expiring 0 means not expires and empty means expires
 	 * 
 	 */	
@@ -279,13 +279,19 @@ public class CriptextLib{
 		}
 	}
 
+	/**
+	 * Evento cuando llega un nuevo session.
+	 * @param url
+	 * @param json
+	 * @param status
+	 */
 	public void onSession(String url, JSONObject json, com.androidquery.callback.AjaxStatus status) {
 
 		if(json!=null){
 			try {
 				//Get data from JSON
 				if(json.getInt("error")==0){
-					String sessionId=json.getString("sessionId");
+					String sessionId= this.sessionid.isEmpty() ? json.getString("sessionId") : this.sessionid;
 					String pubKey=json.getString("publicKey");        	
 					pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
 
