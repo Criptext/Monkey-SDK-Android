@@ -902,7 +902,7 @@ public class CriptextLib{
 		
 	}
 
-	public void sendMessage(String idnegative, String elmensaje, String sessionIDFrom, String sessionIDTo, String pushMessage, JSONObject params){
+	public void sendMessage(String idnegative, String elmensaje, String sessionIDFrom, String sessionIDTo, String pushMessage, JSONObject props){
 
 		if(elmensaje.length()>0){
 
@@ -917,7 +917,7 @@ public class CriptextLib{
 				args.put("msg", aesutil.encrypt(elmensaje));
 				args.put("type", MessageTypes.MOKText);
 				args.put("push", pushMessage);
-				args.put("params", params.toString());
+				args.put("props", props.toString());
 
 				json.put("args", args);
 				json.put("cmd", MessageTypes.MOKProtocolMessage);
@@ -942,18 +942,18 @@ public class CriptextLib{
 			try {
 
 				JSONObject args = new JSONObject();
-				JSONObject paramsMessage = new JSONObject();
+				JSONObject propsMessage = new JSONObject();
 				
-				paramsMessage.put("cmpr", "gzip");
-				paramsMessage.put("device", "android");
-				paramsMessage.put("encr", "1");
-				paramsMessage.put("eph", eph);
-				paramsMessage.put("file_type", file_type);
-				paramsMessage.put("str", "0");
+				propsMessage.put("cmpr", "gzip");
+				propsMessage.put("device", "android");
+				propsMessage.put("encr", "1");
+				propsMessage.put("eph", eph);
+				propsMessage.put("file_type", file_type);
+				propsMessage.put("str", "0");
 				
 				args.put("sid",sessionIDFrom);					
 				args.put("rid",sessionIDTo);
-				args.put("params",paramsMessage);
+				args.put("props",propsMessage);
 
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("data", args.toString());
@@ -974,7 +974,7 @@ public class CriptextLib{
 						if(response != null){
 							try {
 								System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
-								executeInDelegates("onAcknowledgeRecieved", new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject())});
+								executeInDelegates("onAcknowledgeRecieved", new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject(), new JsonObject())});
 							} catch (Exception e) {
 								e.printStackTrace(); 
 							}
@@ -999,13 +999,15 @@ public class CriptextLib{
 			JSONObject json=new JSONObject();
 
 			args.put("messages_since",since);
+			if(since == null || since.equals("0"))
+				args.put("groups", 1);
 			args.put("delay", ""+secondsDelay);
 			args.put("blocks", ""+portionsMessages);
-			args.put("G", requestGroups ? 1 : 0);
+			//args.put("G", requestGroups ? 1 : 0);
 			json.put("args", args);
 			json.put("cmd", MessageTypes.MOKProtocolGet);
 
-			if(asynConnSocket.isConnected()){
+			if(asynConnSocket != null && asynConnSocket.isConnected()){
 				System.out.println("MONKEY - Enviando Get:"+json.toString());
 				asynConnSocket.sendMessage(json);
 			}

@@ -21,6 +21,10 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComServerDelegate{
 
 	static Object syncObject = new Object();
@@ -44,7 +48,32 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	public Handler mainMessageHandler;
 	public Handler socketMessageHandler;
+	//TIMEOUT
+	private Timer longTimer;
+	private boolean expired = false;
+	private int retries;
+	private final int timeout = 2000;
+	private TimerTask exponentialTask = new TimerTask() {
+		public void run() {
+			try {
+				if(!isConnected()) {
+					socketClient.connect();
+					AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
 
+					//Volver a intentar
+					AsyncConnSocket.this.retries++;
+					AsyncConnSocket.this.longTimer.schedule(AsyncConnSocket.this.exponentialTask, timeout^retries);
+
+				} else {
+					//Si ya se conecto
+					AsyncConnSocket.this.retries = 0;
+					longTimer = null;
+				}
+			} catch(IOException ex){
+				ex.printStackTrace();
+			}
+		}
+	};
 	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler) {
 		AsyncConnSocket.context=context;
 		this.sessionId=sessionId;
@@ -119,17 +148,23 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			reconnecting=true;
 			userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
 			socketClient = new DarkStarSocketClient("secure.criptext.com",1139,(DarkStarListener)userServerListener);
-			boolean active=true;
+			retries = 0;
 
-			while(active){
 				try {
 					socketClient.connect();
 					this.socketClient.login(this.sessionId, urlPassword);
-					active=false;				     
+
+					if(longTimer != null) {
+						longTimer.cancel();
+						longTimer = null;
+					}
+
+					if(longTimer == null) {
+						longTimer = new Timer();
+						longTimer.schedule(exponentialTask, timeout /*delay in milliseconds i.e. 5 min = 300000 ms or use timeout argument*/);
+					}
 				} catch (Exception e) {	
-					active=true;					
-				}				
-			}
+				}
 		}
 	}
 
@@ -152,7 +187,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			_isConnected = true;
 			JsonObject args = socketMessage.getArgs().getAsJsonObject();
 
-			if(cmd == ComMessageProtocol.MESSAGE_LIST){
+			/**if(cmd == ComMessageProtocol.MESSAGE_LIST){
 				JsonArray array = args.get("messages").getAsJsonArray();
 				for(int i=0; i<array.size(); i++){
 					JsonElement jsonMessage = array.get(i);
@@ -160,9 +195,9 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 					buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
 				}
 			}
-			else{
+			else{*/
 				buildMessage(cmd, args);
-			} 
+			//}
 		}
 		else{
 			//LLEGARON MUCHOS MENSAJES POR ENDE LLAMO UPDATES CON VALORES MENORES
@@ -181,9 +216,11 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		MOKMessage remote = null;
 		JsonParser parser = new JsonParser();
 		JsonObject params = new JsonObject();
-		if(!parser.parse(args.get("params").getAsString()).isJsonNull())
+		if(args.has("params") && !parser.parse(args.get("params").getAsString()).isJsonNull())
 			params=(JsonObject)parser.parse(args.get("params").getAsString());
-
+		JsonObject props = new JsonObject();
+		if(args.has("props") && !parser.parse(args.get("props").getAsString()).isJsonNull())
+			props=(JsonObject)parser.parse(args.get("props").getAsString());
 		switch (cmd) {
 		case MessageTypes.MOKProtocolMessage:{
 
@@ -194,7 +231,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 						args.get("rid").getAsString(),
 						args.get("msg").getAsString(),
 						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params);
+						args.get("type").getAsString(),params,props);
 				Message msg = mainMessageHandler.obtainMessage();
 				msg.what=MessageTypes.MOKProtocolMessage;
 				msg.obj =remote;
@@ -204,7 +241,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				remote=new MOKMessage("",args.get("sid").getAsString(), 
 						args.get("rid").getAsString(),"",
 						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params);
+						args.get("type").getAsString(), params, props);
 				Message msg = mainMessageHandler.obtainMessage();			      
 				msg.what=MessageTypes.MOKProtocolMessage;
 				msg.obj =remote;
@@ -216,7 +253,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 						args.get("rid").getAsString(),
 						args.get("msg").getAsString(),
 						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params);
+						args.get("type").getAsString(), params, props);
 				Message msg = mainMessageHandler.obtainMessage();
 				msg.what=MessageTypes.MOKProtocolMessage;
 				msg.obj =remote;
@@ -233,7 +270,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				remote=new MOKMessage(args.get("id").getAsString(),
 						args.get("sid").getAsString(),args.get("rid").getAsString(),"",
 						args.get("datetime").getAsString(), 
-						"",params);
+						"", params, props);
 				Message msg = mainMessageHandler.obtainMessage();			      
 				msg.what=MessageTypes.MOKProtocolOpen;
 				msg.obj =remote;
@@ -245,11 +282,11 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			if(args.get("type").getAsString().compareTo("50")==0
 				|| args.get("type").getAsString().compareTo("51")==0
 					|| args.get("type").getAsString().compareTo("52")==0){
-				remote=new MOKMessage(params.get("new_id").getAsString(), //En el atributo message_id va el nuevo id
+				remote=new MOKMessage(props.get("new_id").getAsString(), //En el atributo message_id va el nuevo id
 						args.get("sid").getAsString(),args.get("rid").getAsString(),
-						params.get("old_id").getAsString(), //En el atributo msg mando en el old_id
+						props.get("old_id").getAsString(), //En el atributo msg mando en el old_id
 						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params);
+						args.get("type").getAsString(), params, props);
 				Message msg = mainMessageHandler.obtainMessage();			      
 				msg.what=MessageTypes.MOKProtocolAck;
 				msg.obj =remote;
@@ -259,7 +296,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				remote=new MOKMessage(args.get("id").getAsString(),
 						args.get("sid").getAsString(),args.get("rid").getAsString(),"",
 						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params);
+						args.get("type").getAsString(), params, props);
 				Message msg = mainMessageHandler.obtainMessage();			      
 				msg.what=MessageTypes.MOKProtocolAck;
 				msg.obj =remote;
@@ -271,13 +308,24 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			remote=new MOKMessage("",
 					args.get("sid").getAsString(),args.get("rid").getAsString(),
 					"",args.get("datetime").getAsString(), 
-					args.get("type").getAsString(),params);
+					args.get("type").getAsString(), params, props);
 			Message msg = mainMessageHandler.obtainMessage();			      
 			msg.what=MessageTypes.MOKProtocolDelete;
 			msg.obj =remote;
 			mainMessageHandler.sendMessage(msg);
 			break;
 		}
+			case MessageTypes.MOKProtocolGet:
+				if(args.get("type").getAsInt() == 1) {
+					JsonArray array = args.get("messages").getAsJsonArray();
+					for (int i = 0; i < array.size(); i++) {
+						JsonElement jsonMessage = array.get(i);
+						JsonObject currentMessage = jsonMessage.getAsJsonObject();
+						buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
+					}
+				} else {
+					//PARSE GROUPS UPDATES
+				}
 		default:
 			break;
 		}

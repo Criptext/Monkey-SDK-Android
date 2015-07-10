@@ -20,12 +20,21 @@ public class MOKMessage {
 	private String rid;
 	private JsonObject params;
 	private File file;
-	
+
+	public JsonObject getProps() {
+		return props;
+	}
+
+	public void setProps(JsonObject props) {
+		this.props = props;
+	}
+
+	private JsonObject props;
 	public MOKMessage(){
 		
 	}
 	
-	public MOKMessage(String message_id, String sid, String rid, String msg, String datatime, String type, JsonObject params){
+	public MOKMessage(String message_id, String sid, String rid, String msg, String datatime, String type, JsonObject params, JsonObject props){
 		this.message_id = message_id;
 		this.sid = sid;
 		this.rid = rid;
@@ -33,6 +42,7 @@ public class MOKMessage {
 		this.datetime = datatime;		
 		this.type = type;
 		this.params = params;
+		this.props = props;
 	}
 
 	public int getProtocolCommand() {

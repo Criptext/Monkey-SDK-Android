@@ -108,5 +108,6 @@ public class MessageTypes {
 	public static final int MOKGroupDelete = 2;
 	public static final int MOKGroupNewMember = 3;
 	public static final int MOKGroupRemoveMember = 4;
-	
+	public static final int MOKGroupJoined = 5;
+
 }
