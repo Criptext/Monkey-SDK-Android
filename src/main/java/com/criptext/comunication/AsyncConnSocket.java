@@ -57,6 +57,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		public void run() {
 			try {
 				if(!isConnected()) {
+					System.out.println("retrying connection. attempt #" + retries);
 					socketClient.connect();
 					AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
 
@@ -66,6 +67,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 				} else {
 					//Si ya se conecto
+					System.out.println("TIMEOUT DONE");
 					AsyncConnSocket.this.retries = 0;
 					longTimer = null;
 				}
@@ -196,6 +198,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				}
 			}
 			else{*/
+				System.out.println("parsing message: " + args.toString() + " cmd: " + cmd);
 				buildMessage(cmd, args);
 			//}
 		}
@@ -316,6 +319,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			break;
 		}
 			case MessageTypes.MOKProtocolGet:
+				System.out.println("MOK PROTOCOL GET");
 				if(args.get("type").getAsInt() == 1) {
 					JsonArray array = args.get("messages").getAsJsonArray();
 					for (int i = 0; i < array.size(); i++) {
@@ -325,6 +329,14 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 					}
 				} else {
 					//PARSE GROUPS UPDATES
+					remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
+							args.get("type").getAsString(), params, props);
+					remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
+					Message msg = mainMessageHandler.obtainMessage();
+					msg.what=MessageTypes.MOKProtocolGet;
+					msg.obj = remote;
+					mainMessageHandler.sendMessage(msg);
+
 				}
 		default:
 			break;

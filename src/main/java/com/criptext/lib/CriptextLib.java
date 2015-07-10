@@ -403,7 +403,10 @@ public class CriptextLib{
 								executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
 								break;
 							}
-							
+							case MessageTypes.MOKProtocolGet: {
+								executeInDelegates("onMessageRecieved", new Object[]{message});
+								break;
+							}
 							default:
 								break;
 							}
@@ -452,7 +455,7 @@ public class CriptextLib{
 
 	private void procesarMokMessage(final MOKMessage message, final String claves) throws Exception{
 
-		if(message.getParams().has("file_type")){
+		if(message.getProps().has("file_type")){
 			//ME DESCARGO EL ARCHIVO
 			File target = new File(context.getCacheDir().toString(),message.getMsg());
 			System.out.println("MONKEY - Descargando:"+context.getCacheDir().toString()+message.getMsg());
@@ -471,9 +474,9 @@ public class CriptextLib{
 					        String finalContent=fileContents.toString();
 					        byte[] finalData=null;
 					        //COMPRUEBO SI DESENCRIPTO EL CONTENIDO DEL ARCHIVO
-					        if(message.getParams().get("encr").getAsString().compareTo("1")==0){
+					        if(message.getProps().get("encr").getAsString().compareTo("1")==0){
 					        	//COMPRUEBO SI ES DESDE EL WEB O MOBILE
-					        	if(message.getParams().get("device").getAsString().compareTo("web")==0){
+					        	if(message.getProps().get("device").getAsString().compareTo("web")==0){
 					        		finalContent=aesutil.decryptWithCustomKeyAndIV(finalContent, 
 										claves.split(":")[0], claves.split(":")[1]);
 						        	finalContent=finalContent.substring(finalContent.indexOf(",")+1,finalContent.length());
@@ -485,8 +488,8 @@ public class CriptextLib{
 					        	}							        
 					        }
 					        //COMPRUEBO SI EL ARCHIVO ESTA COMPRIMIDO
-					        if(message.getParams().has("cmpr")){
-								if(message.getParams().get("cmpr").getAsString().compareTo("gzip")==0){
+					        if(message.getProps().has("cmpr")){
+								if(message.getProps().get("cmpr").getAsString().compareTo("gzip")==0){
 									Compressor compressor = new Compressor();    		
 									finalData = compressor.gzipDeCompress(finalData);										
 								}	
@@ -497,10 +500,10 @@ public class CriptextLib{
 					        fos.close();			
 					        
 					        //LE PONGO LA EXTENSION SI LA TIENE
-					        if(message.getParams().has("ext")){
+					        if(message.getProps().has("ext")){
 					        	System.out.println("MONKEY - chmod 777 "+ file.getAbsolutePath());
 					        	Runtime.getRuntime().exec("chmod 777 " + file.getAbsolutePath());
-					        	//file.renameTo(new File(file.getAbsolutePath()+"."+message.getParams().get("ext").getAsString()));						        	
+					        	//file.renameTo(new File(file.getAbsolutePath()+"."+message.getProps().get("ext").getAsString()));
 					        }
 					        
 					        message.setMsg(file.getAbsolutePath());
@@ -523,7 +526,7 @@ public class CriptextLib{
 		}
 		else{
 			//ES DE TIPO TEXTO SIGA NO MAS
-			if(message.getParams().get("encr").getAsString().compareTo("1")==0)
+			if(message.getProps().get("encr").getAsString().compareTo("1")==0)
 				message.setMsg(aesutil.decryptWithCustomKeyAndIV(message.getMsg(), 
 					claves.split(":")[0], claves.split(":")[1]));
 			executeInDelegates("onMessageRecieved", new Object[]{message});

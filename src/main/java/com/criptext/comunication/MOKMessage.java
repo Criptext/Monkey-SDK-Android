@@ -20,6 +20,15 @@ public class MOKMessage {
 	private String rid;
 	private JsonObject params;
 	private File file;
+	private int monkeyAction;
+
+	public int getMonkeyAction() {
+		return monkeyAction;
+	}
+
+	public void setMonkeyAction(int monkeyAction) {
+		this.monkeyAction = monkeyAction;
+	}
 
 	public JsonObject getProps() {
 		return props;
