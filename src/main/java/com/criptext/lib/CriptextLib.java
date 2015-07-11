@@ -175,6 +175,11 @@ public class CriptextLib{
 			for(int i=0;i<delegates.size();i++){
 				delegates.get(i).onGetGroupInfoError((String)info[0]);
 			}
+		}else if(method.compareTo("onNotificationReceived")==0){
+			System.out.println("notif received");
+			for(int i=0;i<delegates.size();i++){
+				delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
+			}
 		}
 	}
 
@@ -365,8 +370,27 @@ public class CriptextLib{
 											procesarMokMessage(message, claves);
 										}
 									}
-									else
-										executeInDelegates("onMessageRecieved", new Object[]{message});
+									else {
+										int type = 0;
+										if(message.getProps() != null){
+											if(message.getProps().has("file_type")){
+												type = message.getProps().get("file_type").getAsInt();
+												if(type <= 4 && type >= 0)
+													executeInDelegates("onMessageRecieved", new Object[]{message});
+											} else if (message.getProps().has("type")){
+												type = message.getProps().get("type").getAsInt();
+												if(type == 2 || type == 1)
+													executeInDelegates("onMessageRecieved", new Object[]{message});
+											}
+
+										}
+
+										type = message.getMonkeyAction();
+										if (type <= 5 && type >= 1)
+											executeInDelegates("onMessageRecieved", new Object[]{message});
+										else
+											executeInDelegates("onNotificationReceived", new Object[]{message});
+									}
 								}
 								catch (BadPaddingException e){
 									e.printStackTrace();
@@ -905,7 +929,7 @@ public class CriptextLib{
 		
 	}
 
-	public void sendMessage(String idnegative, String elmensaje, String sessionIDFrom, String sessionIDTo, String pushMessage, JSONObject props){
+	public void sendMessage(String idnegative, String elmensaje, String sessionIDFrom, String sessionIDTo, String pushMessage,JSONObject params, JSONObject props){
 
 		if(elmensaje.length()>0){
 
@@ -920,7 +944,10 @@ public class CriptextLib{
 				args.put("msg", aesutil.encrypt(elmensaje));
 				args.put("type", MessageTypes.MOKText);
 				args.put("push", pushMessage);
-				args.put("props", props.toString());
+				if(params != null)
+					args.put("params", props.toString());
+				if(props != null)
+					args.put("props", props.toString());
 
 				json.put("args", args);
 				json.put("cmd", MessageTypes.MOKProtocolMessage);
@@ -937,7 +964,45 @@ public class CriptextLib{
 			}				            
 		}
 	}
-	
+
+	/**
+	 * Envia una notificación.
+	 * @param sessionIDFrom
+	 * @param sessionIDTo
+	 * @param paramsObject
+	 */
+	public void sendNotification(final String sessionIDFrom, final String sessionIDTo, JSONObject paramsObject){
+
+
+		try {
+
+			JSONObject args = new JSONObject();
+			JSONObject json=new JSONObject();
+
+			args.put("sid",sessionIDFrom);
+			args.put("rid",sessionIDTo);
+			args.put("params", paramsObject.toString());
+			args.put("type", MessageTypes.MOKNotif);
+			args.put("msg", "");
+
+			json.put("args", args);
+
+			json.put("cmd", MessageTypes.MOKProtocolMessage);
+
+
+			if(asynConnSocket.isConnected()){
+				System.out.println("MONKEY - Enviando mensaje:"+json.toString());
+				asynConnSocket.sendMessage(json);
+			}
+			else
+				System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
 	public void sendFileMessage(final String idnegative, String elmensaje, final String sessionIDFrom, final String sessionIDTo, String file_type, String eph, String pushMessage){
 
 		if(elmensaje.length()>0){

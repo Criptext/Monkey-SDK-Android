@@ -38,4 +38,5 @@ public interface CriptextLibDelegate {
 	public void onDeleteRecieved(MOKMessage message);
 	
 	public void onContactOpenMyConversation(String sessionID);
+	public void onNotificationReceived(MOKMessage message);
 }
