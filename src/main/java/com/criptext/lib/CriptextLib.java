@@ -1155,4 +1155,10 @@ public class CriptextLib{
 		}		
 	}
 
+	public boolean monkeyIsConnected(){
+		if(asynConnSocket != null)
+			return asynConnSocket.isConnected();
+		return false;
+	}
+
 }
