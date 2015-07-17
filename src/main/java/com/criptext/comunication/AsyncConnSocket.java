@@ -210,7 +210,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				CriptextLib.instance().secondsDelay=5;
 			if(CriptextLib.instance().portionsMessages<10)
 				CriptextLib.instance().portionsMessages=10;
-			CriptextLib.instance().sendGet(CriptextLib.instance().lastMessageId, false);
+			CriptextLib.instance().sendGet(CriptextLib.instance().lastMessageId);
 		}
 	}
 

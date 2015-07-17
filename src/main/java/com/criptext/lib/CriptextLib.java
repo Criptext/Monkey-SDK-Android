@@ -1059,7 +1059,7 @@ public class CriptextLib{
 		}
 	}
 
-	public void sendGet(String since, boolean requestGroups){
+	public void sendGet(String since){
 
 		try {
 
