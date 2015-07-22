@@ -38,7 +38,7 @@ public class CriptextLib{
 	private AQuery aq;
 	private BasicHandle handle;
 	//VARIABLES PARA EL SOCKET
-	public Handler mainMessageHandler;
+	public static Handler mainMessageHandler;
 	private AsyncConnSocket asynConnSocket;
 	public int secondsDelay=2;
 	public int portionsMessages=15;
@@ -361,7 +361,7 @@ public class CriptextLib{
 									if(message.getMsg().length()>0){
 										//PUEDE SER DE TIPO TEXTO O FILE
 										String claves=prefs.getString(message.getSid(), ":");
-										if(claves.compareTo(":")==0){
+										if(claves.compareTo(":")==0 && !message.getSid().startsWith("legacy:")){
 											System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
 											messagesToSendAfterOpen.add(message);
 											sendOpenConversation(sessionId,message.getSid());
