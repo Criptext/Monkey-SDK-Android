@@ -404,6 +404,7 @@ public class CriptextLib{
 								break;
 							case MessageTypes.MOKProtocolAck:
 								try {
+									System.out.println("ack 205");
 									executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
 								} catch (Exception e) {
 									e.printStackTrace();

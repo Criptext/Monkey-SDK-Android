@@ -282,9 +282,8 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 			break;
 		}
 		case MessageTypes.MOKProtocolAck:{			
-			if(args.get("type").getAsString().compareTo("50")==0
-				|| args.get("type").getAsString().compareTo("51")==0
-					|| args.get("type").getAsString().compareTo("52")==0){
+			if(args.get("type").getAsString().equals(MessageTypes.MOKText)
+				|| args.get("type").getAsString().equals(MessageTypes.MOKNotif)){
 				remote=new MOKMessage(props.get("new_id").getAsString(), //En el atributo message_id va el nuevo id
 						args.get("sid").getAsString(),args.get("rid").getAsString(),
 						props.get("old_id").getAsString(), //En el atributo msg mando en el old_id
