@@ -946,7 +946,7 @@ public class CriptextLib{
 				args.put("type", MessageTypes.MOKText);
 				args.put("push", pushMessage);
 				if(params != null)
-					args.put("params", props.toString());
+					args.put("params", params.toString());
 				if(props != null)
 					args.put("props", props.toString());
 
