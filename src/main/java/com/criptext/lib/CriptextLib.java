@@ -1023,6 +1023,7 @@ public class CriptextLib{
 				args.put("sid",sessionIDFrom);					
 				args.put("rid",sessionIDTo);
 				args.put("props",propsMessage);
+				args.put("id",idnegative);
 
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("data", args.toString());
