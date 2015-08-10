@@ -381,6 +381,11 @@ public class CriptextLib{
 												type = message.getProps().get("type").getAsInt();
 												if(type == 2 || type == 1)
 													executeInDelegates("onMessageRecieved", new Object[]{message});
+											} else if(message.getProps().has("monkey_action")){
+												type = message.getProps().get("monkey_action").getAsInt();
+												if(type == MessageTypes.MOKGroupNewMember) {
+													message.setMonkeyAction(type);
+												}
 											}
 
 										}
