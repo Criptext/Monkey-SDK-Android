@@ -237,7 +237,7 @@ public class CriptextLib{
 
 			cb.url(url).type(JSONObject.class).weakHandler(this, "onSession");
 			cb.params(params);
-
+			System.out.println("Params start session: " + params);
 			aq.auth(handle).ajax(cb);    
 		}    
 		catch (Exception e){
