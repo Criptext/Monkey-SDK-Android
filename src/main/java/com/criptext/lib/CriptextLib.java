@@ -483,76 +483,84 @@ public class CriptextLib{
 	
 	/************************************************************************/
 
+	public void downloadFile(String filepath, final JsonObject props, final String sender_id,
+							 final Runnable runnable){
+
+		final String claves=prefs.getString(sender_id, ":");
+		File target = new File(filepath);
+		System.out.println("MONKEY - Descargando:"+ filepath + " " + "http://secure.criptext.com/file/open/"+target.getName());
+		aq.auth(handle).download("http://secure.criptext.com/file/open/"+target.getName(), target, new AjaxCallback<File>(){
+			public void callback(String url, File file, com.androidquery.callback.AjaxStatus status) {
+				if(file != null){
+					//CONVIERTO EL ARCHIVO A STRING
+					Scanner scanner=null;
+					try {
+						scanner = new Scanner(file);
+						StringBuilder fileContents = new StringBuilder((int) file.length());
+						String lineSeparator = System.getProperty("line.separator");
+						while (scanner.hasNextLine()) {
+							fileContents.append(scanner.nextLine() + lineSeparator);
+						}
+						String finalContent = fileContents.toString();
+						byte[] finalData = null;
+						//COMPRUEBO SI DESENCRIPTO EL CONTENIDO DEL ARCHIVO
+						if (props.get("encr").getAsString().compareTo("1") == 0) {
+							//COMPRUEBO SI ES DESDE EL WEB O MOBILE
+							String[] claveArray = claves.split(":");
+							if (props.get("device").getAsString().compareTo("web") == 0) {
+								finalContent = aesutil.decryptWithCustomKeyAndIV(finalContent,
+										claveArray[0], claveArray[1]);
+								finalContent = finalContent.substring(finalContent.indexOf(",") + 1, finalContent.length());
+								finalData = Base64.decode(finalContent.getBytes(), 0);
+							} else {
+								finalData = aesutil.decryptWithCustomKeyAndIV(IOUtils.toByteArray(new FileInputStream(file.getAbsolutePath())),
+										claveArray[0], claveArray[1]);
+							}
+						}
+						//COMPRUEBO SI EL ARCHIVO ESTA COMPRIMIDO
+						if (props.has("cmpr")) {
+							if (props.get("cmpr").getAsString().compareTo("gzip") == 0) {
+								Compressor compressor = new Compressor();
+								finalData = compressor.gzipDeCompress(finalData);
+							}
+						}
+						//VUELVO A GUARDAR EL ARCHIVO
+						FileOutputStream fos = new FileOutputStream(file);
+						fos.write(finalData);
+						fos.close();
+
+						//LE PONGO LA EXTENSION SI LA TIENE
+						if (props.has("ext")) {
+							System.out.println("MONKEY - chmod 777 " + file.getAbsolutePath());
+							Runtime.getRuntime().exec("chmod 777 " + file.getAbsolutePath());
+							//file.renameTo(new File(file.getAbsolutePath()+"."+message.getProps().get("ext").getAsString()));
+						}
+
+						//message.setMsg(file.getAbsolutePath());
+						//message.setFile(file);
+
+						//EXCUTE CALLBACK
+						runnable.run();
+					}catch(Exception e){
+						e.printStackTrace();
+					} finally {
+						if(scanner!=null) scanner.close();
+					}
+
+				}else{
+					System.out.println("MONKEY - File failed to donwload - "+status.getCode()+" - "+status.getMessage());
+				}
+			}
+
+		});
+	}
 	private void procesarMokMessage(final MOKMessage message, final String claves) throws Exception{
 
 		if(message.getProps().has("file_type")){
 			//ME DESCARGO EL ARCHIVO
-			File target = new File(context.getCacheDir().toString(),message.getMsg());
-			System.out.println("MONKEY - Descargando:"+context.getCacheDir().toString()+message.getMsg());
-			aq.auth(handle).download("http://secure.criptext.com/file/open/"+message.getMsg(), target, new AjaxCallback<File>(){
-				public void callback(String url, File file, com.androidquery.callback.AjaxStatus status) {
-					if(file != null){
-						//CONVIERTO EL ARCHIVO A STRING
-						Scanner scanner=null;
-						try {
-							scanner = new Scanner(file);
-					    	StringBuilder fileContents = new StringBuilder((int)file.length());							    
-						    String lineSeparator = System.getProperty("line.separator");							    
-					        while(scanner.hasNextLine()){        
-					            fileContents.append(scanner.nextLine() + lineSeparator);
-					        }
-					        String finalContent=fileContents.toString();
-					        byte[] finalData=null;
-					        //COMPRUEBO SI DESENCRIPTO EL CONTENIDO DEL ARCHIVO
-					        if(message.getProps().get("encr").getAsString().compareTo("1")==0){
-					        	//COMPRUEBO SI ES DESDE EL WEB O MOBILE
-					        	if(message.getProps().get("device").getAsString().compareTo("web")==0){
-					        		finalContent=aesutil.decryptWithCustomKeyAndIV(finalContent, 
-										claves.split(":")[0], claves.split(":")[1]);
-						        	finalContent=finalContent.substring(finalContent.indexOf(",")+1,finalContent.length());
-					        		finalData=Base64.decode(finalContent.getBytes(), 0);
-					        	}
-					        	else {
-					        		finalData=aesutil.decryptWithCustomKeyAndIV(IOUtils.toByteArray(new FileInputStream(file.getAbsolutePath())), 
-											claves.split(":")[0], claves.split(":")[1]);
-					        	}							        
-					        }
-					        //COMPRUEBO SI EL ARCHIVO ESTA COMPRIMIDO
-					        if(message.getProps().has("cmpr")){
-								if(message.getProps().get("cmpr").getAsString().compareTo("gzip")==0){
-									Compressor compressor = new Compressor();    		
-									finalData = compressor.gzipDeCompress(finalData);										
-								}	
-							}						        
-					        //VUELVO A GUARDAR EL ARCHIVO
-					        FileOutputStream fos = new FileOutputStream(file);
-					        fos.write(finalData);
-					        fos.close();			
-					        
-					        //LE PONGO LA EXTENSION SI LA TIENE
-					        if(message.getProps().has("ext")){
-					        	System.out.println("MONKEY - chmod 777 "+ file.getAbsolutePath());
-					        	Runtime.getRuntime().exec("chmod 777 " + file.getAbsolutePath());
-					        	//file.renameTo(new File(file.getAbsolutePath()+"."+message.getProps().get("ext").getAsString()));
-					        }
-					        
-					        message.setMsg(file.getAbsolutePath());
-					        message.setFile(file);
-					        //FINALMENTE ENVIO EL MENSAJE AL APP
-					        executeInDelegates("onMessageRecieved", new Object[]{message});
-						}
-					    catch(Exception e){
-					    	e.printStackTrace();
-					    } finally {
-					    	if(scanner!=null) scanner.close();
-					    }
-					    
-					}else{
-						System.out.println("MONKEY - File failed to donwload - "+status.getCode()+" - "+status.getMessage());
-					}
-				}
-
-			});
+			//downloadFile(message.getMsg(), message.getProps(), message.getSid(), claves);
+			//FINALMENTE ENVIO EL MENSAJE AL APP
+			executeInDelegates("onMessageRecieved", new Object[]{message});
 		}
 		else{
 			//ES DE TIPO TEXTO SIGA NO MAS
@@ -1041,7 +1049,7 @@ public class CriptextLib{
 				//ENCRIPTAMOS
 				finalData=aesutil.encrypt(finalData);
 				
-				params.put("file",finalData);
+				params.put("file", finalData);
 
 				aq.auth(handle).ajax("http://secure.criptext.com/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
 					@Override
