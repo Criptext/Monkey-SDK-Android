@@ -18,7 +18,7 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:19.1.0'
+    compile 'com.android.support:support-v4:22.2.0'
     compile 'com.google.code.gson:gson:2.2.1'
     compile files('libs/android-query-full.0.26.7.jar')
     compile files('libs/commons-io-2.4.jar')
