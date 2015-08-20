@@ -37,15 +37,14 @@ public class CriptextLib{
 	//VARIABLES PARA REQUERIMIENTOS
 	private AQuery aq;
 	private BasicHandle handle;
+	private String urlUser;
+	private String urlPass;
 	//VARIABLES PARA EL SOCKET
 	public static Handler mainMessageHandler;
 	private AsyncConnSocket asynConnSocket;
 	public int secondsDelay=2;
 	public int portionsMessages=15;
 	public String lastMessageId="0";
-	//VARIABLAES DE BASIC AUTH
-	private String urlUser="i8rvzv5gk470d4lv4g5sif6r";//a348146dea9461653424e271825041da
-	private String urlPass="ae855f6354f12a9d058a0ffd1cf258d9";//i6454o3aa1x8pz6rw2whr529
 	private AESUtil aesutil;	
 	//VARIABLES DE LA ACTIVITY
 	private Context context;
@@ -191,13 +190,15 @@ public class CriptextLib{
 	 * @param expiring 0 means not expires and empty means expires
 	 * 
 	 */	
-	public void startSession(String fullname, final String sessionId, String expiring) {
+	public void startSession(String fullname, final String sessionId, String expiring, String user, String pass) {
 
 		this.fullname=fullname;
 		this.sessionid=sessionId;
 		this.expiring=expiring;
 		this.prefs = PreferenceManager.getDefaultSharedPreferences(this.context);
 		this.messagesToSendAfterOpen=new ArrayList<MOKMessage>();
+		this.urlUser = user;
+		this.urlPass = pass;
 
 		//EJECUTO ESTO EN UN ASYNCTASK PORQUE AL GENERAR LAS CLAVES AES SE INHIBE
 		new AsyncTask<Void, Void, Void>(){
@@ -290,12 +291,14 @@ public class CriptextLib{
 	 * @param json
 	 * @param status
 	 */
-	public void onSession(String url, JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onSession(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 
-		if(json!=null){
+		if(jo!=null){
 			try {
 				//Get data from JSON
-				if(json.getInt("error")==0){
+				JSONObject json = jo.getJSONObject("data");
+				System.out.println("response session: " + jo.toString());
+				if(jo.getInt("status")==0){
 					String sessionId= this.sessionid.isEmpty() ? json.getString("sessionId") : this.sessionid;
 					String pubKey=json.getString("publicKey");        	
 					pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
@@ -342,11 +345,12 @@ public class CriptextLib{
 
 	}
 
-	public void onConnect(String url, JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onConnect(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 
-		if(json!=null){
+		if(jo!=null){
 			try {
-				if(json.getInt("error")==0){
+				JSONObject json = jo.getJSONObject("data");
+				if(jo.getInt("status")==0){
 					executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId")});
 					//Get data from JSON
 					final String sessionId=json.getString("sessionId");
@@ -635,11 +639,12 @@ public class CriptextLib{
 		}
 	}
 
-	public void onOpenConversation(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onOpenConversation(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 
-		if(json!=null){    		
-			try {    			    		
-				if(json.getInt("error")==0){
+		if(jo!=null){
+			try {
+				JSONObject json = jo.getJSONObject("data");
+				if(jo.getInt("status")==0){
 					String convKey=json.getString("convKey");
 					String desencriptConvKey=aesutil.decrypt(convKey);
 
@@ -752,11 +757,12 @@ public class CriptextLib{
 		}
 	}
 
-	public void onCreateGroup(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onCreateGroup(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 		
-		if(json!=null){
-			try { 
-				if(json.getInt("error")==0){					
+		if(jo!=null){
+			try {
+				JSONObject json = jo.getJSONObject("data");
+				if(jo.getInt("status")==0){
 					executeInDelegates("onCreateGroupOK", new Object[]{json.getJSONObject("resp").get("group_id")});
 				}
 				else{
@@ -796,11 +802,12 @@ public class CriptextLib{
 		}
 	}
 
-	public void onDeleteGroup(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onDeleteGroup(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 		
-		if(json!=null){
-			try { 
-				if(json.getInt("error")==0){					
+		if(jo!=null){
+			try {
+				JSONObject json = jo.getJSONObject("data");
+				if(jo.getInt("status")==0){
 					executeInDelegates("onDeleteGroupOK", new Object[]{});
 				}
 				else{
@@ -843,13 +850,14 @@ public class CriptextLib{
 		}
 	}
 
-	public void onAddMemberToGroup(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
-		
-		if(json!=null){
-			try { 
+	public void onAddMemberToGroup(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
+
+		if(jo!=null){
+			try {
+				JSONObject json = jo.getJSONObject("data");
 				System.out.println("MONKEY - onAddMemberToGroup - "+json);
 				
-				if(json.getInt("error")==0){					
+				if(jo.getInt("status")==0){
 					executeInDelegates("onAddMemberToGroupOK", new Object[]{});
 				}
 				else{
@@ -895,13 +903,14 @@ public class CriptextLib{
 		}
 	}
 
-	public void onGetGroupInfo(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
+	public void onGetGroupInfo(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 		
-		if(json!=null){
-			try { 
+		if(jo!=null){
+			try {
+				JSONObject json = jo.getJSONObject("data");
 				System.out.println("MONKEY - onGetGroupInfo - "+json);
 				
-				if(json.getInt("error")==0){					
+				if(jo.getInt("status")==0){
 					executeInDelegates("onGetGroupInfoOK", new Object[]{json.getJSONObject("resp")});
 				}
 				else{
@@ -1053,9 +1062,10 @@ public class CriptextLib{
 
 				aq.auth(handle).ajax("http://secure.criptext.com/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
 					@Override
-					public void callback(String url, JSONObject response, AjaxStatus status) {
-						if(response != null){
+					public void callback(String url, JSONObject json, AjaxStatus status) {
+						if(json != null){
 							try {
+								JSONObject response = json.getJSONObject("data");
 								System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
 								executeInDelegates("onAcknowledgeRecieved", new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject(), new JsonObject())});
 							} catch (Exception e) {
