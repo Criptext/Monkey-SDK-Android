@@ -713,7 +713,7 @@ public class CriptextLib{
 		
 		if(json!=null){
 			try { 
-				if(json.getInt("error")==0){					
+				if(json.getInt("status")==0){
 					System.out.println("MONKEY - onSubscribePushOK");
 				}
 				else{
