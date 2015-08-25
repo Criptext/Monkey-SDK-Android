@@ -63,6 +63,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 					//Volver a intentar
 					AsyncConnSocket.this.retries++;
+                    //AsyncConnSocket.this.longTimer.cancel();//SERA QUE ESTO VALE?
 					AsyncConnSocket.this.longTimer.schedule(AsyncConnSocket.this.exponentialTask, timeout^retries);
 
 				} else {
