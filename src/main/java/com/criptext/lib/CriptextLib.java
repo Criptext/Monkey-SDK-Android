@@ -288,7 +288,7 @@ public class CriptextLib{
 	/**
 	 * Evento cuando llega un nuevo session.
 	 * @param url
-	 * @param json
+	 * @param jo
 	 * @param status
 	 */
 	public void onSession(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
@@ -670,7 +670,7 @@ public class CriptextLib{
 					}
 				}
 				else{
-					executeInDelegates("onOpenConversationError", new Object[]{jo.getString("Error number "+jo.getInt("error")+" - "+jo.getString("msg"))});
+					executeInDelegates("onOpenConversationError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -717,7 +717,7 @@ public class CriptextLib{
 					System.out.println("MONKEY - onSubscribePushOK");
 				}
 				else{
-					System.out.println("MONKEY - onSubscribePushError - "+json.getString("Error number "+json.getInt("status")+" - "+json.getString("msg")));
+					System.out.println("MONKEY - onSubscribePushError - "+json.getInt("status")+" - "+json.getString("message"));
 				}
 			}
 			catch(Exception e){
@@ -763,10 +763,10 @@ public class CriptextLib{
 			try {
 				JSONObject json = jo.getJSONObject("data");
 				if(jo.getInt("status")==0){
-					executeInDelegates("onCreateGroupOK", new Object[]{json.getJSONObject("resp").get("group_id")});
+					executeInDelegates("onCreateGroupOK", new Object[]{json.getString("group_id")});
 				}
 				else{
-					executeInDelegates("onCreateGroupError", new Object[]{jo.getString("Error number "+jo.getInt("status")+" - "+jo.getString("msg"))});
+					executeInDelegates("onCreateGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
 				}
 			}
 			catch(Exception e){
@@ -811,7 +811,7 @@ public class CriptextLib{
 					executeInDelegates("onDeleteGroupOK", new Object[]{});
 				}
 				else{
-					executeInDelegates("onDeleteGroupError", new Object[]{jo.getString("Error number "+jo.getInt("status")+" - "+jo.getString("msg"))});
+					executeInDelegates("onDeleteGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
 				}
 			}
 			catch(Exception e){
@@ -861,7 +861,7 @@ public class CriptextLib{
 					executeInDelegates("onAddMemberToGroupOK", new Object[]{});
 				}
 				else{
-					executeInDelegates("onAddMemberToGroupError", new Object[]{jo.getString("Error number "+jo.getInt("status")+" - "+jo.getString("msg"))});
+					executeInDelegates("onAddMemberToGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
 				}
 			}
 			catch(Exception e){
@@ -914,7 +914,7 @@ public class CriptextLib{
 					executeInDelegates("onGetGroupInfoOK", new Object[]{json});
 				}
 				else{
-					executeInDelegates("onGetGroupInfoError", new Object[]{jo.getString("Error number "+json.getInt("status")+" - "+json.getString("msg"))});
+					executeInDelegates("onGetGroupInfoError", new Object[]{jo.getInt("status")+" - "+json.getString("message")});
 				}
 			}
 			catch(Exception e){
