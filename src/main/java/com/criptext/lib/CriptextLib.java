@@ -40,7 +40,7 @@ public class CriptextLib{
 	private String urlUser;
 	private String urlPass;
 	//VARIABLES PARA EL SOCKET
-	public static Handler mainMessageHandler;
+	public Handler mainMessageHandler;
 	private AsyncConnSocket asynConnSocket;
 	public int secondsDelay=2;
 	public int portionsMessages=15;
@@ -256,26 +256,7 @@ public class CriptextLib{
 
 	public void onResume() {
 
-		if(asynConnSocket!=null){
-			try{
-				System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected()+" - asynConnSocket.isInitiated:"+asynConnSocket.isInitiated+" - asynConnSocket.desconexionVerdadera:"+asynConnSocket.desconexionVerdadera);
-				if(!asynConnSocket.isConnected() && !asynConnSocket.isInitiated && !asynConnSocket.desconexionVerdadera){
-					asynConnSocket.desconexionVerdadera=false;	
-					System.out.println("MONKEY - onResume SOCKET fireInTheHole");
-					asynConnSocket.fireInTheHole();
-				}
-				else if(!asynConnSocket.isConnected() && asynConnSocket.isInitiated && asynConnSocket.desconexionVerdadera){
-					asynConnSocket.desconexionVerdadera=false;
-					System.out.println("MONKEY - onResume SOCKET - connect");
-					asynConnSocket.conectSocket();
-				}
-				else{
-					executeInDelegates("onSocketConnected",new Object[]{""});
-				}
-			}catch(Exception e){  
-				e.printStackTrace();
-			}	
-		}
+		startSocketConnection(this.sessionid);
 	}
 	
 	public void sendDisconectOnPull(){
@@ -449,29 +430,7 @@ public class CriptextLib{
 					};		
 
 					/****COMIENZA CONEXION CON EL SOCKET*****/
-					if(asynConnSocket==null) {
-						System.out.println("MONKEY - conectando con el socket - "+sessionId);
-						asynConnSocket = new AsyncConnSocket(context, sessionId, urlUser + ":" + urlPass, mainMessageHandler);
-					}
-					try{
-						System.out.println("MONKEY - onConnect - isConnected:"+asynConnSocket.isConnected()+" - asynConnSocket.isInitiated:"+asynConnSocket.isInitiated+" - asynConnSocket.desconexionVerdadera:"+asynConnSocket.desconexionVerdadera);
-						if(!asynConnSocket.isConnected() && !asynConnSocket.isInitiated && !asynConnSocket.desconexionVerdadera){
-							asynConnSocket.desconexionVerdadera=false;	
-							System.out.println("MONKEY - onConnect SOCKET fireInTheHole");
-							asynConnSocket.fireInTheHole();
-						}
-						else if(!asynConnSocket.isConnected() && asynConnSocket.isInitiated && asynConnSocket.desconexionVerdadera){
-							asynConnSocket.desconexionVerdadera=false;
-							System.out.println("MONKEY - onConnect SOCKET connect");
-							asynConnSocket.conectSocket();
-						}
-						else{
-							executeInDelegates("onSocketConnected", new Object[]{""});
-						}
-					}catch(Exception e){
-						asynConnSocket.desconexionVerdadera=false;
-						e.printStackTrace();
-					}
+					startSocketConnection(sessionId);
 				}
 				else
 					executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
@@ -484,7 +443,41 @@ public class CriptextLib{
 			executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
 		}    	
 	}
-	
+
+	/**
+	 * Se encarga de iniciar la conexion con el socket. Si el objeto asynConnSocket es NULL lo
+	 * inicializa
+	 * @param sessionId Session Id del usuario
+	 */
+	private  void startSocketConnection(String sessionId){
+
+		if(mainMessageHandler == null) {
+			System.out.println("Aun no puedo recibir mensajes");
+			return;
+		}
+		if(asynConnSocket==null) {
+			System.out.println("MONKEY - SOCKET - conectando con el socket - "+sessionId);
+			asynConnSocket = new AsyncConnSocket(context, sessionId, urlUser + ":" + urlPass, mainMessageHandler);
+		}
+
+
+		try{
+			System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected() + " " + asynConnSocket.getSocketStatus());
+			if(asynConnSocket.getSocketStatus() == AsyncConnSocket.Status.sinIniciar){
+				System.out.println("MONKEY - onResume SOCKET fireInTheHole");
+				asynConnSocket.fireInTheHole();
+			}
+			else if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado){
+				System.out.println("MONKEY - onResume SOCKET - connect");
+				asynConnSocket.conectSocket();
+			}
+			else{
+				executeInDelegates("onSocketConnected",new Object[]{""});
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
 	/************************************************************************/
 
 	public void downloadFile(String filepath, final JsonObject props, final String sender_id,

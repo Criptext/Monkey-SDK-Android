@@ -27,32 +27,27 @@ import java.util.TimerTask;
 
 public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComServerDelegate{
 
-	static Object syncObject = new Object();
+
 	private static Context context;	 
 	private String sessionId;
 	private String urlPassword;
-	private Void response;
 	public DarkStarClient socketClient;
-	public Thread threadservices;
 	protected ComServerListener userServerListener;
+	private Void response;
 
-	boolean play=true;
-	boolean start=false;
-
-	public boolean desconexionVerdadera=false;
-	public boolean isInitiated=false;
-	public static boolean _isConnected = false;
-	public static boolean isreadorwrite=false;	
-	public static boolean reconnecting=false;
 	public static int isdisconectfinal=-1;
 
+	public enum Status {sinIniciar, conectado, reconectando, desconectado};
+	private Status socketStatus;
 	public Handler mainMessageHandler;
 	public Handler socketMessageHandler;
 	//TIMEOUT
 	private Timer longTimer;
-	private boolean expired = false;
 	private int retries;
 	private final int timeout = 2000;
+	/** este task vuelve a intentar el login hasta que llega el mensaje de LOGGINMSG_ID indicando
+	 * que ya se conecto correctamente
+	 */
 	private TimerTask exponentialTask = new TimerTask() {
 		public void run() {
 			try {
@@ -68,7 +63,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 				} else {
 					//Si ya se conecto
-					System.out.println("TIMEOUT DONE");
+					//System.out.println("TIMEOUT DONE");
 					AsyncConnSocket.this.retries = 0;
 					longTimer = null;
 				}
@@ -82,11 +77,12 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		this.sessionId=sessionId;
 		this.urlPassword=urlPassword;
 		this.mainMessageHandler=mainMessageHandler;
+		socketStatus = Status.sinIniciar;
 	}
 
 	@Override
 	protected void onCancelled() {
-		isInitiated=false;
+		socketStatus = Status.desconectado;//isInitiated=false;
 		super.onCancelled();
 	}
 
@@ -95,60 +91,33 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	@Override
 	protected void onPostExecute(Void result) {
-		isInitiated=false;
+		//isInitiated=false;
 		super.onPostExecute(result);
 	}
 
 	@SuppressLint("NewApi") 
 	public void fireInTheHole(Void... params){
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
 			this.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,params);
-		else
-			this.execute(params);
 	}
 
-	public void stateWriteorRead(boolean flag){
-		if(_isConnected){
-			if(flag)
-				isreadorwrite=true;
-			else
-				isreadorwrite=false;
-		}
-	}
 
 	private boolean checkInternetConnection(){
-		ConnectivityManager localConnectivityManager = (ConnectivityManager)context.getSystemService("connectivity");
+		ConnectivityManager localConnectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		return (localConnectivityManager.getActiveNetworkInfo() != null) && (localConnectivityManager.getActiveNetworkInfo().isAvailable()) && (localConnectivityManager.getActiveNetworkInfo().isConnected());
 	}
 
 	public void initConnection(){
 
-		isdisconectfinal=0;
-		play=true;
-		while(play){
-			try {        		
-				start=false;
-				if(checkInternetConnection()){
-					play=false;
-					conexionRecursiva();
-				}else{
-					play=true;
-					Thread.sleep(100);
-				}
-
-			} catch (Exception e) {
-				play=false;
-				e.printStackTrace();
-			}  
-		} 	
+		if(checkInternetConnection())
+			conexionRecursiva();
 
 	}
 
 	public void conexionRecursiva(){
 
-		if(desconexionVerdadera==false){
+		if(socketStatus != Status.desconectado){
 
-			reconnecting=true;
+			socketStatus = Status.reconectando;
 			userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
 			socketClient = new DarkStarSocketClient("secure.criptext.com",1139,(DarkStarListener)userServerListener);
 			retries = 0;
@@ -171,12 +140,8 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		}
 	}
 
-	public void set_WriteOrRead(boolean flag){
-		AsyncConnSocket.isreadorwrite=flag;
-	}
-
 	public boolean isConnected(){
-		return _isConnected;
+		return socketStatus == Status.conectado;
 	}
 
 	@Override
@@ -186,8 +151,9 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	public void parseMessage(ComMessage socketMessage) {
 		if(socketMessage!=null){
-			int cmd = socketMessage.getMessageCmd();			
-			_isConnected = true;
+			int cmd = socketMessage.getMessageCmd();
+			if(socketStatus != Status.desconectado)
+				socketStatus = Status.conectado;
 			JsonObject args = socketMessage.getArgs().getAsJsonObject();
 
 			/**if(cmd == ComMessageProtocol.MESSAGE_LIST){
@@ -349,8 +315,8 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	public void handleEvent(short evid) {
 
 		if(evid==ComMessageProtocol.LOGGINMSG_ID){
-			reconnecting=false;
-			_isConnected=true;
+			//Este es el mensaje que indica que ya estoy conectado
+			socketStatus = Status.conectado;
 			System.out.println("Conectado al Socket!");
 			Message msg = mainMessageHandler.obtainMessage();			      
 			msg.what=MessageTypes.MessageSocketConnected;
@@ -358,18 +324,15 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		}
 		else if(evid==ComMessageProtocol.FAILLOGGINMSG){
 			//REMOTE LOGOUT DESDE EL SOCKET
-			_isConnected=false;
-			desconexionVerdadera=true;
-			reconnecting=false;
+			socketStatus = Status.desconectado;
 			System.out.println("Desconectado del Socket!!");
 			Message msg = mainMessageHandler.obtainMessage();			      
 			msg.what=MessageTypes.MessageSocketDisconnected;
 			mainMessageHandler.sendMessage(msg);
 		}else if(evid==ComMessageProtocol.FAILLOGGINMSGDISCONECT){
 			//REMOTE LOGOUT DESDE EL SOCKET
-			_isConnected=false;
+			socketStatus = Status.desconectado;
 			disconnected();
-			reconnecting=false;
 			System.out.println("Desconectado del Socket!");
 			Message msg = mainMessageHandler.obtainMessage();			      
 			msg.what=MessageTypes.MessageSocketDisconnected;
@@ -380,12 +343,8 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	@Override
 	public void disconnected(){
-		_isConnected=false;
-		if(!desconexionVerdadera)
+		if(socketStatus != Status.desconectado)
 			initConnection();
-		else{
-			isdisconectfinal=1;
-		}
 
 	}
 
@@ -393,7 +352,6 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	@Override
 	protected Void doInBackground(Void... params) {
 
-		isInitiated=true;
 		initConnection();
 
 		Looper.prepare();
@@ -407,20 +365,20 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 					if(msg.obj.toString().compareTo("desconectar")==0){
 						if(isConnected()){
-							desconexionVerdadera=true;
+							socketStatus = Status.desconectado;
 							socketClient.logout(true);
 						}
 					}
 					if(msg.obj.toString().compareTo("logout")==0){
-						if(isConnected()){	                		
-							desconexionVerdadera=true;
+						if(isConnected()){
+							socketStatus = Status.desconectado;
 							socketClient.sendToSession(MessageManager.encodeString("{\"cmd\":\"80\",\"args\":{}}"));
 							socketClient.logout(false);
 						}
 					}
 					else if(msg.obj.toString().compareTo("desconectarpull")==0){
-						if(isConnected()){	                		
-							desconexionVerdadera=false;
+						if(isConnected()){
+							socketStatus = Status.conectado;
 							socketClient.logout(true);
 						}
 					}
@@ -476,8 +434,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	public void disconectSocket(){
 		try {
-			if(isInitiated){
-				desconexionVerdadera=true;
+			if(socketStatus != Status.desconectado){
 				if(socketMessageHandler!=null){
 					Message msg = socketMessageHandler.obtainMessage();			      
 					msg.obj ="desconectar";
@@ -510,8 +467,8 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	public void sendLogout(){
 		try {
-			if(isInitiated){
-				desconexionVerdadera=true;
+			if(socketStatus != Status.desconectado){
+				socketStatus = Status.desconectado;
 				Message msg = socketMessageHandler.obtainMessage();			      
 				msg.obj ="logout";
 				socketMessageHandler.sendMessage(msg);
@@ -523,7 +480,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	
 	public void sendDisconectFromPull(){
 		try {
-			if(isInitiated){
+			if(socketStatus != Status.desconectado){
 				Message msg = socketMessageHandler.obtainMessage();			      
 				msg.obj ="desconectarpull";
 				socketMessageHandler.sendMessage(msg);
@@ -532,6 +489,10 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 			e.printStackTrace();
 		}
+	}
+
+	public Status getSocketStatus(){
+		return socketStatus;
 	}
 
 }
