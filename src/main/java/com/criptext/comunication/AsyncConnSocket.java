@@ -41,6 +41,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	private Status socketStatus;
 	public Handler mainMessageHandler;
 	public Handler socketMessageHandler;
+	private Runnable lastAction = null;
 	//TIMEOUT
 	private Timer longTimer;
 	private int retries;
@@ -66,6 +67,10 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 					//System.out.println("TIMEOUT DONE");
 					AsyncConnSocket.this.retries = 0;
 					longTimer = null;
+					if(lastAction != null) {
+						lastAction.run();
+						lastAction = null;
+					}
 				}
 			} catch(IOException ex){
 				ex.printStackTrace();
@@ -77,6 +82,15 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		this.sessionId=sessionId;
 		this.urlPassword=urlPassword;
 		this.mainMessageHandler=mainMessageHandler;
+		socketStatus = Status.sinIniciar;
+	}
+
+	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler, Runnable r) {
+		AsyncConnSocket.context=context;
+		this.sessionId=sessionId;
+		this.urlPassword=urlPassword;
+		this.mainMessageHandler=mainMessageHandler;
+		this.lastAction = r;
 		socketStatus = Status.sinIniciar;
 	}
 
