@@ -1064,6 +1064,7 @@ public class CriptextLib{
 					@Override
 					public void callback(String url, JSONObject json, AjaxStatus status) {
 						if(json != null){
+                            System.out.println(json);
 							try {
 								JSONObject response = json.getJSONObject("data");
 								System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
