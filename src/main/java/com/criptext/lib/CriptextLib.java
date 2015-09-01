@@ -40,7 +40,7 @@ public class CriptextLib{
 	private String urlUser;
 	private String urlPass;
 	//VARIABLES PARA EL SOCKET
-	public static Handler mainMessageHandler;
+	public Handler mainMessageHandler;
 	private AsyncConnSocket asynConnSocket;
 	public int secondsDelay=2;
 	public int portionsMessages=15;
@@ -256,26 +256,7 @@ public class CriptextLib{
 
 	public void onResume() {
 
-		if(asynConnSocket!=null){
-			try{
-				System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected()+" - asynConnSocket.isInitiated:"+asynConnSocket.isInitiated+" - asynConnSocket.desconexionVerdadera:"+asynConnSocket.desconexionVerdadera);
-				if(!asynConnSocket.isConnected() && !asynConnSocket.isInitiated && !asynConnSocket.desconexionVerdadera){
-					asynConnSocket.desconexionVerdadera=false;	
-					System.out.println("MONKEY - onResume SOCKET fireInTheHole");
-					asynConnSocket.fireInTheHole();
-				}
-				else if(!asynConnSocket.isConnected() && asynConnSocket.isInitiated && asynConnSocket.desconexionVerdadera){
-					asynConnSocket.desconexionVerdadera=false;
-					System.out.println("MONKEY - onResume SOCKET - connect");
-					asynConnSocket.conectSocket();
-				}
-				else{
-					executeInDelegates("onSocketConnected",new Object[]{""});
-				}
-			}catch(Exception e){  
-				e.printStackTrace();
-			}	
-		}
+		startSocketConnection(this.sessionid, null);
 	}
 	
 	public void sendDisconectOnPull(){
@@ -449,29 +430,7 @@ public class CriptextLib{
 					};		
 
 					/****COMIENZA CONEXION CON EL SOCKET*****/
-					if(asynConnSocket==null) {
-						System.out.println("MONKEY - conectando con el socket - "+sessionId);
-						asynConnSocket = new AsyncConnSocket(context, sessionId, urlUser + ":" + urlPass, mainMessageHandler);
-					}
-					try{
-						System.out.println("MONKEY - onConnect - isConnected:"+asynConnSocket.isConnected()+" - asynConnSocket.isInitiated:"+asynConnSocket.isInitiated+" - asynConnSocket.desconexionVerdadera:"+asynConnSocket.desconexionVerdadera);
-						if(!asynConnSocket.isConnected() && !asynConnSocket.isInitiated && !asynConnSocket.desconexionVerdadera){
-							asynConnSocket.desconexionVerdadera=false;	
-							System.out.println("MONKEY - onConnect SOCKET fireInTheHole");
-							asynConnSocket.fireInTheHole();
-						}
-						else if(!asynConnSocket.isConnected() && asynConnSocket.isInitiated && asynConnSocket.desconexionVerdadera){
-							asynConnSocket.desconexionVerdadera=false;
-							System.out.println("MONKEY - onConnect SOCKET connect");
-							asynConnSocket.conectSocket();
-						}
-						else{
-							executeInDelegates("onSocketConnected", new Object[]{""});
-						}
-					}catch(Exception e){
-						asynConnSocket.desconexionVerdadera=false;
-						e.printStackTrace();
-					}
+					startSocketConnection(sessionId, null);
 				}
 				else
 					executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
@@ -484,7 +443,42 @@ public class CriptextLib{
 			executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
 		}    	
 	}
-	
+
+	/**
+	 * Se encarga de iniciar la conexion con el socket. Si el objeto asynConnSocket es NULL lo
+	 * inicializa.
+	 * @param sessionId Session Id del usuario
+	 * @param lastAction runnable con la ultima accion que se trato de ejecutar antes de reiniciar la conexion
+	 */
+	private  void startSocketConnection(String sessionId, Runnable lastAction){
+
+		if(mainMessageHandler == null) {
+			System.out.println("Aun no puedo recibir mensajes");
+			return;
+		}
+		if(asynConnSocket==null) {
+			System.out.println("MONKEY - SOCKET - conectando con el socket - "+sessionId);
+			asynConnSocket = new AsyncConnSocket(context, sessionId, urlUser + ":" + urlPass, mainMessageHandler, lastAction);
+		}
+
+
+		try{
+			System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected() + " " + asynConnSocket.getSocketStatus());
+			if(asynConnSocket.getSocketStatus() == AsyncConnSocket.Status.sinIniciar){
+				System.out.println("MONKEY - onResume SOCKET fireInTheHole");
+				asynConnSocket.fireInTheHole();
+			}
+			else if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado){
+				System.out.println("MONKEY - onResume SOCKET - connect");
+				asynConnSocket.conectSocket();
+			}
+			else{
+				executeInDelegates("onSocketConnected",new Object[]{""});
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
 	/************************************************************************/
 
 	public void downloadFile(String filepath, final JsonObject props, final String sender_id,
@@ -952,7 +946,9 @@ public class CriptextLib{
 		
 	}
 
-	public void sendMessage(String idnegative, String elmensaje, String sessionIDFrom, String sessionIDTo, String pushMessage,JSONObject params, JSONObject props){
+	public void sendMessage(final String idnegative,final String elmensaje, final String sessionIDFrom,
+							final String sessionIDTo, final String pushMessage, final JSONObject params,
+							final JSONObject props){
 
 		if(elmensaje.length()>0){
 
@@ -982,7 +978,19 @@ public class CriptextLib{
 				else
 					System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
 
-			} catch (Exception e) {
+			}
+			catch(NullPointerException ex){
+				if(asynConnSocket == null)
+					startSocketConnection(sessionIDFrom, new Runnable() {
+						@Override
+						public void run() {
+							sendMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo, pushMessage, params, props);
+						}
+					});
+				else
+					ex.printStackTrace();
+			}
+			catch (Exception e) {
 				e.printStackTrace();
 			}				            
 		}
@@ -994,7 +1002,7 @@ public class CriptextLib{
 	 * @param sessionIDTo
 	 * @param paramsObject
 	 */
-	public void sendNotification(final String sessionIDFrom, final String sessionIDTo, JSONObject paramsObject){
+	public void sendNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject){
 
 
 		try {
@@ -1020,13 +1028,25 @@ public class CriptextLib{
 			else
 				System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
 
-		} catch (Exception e) {
+		} catch(NullPointerException ex){
+			if(asynConnSocket == null)
+				startSocketConnection(sessionIDFrom, new Runnable() {
+					@Override
+					public void run() {
+						sendNotification(sessionIDFrom, sessionIDTo, paramsObject);
+					}
+				});
+			else
+				ex.printStackTrace();
+		}catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 
-	public void sendFileMessage(final String idnegative, String elmensaje, final String sessionIDFrom, final String sessionIDTo, String file_type, String eph, String pushMessage){
+	public void sendFileMessage(final String idnegative, final String elmensaje, final String sessionIDFrom,
+								final String sessionIDTo, final String file_type, final String eph,
+								final String pushMessage){
 
 		if(elmensaje.length()>0){
 
@@ -1079,13 +1099,24 @@ public class CriptextLib{
 					}
 				});
 
+			} catch(NullPointerException ex){
+				if(asynConnSocket == null)
+					startSocketConnection(sessionIDFrom, new Runnable() {
+						@Override
+						public void run() {
+							sendFileMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo,
+									file_type, eph, pushMessage);
+						}
+					});
+				else
+					ex.printStackTrace();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}				            
 		}
 	}
 
-	public void sendGet(String since){
+	public void sendGet(final String since){
 
 		try {
 
@@ -1108,13 +1139,23 @@ public class CriptextLib{
 			else
 				System.out.println("MONKEY - no pudo enviar Get - socket desconectado");
 
-		} catch (Exception e) {
+		} catch(NullPointerException ex){
+			if(asynConnSocket == null)
+				startSocketConnection(this.sessionid, new Runnable() {
+					@Override
+					public void run() {
+						sendGet(since);
+					}
+				});
+			else
+				ex.printStackTrace();
+		}catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		lastMessageId=since;
 	}
-	public void sendSet(String online){
+	public void sendSet(final String online){
 
 		try {
 			JSONObject args=new JSONObject();
@@ -1131,12 +1172,22 @@ public class CriptextLib{
 			else
 				System.out.println("MONKEY - no pudo enviar Set - socket desconectado");
 
-		} catch (Exception e) {
+		} catch(NullPointerException ex){
+			if(asynConnSocket == null)
+				startSocketConnection(this.sessionid, new Runnable() {
+					@Override
+					public void run() {
+						sendSet(online);
+					}
+				});
+			else
+				ex.printStackTrace();
+		}catch (Exception e) {
 			e.printStackTrace();
 		}		
 	}
 	
-	public void sendClose(String sessionid){
+	public void sendClose(final String sessionid){
 
 		try {
 			JSONObject args=new JSONObject();
@@ -1153,12 +1204,22 @@ public class CriptextLib{
 			else
 				System.out.println("MONKEY - no pudo enviar Close - socket desconectado");
 
-		} catch (Exception e) {
+		} catch(NullPointerException ex){
+			if(asynConnSocket == null)
+				startSocketConnection(this.sessionid, new Runnable() {
+					@Override
+					public void run() {
+						sendClose(sessionid);
+					}
+				});
+			else
+				ex.printStackTrace();
+		}catch (Exception e) {
 			e.printStackTrace();
 		}		
 	}
 	
-	public void sendDelete(String sessionid, String messageid){
+	public void sendDelete(final String sessionid, final String messageid){
 
 		try {
 			JSONObject args=new JSONObject();
@@ -1176,7 +1237,17 @@ public class CriptextLib{
 			else
 				System.out.println("MONKEY - no pudo enviar Delete - socket desconectado");
 
-		} catch (Exception e) {
+		} catch(NullPointerException ex){
+			if(asynConnSocket == null)
+				startSocketConnection(this.sessionid, new Runnable() {
+					@Override
+					public void run() {
+						sendDelete(sessionid, messageid);
+					}
+				});
+			else
+				ex.printStackTrace();
+		}catch (Exception e) {
 			e.printStackTrace();
 		}		
 	}
