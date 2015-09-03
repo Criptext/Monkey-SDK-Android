@@ -58,9 +58,10 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 					AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
 
 					//Volver a intentar
-					AsyncConnSocket.this.retries++;
+					//AsyncConnSocket.this.retries++;
                     //AsyncConnSocket.this.longTimer.cancel();//SERA QUE ESTO VALE?
-					AsyncConnSocket.this.longTimer.schedule(AsyncConnSocket.this.exponentialTask, timeout^retries);
+                    //AsyncConnSocket.this.longTimer=new Timer();
+					//AsyncConnSocket.this.longTimer.schedule(AsyncConnSocket.this.exponentialTask, timeout^retries);
 
 				} else {
 					//Si ya se conecto
