@@ -8,6 +8,7 @@ import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
@@ -24,8 +25,9 @@ import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.SocketHandler;
 
-public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComServerDelegate{
+public class AsyncConnSocket implements ComServerDelegate{
 
 
 	private static Context context;	 
@@ -33,6 +35,7 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	private String urlPassword;
 	public DarkStarClient socketClient;
 	protected ComServerListener userServerListener;
+	private HandlerThread handlerThread;
 	private Void response;
 
 	public static int isdisconectfinal=-1;
@@ -46,44 +49,14 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	private Timer longTimer;
 	private int retries;
 	private final int timeout = 2000;
-	/** este task vuelve a intentar el login hasta que llega el mensaje de LOGGINMSG_ID indicando
-	 * que ya se conecto correctamente
-	 */
-	private TimerTask exponentialTask = new TimerTask() {
-		public void run() {
-			try {
-				if(!isConnected()) {
-					System.out.println("retrying connection. attempt #" + retries);
-					socketClient.connect();
-					AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
 
-					//Volver a intentar
-					//AsyncConnSocket.this.retries++;
-                    //AsyncConnSocket.this.longTimer.cancel();//SERA QUE ESTO VALE?
-                    //AsyncConnSocket.this.longTimer=new Timer();
-					//AsyncConnSocket.this.longTimer.schedule(AsyncConnSocket.this.exponentialTask, timeout^retries);
-
-				} else {
-					//Si ya se conecto
-					//System.out.println("TIMEOUT DONE");
-					AsyncConnSocket.this.retries = 0;
-					longTimer = null;
-					if(lastAction != null) {
-						lastAction.run();
-						lastAction = null;
-					}
-				}
-			} catch(IOException ex){
-				ex.printStackTrace();
-			}
-		}
-	};
 	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler) {
 		AsyncConnSocket.context=context;
 		this.sessionId=sessionId;
 		this.urlPassword=urlPassword;
 		this.mainMessageHandler=mainMessageHandler;
 		socketStatus = Status.sinIniciar;
+		this.retries = 0;
 	}
 
 	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler, Runnable r) {
@@ -93,26 +66,73 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		this.mainMessageHandler=mainMessageHandler;
 		this.lastAction = r;
 		socketStatus = Status.sinIniciar;
+		this.retries = 0;
 	}
 
-	@Override
-	protected void onCancelled() {
-		socketStatus = Status.desconectado;//isInitiated=false;
-		super.onCancelled();
-	}
 
 	@Override
 	public void promptAction(String action) {}
 
-	@Override
-	protected void onPostExecute(Void result) {
-		//isInitiated=false;
-		super.onPostExecute(result);
-	}
 
-	@SuppressLint("NewApi") 
-	public void fireInTheHole(Void... params){
-			this.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,params);
+	public void fireInTheHole(){
+		if(socketStatus != Status.conectado)
+			initConnection();
+		if(handlerThread != null){
+			handlerThread.quit();
+		}
+		handlerThread = new HandlerThread("AsyncConnSocketThread");
+		handlerThread.start();
+		socketMessageHandler = new Handler(handlerThread.getLooper()) {
+
+			public void handleMessage(Message msg) {
+
+				try {
+					Thread.sleep(100);
+					if(msg.obj.toString().compareTo("desconectar")==0){
+						if(isConnected()){
+							socketStatus = Status.desconectado;
+							socketClient.logout(true);
+							this.getLooper().quit();
+						}
+					}
+					if(msg.obj.toString().compareTo("logout")==0){
+						if(isConnected()){
+							socketStatus = Status.desconectado;
+							socketClient.sendToSession(MessageManager.encodeString("{\"cmd\":\"80\",\"args\":{}}"));
+							socketClient.logout(false);
+						}
+					}
+					else if(msg.obj.toString().compareTo("desconectarpull")==0){
+						if(isConnected()){
+							socketStatus = Status.conectado;
+							socketClient.logout(true);
+						}
+					}
+					else if(msg.obj.toString().compareTo("conectar")==0){
+
+						if(!isConnected()){
+							initConnection();
+						}
+
+					}
+					else{
+
+						if(isConnected()){
+							System.out.println("Socket - Sending Message: "+msg.obj.toString());
+							socketClient.sendToSession(MessageManager.encodeString(msg.obj.toString()));
+						}
+						else{
+							System.out.println("NO se pudo enviar mensaje Socket desconectado");
+						}
+
+					}
+
+				}
+				catch(Exception ex){
+					ex.printStackTrace();
+				}
+			}
+		};
 	}
 
 
@@ -122,37 +142,52 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 	}
 
 	public void initConnection(){
-
+    	System.out.println("INICIANDO CONEXION SOCKET");
 		if(checkInternetConnection())
 			conexionRecursiva();
+		else
+			System.out.println("NO HAY INTERNET");
 
 	}
 
 	public void conexionRecursiva(){
 
-		if(socketStatus != Status.desconectado){
-
-			socketStatus = Status.reconectando;
-			userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
-			socketClient = new DarkStarSocketClient("secure.criptext.com",1139,(DarkStarListener)userServerListener);
-			retries = 0;
-
+		socketStatus = Status.reconectando;
+		userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
+		socketClient = new DarkStarSocketClient("secure.criptext.com",1139,(DarkStarListener)userServerListener);
+		retries = 0;
+		Thread connThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
 				try {
-					socketClient.connect();
-					this.socketClient.login(this.sessionId, urlPassword);
 
-					if(longTimer != null) {
-						longTimer.cancel();
-						longTimer = null;
+					while (AsyncConnSocket.this.getSocketStatus() != Status.conectado) {
+						System.out.println("RECONNECTING");
+						socketClient.connect();
+						AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
+
+						Thread.sleep(timeout);
 					}
 
-					if(longTimer == null) {
-						longTimer = new Timer();
-						longTimer.schedule(exponentialTask, timeout /*delay in milliseconds i.e. 5 min = 300000 ms or use timeout argument*/);
-					}
-				} catch (Exception e) {	
+
+					Handler handler = new Handler(Looper.getMainLooper());
+					handler.post(new Runnable() {
+						public void run() {
+							System.out.println("SOCKET IS CONNECTED");
+							fireInTheHole();
+
+						}
+					});
+
+
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-		}
+			}
+		});
+		connThread.start();
+
+
 	}
 
 	public boolean isConnected(){
@@ -363,71 +398,6 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	}
 
-	@SuppressLint("HandlerLeak") 
-	@Override
-	protected Void doInBackground(Void... params) {
-
-		initConnection();
-
-		Looper.prepare();
-		socketMessageHandler = new Handler() {
-
-			public void handleMessage(Message msg) {
-
-				try {  								
-
-					Thread.sleep(100);
-
-					if(msg.obj.toString().compareTo("desconectar")==0){
-						if(isConnected()){
-							socketStatus = Status.desconectado;
-							socketClient.logout(true);
-						}
-					}
-					if(msg.obj.toString().compareTo("logout")==0){
-						if(isConnected()){
-							socketStatus = Status.desconectado;
-							socketClient.sendToSession(MessageManager.encodeString("{\"cmd\":\"80\",\"args\":{}}"));
-							socketClient.logout(false);
-						}
-					}
-					else if(msg.obj.toString().compareTo("desconectarpull")==0){
-						if(isConnected()){
-							socketStatus = Status.conectado;
-							socketClient.logout(true);
-						}
-					}
-					else if(msg.obj.toString().compareTo("conectar")==0){
-
-						if(!isConnected()){
-							initConnection();
-						}	
-
-					}
-					else{
-
-						if(isConnected()){
-							System.out.println("Socket - Sending Message: "+msg.obj.toString());
-							socketClient.sendToSession(MessageManager.encodeString(msg.obj.toString()));	 
-						}
-						else{
-							System.out.println("NO se pudo enviar mensaje Socket desconectado");
-						}
-
-					}  					
-
-				}
-				catch(Exception ex){
-					ex.printStackTrace();
-				}
-			}
-		};
-
-		Looper.loop();
-
-		return response;
-	}
-
 	/*****************************/
 	/****FUNCIONES DEL SOCKET*****/
 	/*****************************/
@@ -440,8 +410,10 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 				System.out.println("MONKEY - AsyncConnSocket - enviando mensaje");
 				socketMessageHandler.sendMessage(msg);
 			}
-			else
+			else {
 				System.out.println("MONKEY - AsyncConnSocket - socketMessageHandler es null");
+				fireInTheHole();
+			}
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -480,6 +452,25 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 		}	     
 	}
 
+	public void conectSocket(Runnable r){
+		try {
+			lastAction = r;
+			if(!isConnected()){
+				if(socketMessageHandler==null){
+					System.out.println("MONKEY - mandaron a conectar pero no esta inicializado el socketMessageHandler");
+					fireInTheHole();
+				}
+				else{
+					System.out.println("MONKEY - mandaron a conectar y SI esta inicializado el socketMessageHandler");
+					Message msg = socketMessageHandler.obtainMessage();
+					msg.obj ="conectar";
+					socketMessageHandler.sendMessage(msg);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	public void sendLogout(){
 		try {
 			if(socketStatus != Status.desconectado){
@@ -508,6 +499,13 @@ public class AsyncConnSocket extends AsyncTask<Void, Void, Void> implements ComS
 
 	public Status getSocketStatus(){
 		return socketStatus;
+	}
+
+	public void removeContext(){
+		this.context = null;
+		if(handlerThread != null)
+			handlerThread.quit();
+
 	}
 
 }
