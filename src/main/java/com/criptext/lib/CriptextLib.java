@@ -464,16 +464,24 @@ public class CriptextLib{
 
 		try{
 			System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected() + " " + asynConnSocket.getSocketStatus());
+			/*
 			if(asynConnSocket.getSocketStatus() == AsyncConnSocket.Status.sinIniciar){
 				System.out.println("MONKEY - onResume SOCKET fireInTheHole");
 				asynConnSocket.fireInTheHole();
-			}
-			else if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado){
+			} */
+			if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado) {
 				System.out.println("MONKEY - onResume SOCKET - connect");
-				asynConnSocket.conectSocket();
-			}
-			else{
-				executeInDelegates("onSocketConnected",new Object[]{""});
+				asynConnSocket.conectSocket(new Runnable(){
+					@Override
+					public void run() {
+						//if(CriptextLib.instance() != null)
+						//	CriptextLib.instance().executeInDelegates("onSocketConnected", new Object[]{""});
+
+					}
+
+				});
+			}else{
+				executeInDelegates("onSocketConnected", new Object[]{""});
 			}
 		}catch(Exception e){
 			e.printStackTrace();
@@ -1253,9 +1261,16 @@ public class CriptextLib{
 	}
 
 	public boolean monkeyIsConnected(){
-		if(asynConnSocket != null)
+		if(asynConnSocket != null && asynConnSocket.getSocketStatus() == AsyncConnSocket.Status.conectado)
 			return asynConnSocket.isConnected();
 		return false;
+	}
+
+	public void destroyCriptextLib(){
+		asynConnSocket.removeContext();
+		asynConnSocket.socketMessageHandler = null;
+		context = null;
+
 	}
 
 }
