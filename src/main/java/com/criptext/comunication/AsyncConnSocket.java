@@ -30,7 +30,6 @@ import java.util.logging.SocketHandler;
 public class AsyncConnSocket implements ComServerDelegate{
 
 
-	private static Context context;	 
 	private String sessionId;
 	private String urlPassword;
 	public DarkStarClient socketClient;
@@ -49,8 +48,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 	private Timer longTimer;
 	private int retries;
 	private final int timeout = 2000;
-	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler) {
-		AsyncConnSocket.context=context;
+	public AsyncConnSocket(String sessionId, String urlPassword, Handler mainMessageHandler) {
 		this.sessionId=sessionId;
 		this.urlPassword=urlPassword;
 		this.mainMessageHandler=mainMessageHandler;
@@ -58,8 +56,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 		this.retries = 0;
 	}
 
-	public AsyncConnSocket(Context context, String sessionId, String urlPassword, Handler mainMessageHandler, Runnable r) {
-		AsyncConnSocket.context=context;
+	public AsyncConnSocket(String sessionId, String urlPassword, Handler mainMessageHandler, Runnable r) {
 		this.sessionId=sessionId;
 		this.urlPassword=urlPassword;
 		this.mainMessageHandler=mainMessageHandler;
@@ -134,18 +131,9 @@ public class AsyncConnSocket implements ComServerDelegate{
 		};
 	}
 
-
-	private boolean checkInternetConnection(){
-		ConnectivityManager localConnectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-		return (localConnectivityManager.getActiveNetworkInfo() != null) && (localConnectivityManager.getActiveNetworkInfo().isAvailable()) && (localConnectivityManager.getActiveNetworkInfo().isConnected());
-	}
-
 	public void initConnection(){
     	System.out.println("INICIANDO CONEXION SOCKET");
-		if(checkInternetConnection())
-			conexionRecursiva();
-		else
-			System.out.println("NO HAY INTERNET");
+		conexionRecursiva();
 
 	}
 
@@ -174,6 +162,8 @@ public class AsyncConnSocket implements ComServerDelegate{
 						public void run() {
 							System.out.println("SOCKET IS CONNECTED");
 							fireInTheHole();
+							if(lastAction != null)
+								lastAction.run();
 
 						}
 					});
@@ -501,7 +491,6 @@ public class AsyncConnSocket implements ComServerDelegate{
 	}
 
 	public void removeContext(){
-		this.context = null;
 		if(handlerThread != null)
 			handlerThread.quit();
 

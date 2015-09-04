@@ -458,7 +458,7 @@ public class CriptextLib{
 		}
 		if(asynConnSocket==null) {
 			System.out.println("MONKEY - SOCKET - conectando con el socket - "+sessionId);
-			asynConnSocket = new AsyncConnSocket(context, sessionId, urlUser + ":" + urlPass, mainMessageHandler, lastAction);
+			asynConnSocket = new AsyncConnSocket(sessionId, urlUser + ":" + urlPass, mainMessageHandler, lastAction);
 		}
 
 
@@ -1267,8 +1267,10 @@ public class CriptextLib{
 	}
 
 	public void destroyCriptextLib(){
-		asynConnSocket.removeContext();
-		asynConnSocket.socketMessageHandler = null;
+		if(asynConnSocket != null) {
+			asynConnSocket.removeContext();
+			asynConnSocket.socketMessageHandler = null;
+		}
 		context = null;
 
 	}
