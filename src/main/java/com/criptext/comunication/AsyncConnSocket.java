@@ -446,7 +446,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 		try {
 			lastAction = r;
 			if(!isConnected()){
-				if(socketMessageHandler==null){
+				if(socketMessageHandler==null || handlerThread == null || !handlerThread.isAlive()){
 					System.out.println("MONKEY - mandaron a conectar pero no esta inicializado el socketMessageHandler");
 					fireInTheHole();
 				}
