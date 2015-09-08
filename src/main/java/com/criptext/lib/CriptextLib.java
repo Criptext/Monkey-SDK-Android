@@ -96,7 +96,7 @@ public class CriptextLib{
 			}
 		}else if(method.compareTo("onConnectOK")==0){
 			for(int i=0;i<delegates.size();i++){
-				delegates.get(i).onConnectOK((String)info[0]);
+				delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
 			}
 		}else if(method.compareTo("onMessageRecieved")==0){
 			for(int i=0;i<delegates.size();i++){
@@ -332,7 +332,7 @@ public class CriptextLib{
 			try {
 				JSONObject json = jo.getJSONObject("data");
 				if(jo.getInt("status")==0){
-					executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId")});
+					executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId"),json.getString("last_message_id")});
 					//Get data from JSON
 					final String sessionId=json.getString("sessionId");
 

@@ -9,7 +9,7 @@ public interface CriptextLibDelegate {
 	public void onSessionOK();
 	public void onSessionError(String errmsg);
 	
-	public void onConnectOK(String sessionID);
+	public void onConnectOK(String sessionID, String lastMessageID);
 	public void onConnectError(String errmsg);
 	
 	public void onSocketConnected();
