@@ -11,6 +11,8 @@ import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -1055,21 +1057,20 @@ public class CriptextLib{
 	public void sendFileMessage(final String idnegative, final String elmensaje, final String sessionIDFrom,
 								final String sessionIDTo, final String file_type, final String eph,
 								final String pushMessage){
-
 		if(elmensaje.length()>0){
 
 			try {
 
 				JSONObject args = new JSONObject();
 				JSONObject propsMessage = new JSONObject();
-				
 				propsMessage.put("cmpr", "gzip");
 				propsMessage.put("device", "android");
 				propsMessage.put("encr", "1");
 				propsMessage.put("eph", eph);
 				propsMessage.put("file_type", file_type);
 				propsMessage.put("str", "0");
-				
+				propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
+
 				args.put("sid",sessionIDFrom);					
 				args.put("rid",sessionIDTo);
 				args.put("props",propsMessage);
@@ -1088,6 +1089,7 @@ public class CriptextLib{
 				
 				params.put("file", finalData);
 
+				System.out.println("send file: " + params);
 				aq.auth(handle).ajax("http://secure.criptext.com/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
 					@Override
 					public void callback(String url, JSONObject json, AjaxStatus status) {
