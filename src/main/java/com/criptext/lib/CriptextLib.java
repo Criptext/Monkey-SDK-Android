@@ -44,7 +44,6 @@ public class CriptextLib{
 	//VARIABLES PARA EL SOCKET
 	public Handler mainMessageHandler;
 	private AsyncConnSocket asynConnSocket;
-	public int secondsDelay=2;
 	public int portionsMessages=15;
 	public String lastMessageId="0";
 	private AESUtil aesutil;	
@@ -1137,8 +1136,7 @@ public class CriptextLib{
 			args.put("messages_since",since);
 			if(since == null || since.equals("0"))
 				args.put("groups", 1);
-			args.put("delay", ""+secondsDelay);
-			args.put("blocks", ""+portionsMessages);
+			args.put("qty", ""+portionsMessages);
 			//args.put("G", requestGroups ? 1 : 0);
 			json.put("args", args);
 			json.put("cmd", MessageTypes.MOKProtocolGet);

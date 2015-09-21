@@ -211,12 +211,9 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}
 		else{
 			//LLEGARON MUCHOS MENSAJES POR ENDE LLAMO UPDATES CON VALORES MENORES
-			CriptextLib.instance().secondsDelay++;
 			CriptextLib.instance().portionsMessages--;
-			if(CriptextLib.instance().secondsDelay>5)
-				CriptextLib.instance().secondsDelay=5;
-			if(CriptextLib.instance().portionsMessages<3)
-				CriptextLib.instance().portionsMessages=3;
+			if(CriptextLib.instance().portionsMessages<1)
+				CriptextLib.instance().portionsMessages=1;
 			CriptextLib.instance().sendGet(CriptextLib.instance().lastMessageId);
 		}
 	}
@@ -339,11 +336,16 @@ public class AsyncConnSocket implements ComServerDelegate{
 				System.out.println("MOK PROTOCOL GET");
 				if(args.get("type").getAsInt() == 1) {
 					JsonArray array = args.get("messages").getAsJsonArray();
-					for (int i = 0; i < array.size(); i++) {
+					String lastMessageId="";
+                    for (int i = 0; i < array.size(); i++) {
 						JsonElement jsonMessage = array.get(i);
 						JsonObject currentMessage = jsonMessage.getAsJsonObject();
+                        lastMessageId=currentMessage.get("id").getAsString();
 						buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
 					}
+                    if(args.get("remaining_messages").getAsInt()>0){
+                        CriptextLib.instance().sendGet(lastMessageId);
+                    }
 				} else {
 					//PARSE GROUPS UPDATES
 					remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
