@@ -1075,6 +1075,7 @@ public class CriptextLib{
 				args.put("rid",sessionIDTo);
 				args.put("props",propsMessage);
 				args.put("id",idnegative);
+                args.put("push", pushMessage);
 
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("data", args.toString());

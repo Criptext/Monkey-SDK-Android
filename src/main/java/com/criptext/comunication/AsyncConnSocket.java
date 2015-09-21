@@ -269,6 +269,17 @@ public class AsyncConnSocket implements ComServerDelegate{
 				msg.obj =remote;
 				mainMessageHandler.sendMessage(msg);
 			}
+            else if(args.get("type").getAsInt()==MessageTypes.MOKProtocolDelete){
+                remote=new MOKMessage("",
+                        args.get("sid").getAsString(),args.get("rid").getAsString(),
+                        "",args.get("datetime").getAsString(),
+                        args.get("type").getAsString(), params, props);
+                Message msg = mainMessageHandler.obtainMessage();
+                msg.what=MessageTypes.MOKProtocolDelete;
+                msg.obj =remote;
+                mainMessageHandler.sendMessage(msg);
+                break;
+            }
 			else{
 				System.out.println("MONKEY - Tipo "+args.get("type").getAsString()+" no soportado");
 			}
