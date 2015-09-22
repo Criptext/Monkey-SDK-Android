@@ -1011,7 +1011,7 @@ public class CriptextLib{
 	 * @param sessionIDTo
 	 * @param paramsObject
 	 */
-	public void sendNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject){
+	public void sendNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject, final String pushMessage){
 
 
 		try {
@@ -1024,6 +1024,7 @@ public class CriptextLib{
 			args.put("params", paramsObject.toString());
 			args.put("type", MessageTypes.MOKNotif);
 			args.put("msg", "");
+            args.put("push", pushMessage);
 
 			json.put("args", args);
 
@@ -1042,7 +1043,7 @@ public class CriptextLib{
 				startSocketConnection(sessionIDFrom, new Runnable() {
 					@Override
 					public void run() {
-						sendNotification(sessionIDFrom, sessionIDTo, paramsObject);
+						sendNotification(sessionIDFrom, sessionIDTo, paramsObject, pushMessage);
 					}
 				});
 			else
