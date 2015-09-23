@@ -142,7 +142,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 		socketStatus = Status.reconectando;
 		userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
-		socketClient = new DarkStarSocketClient("secure.criptext.com",1139,(DarkStarListener)userServerListener);
+		socketClient = new DarkStarSocketClient(CriptextLib.URL.substring(7),1139,(DarkStarListener)userServerListener);
 		retries = 0;
 		Thread connThread = new Thread(new Runnable() {
 			@Override

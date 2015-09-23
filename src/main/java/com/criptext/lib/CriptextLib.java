@@ -36,6 +36,8 @@ import android.util.Base64;
 
 public class CriptextLib{
 
+	public static String URL="http://secure.criptext.com";
+	//public static String URL="http://192.168.0.102";
 	//VARIABLES PARA REQUERIMIENTOS
 	private AQuery aq;
 	private BasicHandle handle;
@@ -225,7 +227,7 @@ public class CriptextLib{
 
 		try{
 
-			String url = "http://secure.criptext.com/user/session";
+			String url = URL+"/user/session";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 
 			JSONObject localJSONObject1 = new JSONObject();
@@ -295,7 +297,7 @@ public class CriptextLib{
 					prefs.edit().putString(sessionId, aesutil.strKey+":"+aesutil.strIV).apply();
 
 					//Make the new AJAX
-					String urlconnect = "http://secure.criptext.com/user/connect";
+					String urlconnect = URL+"/user/connect";
 					AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 
 					JSONObject localJSONObject1 = new JSONObject();
@@ -495,8 +497,8 @@ public class CriptextLib{
 
 		final String claves=prefs.getString(sender_id, ":");
 		File target = new File(filepath);
-		System.out.println("MONKEY - Descargando:"+ filepath + " " + "http://secure.criptext.com/file/open/"+target.getName());
-		aq.auth(handle).download("http://secure.criptext.com/file/open/"+target.getName(), target, new AjaxCallback<File>(){
+		System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+target.getName());
+		aq.auth(handle).download(URL+"/file/open/"+target.getName(), target, new AjaxCallback<File>(){
 			public void callback(String url, File file, com.androidquery.callback.AjaxStatus status) {
 				if(file != null){
 					//CONVIERTO EL ARCHIVO A STRING
@@ -583,7 +585,7 @@ public class CriptextLib{
 
 	public void callCompany(String sessionId){
 		try {
-			String urlconnect = "http://secure.criptext.com/user/call";
+			String urlconnect = URL+"/user/call";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 
 			JSONObject localJSONObject1 = new JSONObject();
@@ -621,7 +623,7 @@ public class CriptextLib{
 		}
 		else{
 			try {
-				String urlconnect = "http://secure.criptext.com/user/open/secure";
+				String urlconnect = URL+"/user/open/secure";
 				AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 
 				JSONObject localJSONObject1 = new JSONObject();
@@ -690,7 +692,7 @@ public class CriptextLib{
 		
 		try {
 			
-			String urlconnect = "http://secure.criptext.com/push/subscribe";
+			String urlconnect = URL+"/push/subscribe";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 			
 			JSONObject localJSONObject1 = new JSONObject();
@@ -736,7 +738,7 @@ public class CriptextLib{
 	public void createGroup(String members, String groupname, String sessionId){
 		try {
 			
-			String urlconnect = "http://secure.criptext.com/group/create";
+			String urlconnect = URL+"/group/create";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 			
 			JSONObject localJSONObjectInfo = new JSONObject();
@@ -785,7 +787,7 @@ public class CriptextLib{
 	public void deleteGroup(String sessionId, String groupID){
 		try {
 			
-			String urlconnect = "http://secure.criptext.com/group/delete";
+			String urlconnect = URL+"/group/delete";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 			
 			JSONObject localJSONObject1 = new JSONObject();
@@ -830,7 +832,7 @@ public class CriptextLib{
 	public void addMemberToGroup(String new_member, String groupID, String sessionId ){
 		try {
 			
-			String urlconnect = "http://secure.criptext.com/group/addmember";
+			String urlconnect = URL+"/group/addmember";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 			
 			JSONObject localJSONObject1 = new JSONObject();
@@ -880,7 +882,7 @@ public class CriptextLib{
 	public void getGroupInfo(String groupID){
 		try {
 			
-			String urlconnect = "http://secure.criptext.com/group/info";
+			String urlconnect = URL+"/group/info";
 			AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(); 
 			
 			JSONObject localJSONObject1 = new JSONObject();
@@ -1091,7 +1093,7 @@ public class CriptextLib{
 				params.put("file", finalData);
 
 				System.out.println("send file: " + params);
-				aq.auth(handle).ajax("http://secure.criptext.com/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
+				aq.auth(handle).ajax(URL+"/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
 					@Override
 					public void callback(String url, JSONObject json, AjaxStatus status) {
 						if(json != null){
