@@ -150,7 +150,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 				try {
 
 					while (AsyncConnSocket.this.getSocketStatus() != Status.conectado) {
-						System.out.println("RECONNECTING");
+						System.out.println("RECONNECTING - "+sessionId);
 						socketClient.connect();
 						AsyncConnSocket.this.socketClient.login(AsyncConnSocket.this.sessionId, urlPassword);
 
