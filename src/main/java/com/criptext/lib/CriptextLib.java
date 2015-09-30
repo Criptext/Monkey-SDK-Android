@@ -65,6 +65,8 @@ public class CriptextLib{
 	//SINGLETON
 	static CriptextLib _sharedInstance=null;
 
+    private RSAUtil rsaUtil;
+
 	public static CriptextLib instance(){
 		if (_sharedInstance == null)
 			_sharedInstance = new CriptextLib();
@@ -193,7 +195,7 @@ public class CriptextLib{
 	 * @param expiring 0 means not expires and empty means expires
 	 * 
 	 */	
-	public void startSession(String fullname, final String sessionId, String expiring, String user, String pass) {
+	public void startCriptext(String fullname, final String sessionId, String expiring, String user, String pass, final boolean startSession) {
 
 		this.fullname=fullname;
 		this.sessionid=sessionId;
@@ -203,23 +205,105 @@ public class CriptextLib{
 		this.urlUser = user;
 		this.urlPass = pass;
 
-		//EJECUTO ESTO EN UN ASYNCTASK PORQUE AL GENERAR LAS CLAVES AES SE INHIBE
-		new AsyncTask<Void, Void, Void>(){
+        if(startSession && sessionId.length() > 0){
+            userSync(sessionId);
+        }
+        else {
+            //EJECUTO ESTO EN UN ASYNCTASK PORQUE AL GENERAR LAS CLAVES AES SE INHIBE
+            new AsyncTask<Void, Void, Void>() {
 
-			@Override
-			protected Void doInBackground(Void... params) {
-				aesutil=new AESUtil(prefs,sessionId);
-				return null;
-			}
+                @Override
+                protected Void doInBackground(Void... params) {
+                    aesutil = new AESUtil(prefs, sessionId);
+                    return null;
+                }
 
-			@Override
-			protected void onPostExecute(Void result) {
-				didGenerateAESKeys();
-			}
+                @Override
+                protected void onPostExecute(Void result) {
+                    if (startSession) {
+                        didGenerateAESKeys();
+                    } else {
+                        System.out.println("CRIPTEXTLIB - no hago startsession");
+                        executeInDelegates("onConnectOK", new Object[]{sessionId, null});
+                        /****COMIENZA CONEXION CON EL SOCKET*****/
+                        startSocketConnection(sessionId, null);
+                    }
+                }
 
-		}.execute();
-
+            }.execute();
+        }
 	}
+
+    public void userSync(String sessionid){
+        aq = new AQuery(context);
+        handle = new BasicHandle(urlUser, urlPass);
+
+        try{
+            String url = URL+"/user/sync";
+            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
+
+            rsaUtil = new RSAUtil();
+            rsaUtil.generateKeys();
+
+            JSONObject localJSONObject1 = new JSONObject();
+            localJSONObject1.put("session_id", sessionid);
+            localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
+            System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
+
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("data", localJSONObject1.toString());
+
+            cb.url(url).type(JSONObject.class).weakHandler(this, "onUserSync");
+            cb.params(params);
+            aq.auth(handle).ajax(cb);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void onUserSync(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
+
+        if(jo!=null){
+            try {
+                JSONObject json = jo.getJSONObject("data");
+                if(jo.getInt("status")==0){
+                    executeInDelegates("onConnectOK", new Object[]{sessionid,json.getString("last_message_received")});
+                    //Get data from JSON
+                    System.out.println(json.toString());
+                    String keys=json.getString("keys");
+                    String decriptedKey=rsaUtil.desencrypt(keys);
+                    prefs.edit().putString(sessionid,decriptedKey).apply();
+                    System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey);
+
+                    new AsyncTask<Void, Void, Void>() {
+
+                        @Override
+                        protected Void doInBackground(Void... params) {
+                            aesutil = new AESUtil(prefs, sessionid);
+                            return null;
+                        }
+
+                        @Override
+                        protected void onPostExecute(Void result) {
+                            executeInDelegates("onConnectOK", new Object[]{sessionid, null});
+                            /****COMIENZA CONEXION CON EL SOCKET*****/
+                            startSocketConnection(sessionid, null);
+                        }
+
+                    }.execute();
+                }
+                else
+                    executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
+        }
+    }
 
 	public void didGenerateAESKeys(){
 		aq = new AQuery(context);
@@ -339,99 +423,6 @@ public class CriptextLib{
 					//Get data from JSON
 					final String sessionId=json.getString("sessionId");
 
-					/****COMUNICACION ENTRE EL SOCKET Y LA INTERFAZ*****/            	
-					mainMessageHandler = new Handler() {    		    	
-						public void handleMessage(Message msg) {
-							MOKMessage message=(MOKMessage)msg.obj;
-							switch (msg.what) {
-							case MessageTypes.MOKProtocolMessage:								
-								try {									
-									if(message.getMsg().length()>0){
-										//PUEDE SER DE TIPO TEXTO O FILE
-										String claves=prefs.getString(message.getSid(), ":");
-										if(claves.compareTo(":")==0 && !message.getSid().startsWith("legacy:")){
-											System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
-											messagesToSendAfterOpen.add(message);
-											sendOpenConversation(sessionId,message.getSid());
-										}
-										else{
-											procesarMokMessage(message, claves);
-										}
-									}
-									else {
-										int type = 0;
-										if(message.getProps() != null){
-											if(message.getProps().has("file_type")){
-												type = message.getProps().get("file_type").getAsInt();
-												if(type <= 4 && type >= 0)
-													executeInDelegates("onMessageRecieved", new Object[]{message});
-											} else if (message.getProps().has("type")){
-												type = message.getProps().get("type").getAsInt();
-												if(type == 2 || type == 1)
-													executeInDelegates("onMessageRecieved", new Object[]{message});
-											} else if(message.getProps().has("monkey_action")){
-												type = message.getProps().get("monkey_action").getAsInt();
-												if(type == MessageTypes.MOKGroupNewMember) {
-													message.setMonkeyAction(type);
-												}
-											}
-
-										}
-
-										type = message.getMonkeyAction();
-										if (type <= 5 && type >= 1)
-											executeInDelegates("onMessageRecieved", new Object[]{message});
-										else
-											executeInDelegates("onNotificationReceived", new Object[]{message});
-									}
-								}
-								catch (BadPaddingException e){
-									e.printStackTrace();
-									messagesToSendAfterOpen.add(message);
-									prefs.edit().putString(message.getSid(), "").apply();
-									sendOpenConversation(sessionId,message.getSid());
-								}
-								catch (Exception e) {
-									e.printStackTrace();
-								}
-								break;
-							case MessageTypes.MOKProtocolAck:
-								try {
-									System.out.println("ack 205");
-									executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-								break;
-							case MessageTypes.MOKProtocolOpen:{
-								sendOpenConversation(sessionId,message.getRid());
-								//MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
-								executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
-								break;
-							}
-							case MessageTypes.MOKProtocolDelete:{
-								executeInDelegates("onDeleteRecieved", new Object[]{message});								
-								break;
-							}
-							case MessageTypes.MessageSocketConnected:{
-								executeInDelegates("onSocketConnected", new Object[]{""});
-								break;
-							}	
-							case MessageTypes.MessageSocketDisconnected:{							
-								executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
-								break;
-							}
-							case MessageTypes.MOKProtocolGet: {
-								executeInDelegates("onMessageRecieved", new Object[]{message});
-								break;
-							}
-							default:
-								break;
-							}
-
-						}
-					};		
-
 					/****COMIENZA CONEXION CON EL SOCKET*****/
 					startSocketConnection(sessionId, null);
 				}
@@ -453,17 +444,107 @@ public class CriptextLib{
 	 * @param sessionId Session Id del usuario
 	 * @param lastAction runnable con la ultima accion que se trato de ejecutar antes de reiniciar la conexion
 	 */
-	private  void startSocketConnection(String sessionId, Runnable lastAction){
+	private  void startSocketConnection(final String sessionId, Runnable lastAction){
 
-		if(mainMessageHandler == null) {
-			System.out.println("Aun no puedo recibir mensajes");
-			return;
+        if(mainMessageHandler == null) {
+            /****COMUNICACION ENTRE EL SOCKET Y LA INTERFAZ*****/
+            mainMessageHandler = new Handler() {
+                public void handleMessage(Message msg) {
+                    MOKMessage message=(MOKMessage)msg.obj;
+                    switch (msg.what) {
+                        case MessageTypes.MOKProtocolMessage:
+                            try {
+                                if(message.getMsg().length()>0){
+                                    //PUEDE SER DE TIPO TEXTO O FILE
+                                    String claves=prefs.getString(message.getSid(), ":");
+                                    if(claves.compareTo(":")==0 && !message.getSid().startsWith("legacy:")){
+                                        System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
+                                        messagesToSendAfterOpen.add(message);
+                                        sendOpenConversation(sessionId,message.getSid());
+                                    }
+                                    else{
+                                        procesarMokMessage(message, claves);
+                                    }
+                                }
+                                else {
+                                    int type = 0;
+                                    if(message.getProps() != null){
+                                        if(message.getProps().has("file_type")){
+                                            type = message.getProps().get("file_type").getAsInt();
+                                            if(type <= 4 && type >= 0)
+                                                executeInDelegates("onMessageRecieved", new Object[]{message});
+                                        } else if (message.getProps().has("type")){
+                                            type = message.getProps().get("type").getAsInt();
+                                            if(type == 2 || type == 1)
+                                                executeInDelegates("onMessageRecieved", new Object[]{message});
+                                        } else if(message.getProps().has("monkey_action")){
+                                            type = message.getProps().get("monkey_action").getAsInt();
+                                            if(type == MessageTypes.MOKGroupNewMember) {
+                                                message.setMonkeyAction(type);
+                                            }
+                                        }
+
+                                    }
+
+                                    type = message.getMonkeyAction();
+                                    if (type <= 5 && type >= 1)
+                                        executeInDelegates("onMessageRecieved", new Object[]{message});
+                                    else
+                                        executeInDelegates("onNotificationReceived", new Object[]{message});
+                                }
+                            }
+                            catch (BadPaddingException e){
+                                e.printStackTrace();
+                                messagesToSendAfterOpen.add(message);
+                                prefs.edit().putString(message.getSid(), "").apply();
+                                sendOpenConversation(sessionId,message.getSid());
+                            }
+                            catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        case MessageTypes.MOKProtocolAck:
+                            try {
+                                System.out.println("ack 205");
+                                executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        case MessageTypes.MOKProtocolOpen:{
+                            sendOpenConversation(sessionId,message.getRid());
+                            //MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
+                            executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
+                            break;
+                        }
+                        case MessageTypes.MOKProtocolDelete:{
+                            executeInDelegates("onDeleteRecieved", new Object[]{message});
+                            break;
+                        }
+                        case MessageTypes.MessageSocketConnected:{
+                            executeInDelegates("onSocketConnected", new Object[]{""});
+                            break;
+                        }
+                        case MessageTypes.MessageSocketDisconnected:{
+                            executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
+                            break;
+                        }
+                        case MessageTypes.MOKProtocolGet: {
+                            executeInDelegates("onMessageRecieved", new Object[]{message});
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+
+                }
+            };
 		}
+
 		if(asynConnSocket==null) {
 			System.out.println("MONKEY - SOCKET - conectando con el socket - "+sessionId);
 			asynConnSocket = new AsyncConnSocket(sessionId, urlUser + ":" + urlPass, mainMessageHandler, lastAction);
 		}
-
 
 		try{
 			System.out.println("MONKEY - onResume SOCKET - isConnected:"+asynConnSocket.isConnected() + " " + asynConnSocket.getSocketStatus());

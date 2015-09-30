@@ -2,8 +2,11 @@ package com.criptext.lib;
 
 import java.io.UnsupportedEncodingException;
 import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -15,10 +18,20 @@ import android.util.Base64;
 public class RSAUtil {
 	
 	public byte []encodedPubKey;
-	
-	public RSAUtil(byte []encodedPubKey){
+
+    //FOR PUBLIC AND PRIVATE GENERATED KEYS
+    PublicKey pubKey;
+    PrivateKey privKey;
+    String pubKeyStr;
+    String privKeyStr;
+
+    public RSAUtil(byte []encodedPubKey){
 		this.encodedPubKey=encodedPubKey;
 	}
+
+    public RSAUtil(){
+
+    }
 	
 	public String encrypt(String original) {
 		
@@ -45,18 +58,13 @@ public class RSAUtil {
 
     }
 	
-	/*****NO SE USA PORQUE NO HAY PRIVATE KEY*****/
 	public String desencrypt(String original){
 		
 		try {
-			
-			PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(this.encodedPubKey);
-			KeyFactory kf = KeyFactory.getInstance("RSA");
-			PrivateKey pkPrivate= kf.generatePrivate(privateKeySpec);
-			//System.out.println("ANDROID   String: "+original);
-			byte[] rsaEncodedMessage = Base64.decode(original,0);		
+
+			byte[] rsaEncodedMessage = Base64.decode(original,0);
 			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
-			cipher.init(Cipher.DECRYPT_MODE, pkPrivate);
+			cipher.init(Cipher.DECRYPT_MODE, privKey);
 			byte[] desencryptedInByte  = cipher.doFinal(rsaEncodedMessage);
 			
 			String desencryptedInString = new String(desencryptedInByte,"UTF_8");	
@@ -68,7 +76,7 @@ public class RSAUtil {
 				
 			String stemp=decodeURIComponent(desencryptedInString);
 			
-			//System.out.println("ANDROID   DESENCRIPTADO : "+stemp);
+			//System.out.println("RSA-DESENCRIPTADO : "+stemp);
 			return stemp;
 			
 		}
@@ -197,5 +205,22 @@ public class RSAUtil {
 			}
 		return buffer.toString();
 	}
-	
+
+    public void generateKeys(){
+        try {
+            KeyPairGenerator generator;
+            generator = KeyPairGenerator.getInstance("RSA");
+            generator.initialize(1024, new SecureRandom());
+            KeyPair pair = generator.generateKeyPair();
+            pubKey = pair.getPublic();
+            privKey = pair.getPrivate();
+
+            byte[] publicKeyBytes = pubKey.getEncoded();
+            pubKeyStr = Base64.encodeToString(publicKeyBytes,Base64.NO_WRAP);
+            byte[] privKeyBytes = privKey.getEncoded();
+            privKeyStr = Base64.encodeToString(privKeyBytes,Base64.NO_WRAP);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
