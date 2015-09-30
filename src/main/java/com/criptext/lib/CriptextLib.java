@@ -714,9 +714,14 @@ public class CriptextLib{
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("data", localJSONObject1.toString());
 
+                System.out.println("MONKEY - sending:" + params.toString());
 				cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onOpenConversation");
 				cb.params(params);
 
+                if(aq==null) {
+                    aq = new AQuery(context);
+                    handle = new BasicHandle(urlUser, urlPass);
+                }
 				aq.auth(handle).ajax(cb);	
 
 			} catch (JSONException e) {
