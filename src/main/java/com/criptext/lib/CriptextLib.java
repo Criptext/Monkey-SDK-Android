@@ -553,7 +553,7 @@ public class CriptextLib{
 				System.out.println("MONKEY - onResume SOCKET fireInTheHole");
 				asynConnSocket.fireInTheHole();
 			} */
-			if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado) {
+			if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado && asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.reconectando) {
 				System.out.println("MONKEY - onResume SOCKET - connect");
 				asynConnSocket.conectSocket(new Runnable(){
 					@Override

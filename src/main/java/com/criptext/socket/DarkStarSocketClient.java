@@ -73,7 +73,7 @@ import android.util.Log;
  */
 public class DarkStarSocketClient implements DarkStarClient {
 
-    private boolean debug = false;
+    private boolean debug = true;
     
     private String host;
     private int port;
@@ -285,7 +285,7 @@ public class DarkStarSocketClient implements DarkStarClient {
     private void handleApplicationMessage(MessageBuffer msg) throws Exception {
         byte command = msg.getByte();
         //Log.d("InputReader - handleApplicationMessage", "command: "+command);
-        //System.out.println("Dark - handleApplicationMessage command: "+command);
+        System.out.println("Dark - handleApplicationMessage command: "+command);
         
         switch (command) {
             case SimpleSgsProtocol.LOGIN_SUCCESS:
