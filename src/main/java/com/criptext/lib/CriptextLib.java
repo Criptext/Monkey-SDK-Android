@@ -204,6 +204,10 @@ public class CriptextLib{
 		this.messagesToSendAfterOpen=new ArrayList<MOKMessage>();
 		this.urlUser = user;
 		this.urlPass = pass;
+        if(aq==null) {
+            aq = new AQuery(context);
+            handle = new BasicHandle(urlUser, urlPass);
+        }
 
         if(startSession && sessionId.length() > 0){
             userSync(sessionId);
@@ -718,10 +722,6 @@ public class CriptextLib{
 				cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onOpenConversation");
 				cb.params(params);
 
-                if(aq==null) {
-                    aq = new AQuery(context);
-                    handle = new BasicHandle(urlUser, urlPass);
-                }
 				aq.auth(handle).ajax(cb);	
 
 			} catch (JSONException e) {
