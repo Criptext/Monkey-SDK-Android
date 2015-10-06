@@ -11,7 +11,6 @@ import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
@@ -24,6 +23,7 @@ import com.criptext.comunication.AsyncConnSocket;
 import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
+import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
 
 import android.content.Context;
@@ -33,10 +33,12 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Base64;
+import android.util.Log;
 
 public class CriptextLib{
 
 	public static String URL="http://secure.criptext.com";
+	private static String transitionMessages = "MonkeyKit.transitionMessages";
 	//public static String URL="http://192.168.0.102";
 	//VARIABLES PARA REQUERIMIENTOS
 	private AQuery aq;
@@ -55,7 +57,7 @@ public class CriptextLib{
 	private String sessionid;
 	private String expiring;
 	private List<MOKMessage> messagesToSendAfterOpen;
-
+	private Watchdog watchdog = null;
 	//VARIALBES DE PERSISTENCIA
 	public SharedPreferences prefs;
 
@@ -510,6 +512,7 @@ public class CriptextLib{
                         case MessageTypes.MOKProtocolAck:
                             try {
                                 System.out.println("ack 205");
+								TransitionMessage.rmTransitionMessage(context, message.getMessage_id());
                                 executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -1068,6 +1071,7 @@ public class CriptextLib{
 				json.put("args", args);
 				json.put("cmd", MessageTypes.MOKProtocolMessage);
 
+				addMessageToWatchdog(json);
 				if(asynConnSocket.isConnected()){
 					System.out.println("MONKEY - Enviando mensaje:"+json.toString());
 					asynConnSocket.sendMessage(json);
@@ -1091,6 +1095,13 @@ public class CriptextLib{
 				e.printStackTrace();
 			}				            
 		}
+	}
+
+	public void sendJSONviaSocket(JSONObject params){
+		if(asynConnSocket != null)
+			asynConnSocket.sendMessage(params);
+		else
+			Log.d("MonkeyKit", "NO PUEDO ENVIAR SOCKET POR JSON");
 	}
 
 	/**
@@ -1363,6 +1374,24 @@ public class CriptextLib{
 		}
 		context = null;
 
+	}
+
+	/**
+	 * Agrega un mensaje a la base de datos del watchdog. Si el watchdog no esta corriendo, lo
+	 * inicia.
+ 	 * @param json mensaje a guardar
+	 * @throws JSONException
+	 */
+	private void addMessageToWatchdog(JSONObject json) throws JSONException{
+		TransitionMessage.addTransitionMessage(context, json);
+			if(watchdog == null) {
+				watchdog = new Watchdog(context);
+				Log.d("Watchdog", "Watchdog ready");
+				watchdog.start();
+			}  else if (!watchdog.isWorking()) {
+				Log.d("Watchdog", "Watchdog ready");
+				watchdog.start();
+			}
 	}
 
 }
