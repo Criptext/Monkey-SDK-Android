@@ -33,14 +33,22 @@ public class Watchdog {
             public void run() {
                 Log.d("Watchdog", "Watchdog kicks in");
                 final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                final int len = array.length();
+                CriptextLib.instance().reconnectSocket(new Runnable(){
+                    @Override
+                    public void run() {
+                        final int len = array.length();
                         for (int i = 0; i < len; i++){
                             try {
                                 CriptextLib.instance().sendJSONviaSocket((JSONObject)array.get(i));
                             } catch (JSONException e) {
-                                e.printStackTrace();
+                            e.printStackTrace();
                             }
                         }
+                    }
+
+
+                });
+
                 working = false;
             }
         }, TIMEOUT);

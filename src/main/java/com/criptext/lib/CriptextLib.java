@@ -1394,4 +1394,13 @@ public class CriptextLib{
 			}
 	}
 
+	/**
+	 * Reconecta el socket con el session id ya existente y le manda un runnable con las acciones que
+	 * debe de ejecutar cuando se conecte
+	 * @param run
+	 */
+	public void reconnectSocket(Runnable run){
+		startSocketConnection(this.sessionid, run);
+	}
+
 }
