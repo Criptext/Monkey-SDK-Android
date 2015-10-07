@@ -195,6 +195,8 @@ public class CriptextLib{
 	 * @param fullname name of the user
 	 * @param sessionId session id of the user, empty for the fisrt time unless restore
 	 * @param expiring 0 means not expires and empty means expires
+	 * @param startSession true if usersync is needed if user has a session id.
+	 *
 	 * 
 	 */	
 	public void startCriptext(String fullname, final String sessionId, String expiring, String user, String pass, final boolean startSession) {
@@ -240,76 +242,111 @@ public class CriptextLib{
         }
 	}
 
-    public void userSync(String sessionid){
-        aq = new AQuery(context);
+    public void userSync(final String sessionid){
+		/*
+		RSAUtil util = new RSAUtil();
+		util.generateKeys();
+		aq = new AQuery(context);
         handle = new BasicHandle(urlUser, urlPass);
-
-        try{
-            String url = URL+"/user/sync";
-            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
-
-            rsaUtil = new RSAUtil();
-            rsaUtil.generateKeys();
-
-            JSONObject localJSONObject1 = new JSONObject();
-            localJSONObject1.put("session_id", sessionid);
-            localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
+		rsaUtil = util;
+		String url = URL+"/user/sync";
+        AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
+		JSONObject localJSONObject1 = new JSONObject();
+		try{
+			localJSONObject1.put("session_id", sessionid);
+			localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
             System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
-
-            Map<String, Object> params = new HashMap<String, Object>();
+			Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
-
-            cb.url(url).type(JSONObject.class).weakHandler(this, "onUserSync");
+			cb.url(url).type(JSONObject.class).weakHandler(this, "onUserSync");
             cb.params(params);
             aq.auth(handle).ajax(cb);
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-    }
+			} catch(JSONException ex){
+				ex.printStackTrace();
+			}
+*/
+			//Generar RSA keys de forma asincrona
+			 new AsyncTask<Void, Void, RSAUtil>() {
 
-    public void onUserSync(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
+                    @Override
+                    protected RSAUtil doInBackground(Void... params) {
+                        RSAUtil util = new RSAUtil();
+                        util.generateKeys();
+                        return util;
+                    }
 
-        if(jo!=null){
-            try {
-                JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onConnectOK", new Object[]{sessionid,json.getString("last_message_received")});
-                    //Get data from JSON
-                    System.out.println(json.toString());
-                    String keys=json.getString("keys");
-                    String decriptedKey=rsaUtil.desencrypt(keys);
-                    prefs.edit().putString(sessionid,decriptedKey).apply();
-                    System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey);
+                    @Override
+                    protected void onPostExecute(RSAUtil result) {
+                        aq = new AQuery(context);
+                        handle = new BasicHandle(urlUser, urlPass);
+                        rsaUtil = result;
+                        String url = URL+"/user/sync";
+                        AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
+                        JSONObject localJSONObject1 = new JSONObject();
 
-                    new AsyncTask<Void, Void, Void>() {
+                        try{
+                            localJSONObject1.put("session_id", sessionid);
+                            localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
+                            System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
 
-                        @Override
-                        protected Void doInBackground(Void... params) {
-                            aesutil = new AESUtil(prefs, sessionid);
-                            return null;
+                            Map<String, Object> params = new HashMap<String, Object>();
+                            params.put("data", localJSONObject1.toString());
+
+                            cb.url(url).type(JSONObject.class).weakHandler(this, "onUserSync");
+                            cb.params(params);
+                            aq.auth(handle).ajax(cb);
+                        } catch(JSONException ex){
+                            ex.printStackTrace();
                         }
 
-                        @Override
-                        protected void onPostExecute(Void result) {
-                            executeInDelegates("onConnectOK", new Object[]{sessionid, null});
-                            /****COMIENZA CONEXION CON EL SOCKET*****/
-                            startSocketConnection(sessionid, null);
+                    }
+
+                     public void onUserSync(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
+                        Log.d("Sync", jo.toString());
+                        if(jo!=null){
+                            try {
+                                JSONObject json = jo.getJSONObject("data");
+                                if(jo.getInt("status")==0){
+                                    executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_message_received")});
+                                    //Get data from JSON
+                                    Log.d("RSADecrypt", json.toString());
+                                    final String keys=json.getString("keys");
+
+                                    new AsyncTask<Void, Void, Void>() {
+
+                                        @Override
+                                        protected Void doInBackground(Void... params) {
+                                            String decriptedKey=rsaUtil.desencrypt(keys);
+                                            prefs.edit().putString(sessionid,decriptedKey).apply();
+                                            System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
+                                            aesutil = new AESUtil(prefs, sessionid);
+                                            return null;
+                                        }
+
+                                        @Override
+                                        protected void onPostExecute(Void result) {
+                                            executeInDelegates("onConnectOK", new Object[]{sessionid, null});
+                                            /****COMIENZA CONEXION CON EL SOCKET*****/
+                                            startSocketConnection(sessionid, null);
+                                        }
+
+                                    }.execute();
+                                } else
+                                    executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
+                        else{
+                            executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
+                        }
+                    }
 
-                    }.execute();
-                }
-                else
-                    executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        else{
-            executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
-        }
+                }.execute();
     }
+
+
 
 	public void didGenerateAESKeys(){
 		aq = new AQuery(context);

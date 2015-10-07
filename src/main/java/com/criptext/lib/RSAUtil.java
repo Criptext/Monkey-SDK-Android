@@ -13,6 +13,7 @@ import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.Cipher;
 
 import android.util.Base64;
+import android.util.Log;
 
 
 public class RSAUtil {
@@ -64,6 +65,7 @@ public class RSAUtil {
 
 			byte[] rsaEncodedMessage = Base64.decode(original,0);
 			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
+			Log.d("RSADecrypt", "byte size: " + rsaEncodedMessage.length);
 			cipher.init(Cipher.DECRYPT_MODE, privKey);
 			byte[] desencryptedInByte  = cipher.doFinal(rsaEncodedMessage);
 			
@@ -210,7 +212,7 @@ public class RSAUtil {
         try {
             KeyPairGenerator generator;
             generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(1024, new SecureRandom());
+            generator.initialize(2048, new SecureRandom());
             KeyPair pair = generator.generateKeyPair();
             pubKey = pair.getPublic();
             privKey = pair.getPrivate();
