@@ -67,6 +67,8 @@ public class AESUtil {
                 
                 cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
                 cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(ivBytes));
+
+                prefs.edit().putString(sessionId,strKey + ":" + strIV).apply();
             }
             else{
             	System.out.println("AES - SI TIENE IV");
