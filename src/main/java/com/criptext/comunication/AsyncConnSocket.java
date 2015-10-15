@@ -385,11 +385,12 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}else if(evid==ComMessageProtocol.FAILLOGGINMSGDISCONECT){
 			//REMOTE LOGOUT DESDE EL SOCKET
 			socketStatus = Status.desconectado;
-			disconnected();
-			System.out.println("Desconectado del Socket!");
-			Message msg = mainMessageHandler.obtainMessage();			      
+			System.out.println("FAIL LOGIN - Desconectado del Socket!");
+			Message msg = mainMessageHandler.obtainMessage();
 			msg.what=MessageTypes.MessageSocketDisconnected;
 			mainMessageHandler.sendMessage(msg);
+			if(CriptextLib.instance() != null)
+				CriptextLib.instance().reconnectSocket(null);
 		}
 
 	}
