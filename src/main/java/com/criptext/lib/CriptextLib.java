@@ -539,7 +539,6 @@ public class CriptextLib{
                             catch (BadPaddingException e){
                                 e.printStackTrace();
                                 messagesToSendAfterOpen.add(message);
-                                prefs.edit().putString(message.getSid(), "").apply();
                                 sendOpenConversation(sessionId,message.getSid());
                             }
                             catch (Exception e) {
@@ -779,6 +778,10 @@ public class CriptextLib{
                     String convKey=json.getString("convKey");
                     String desencriptConvKey=aesutil.decrypt(convKey);
 
+                    boolean hadTheSameKey=false;
+                    if(prefs.getString(json.getString("session_to"),"").compareTo(desencriptConvKey)==0)
+                        hadTheSameKey=true;
+
                     prefs.edit().putString(json.getString("session_to"), desencriptConvKey).apply();
                     executeInDelegates("onOpenConversationOK", new Object[]{json.getString("session_to")});
 
@@ -789,7 +792,8 @@ public class CriptextLib{
                             MOKMessage message=messagesToSendAfterOpen.get(i);
                             if(message.getSid().compareTo(json.getString("session_to"))==0){
                                 System.out.println("MONKEY - mensaje en espera de procesar");
-                                procesarMokMessage(message, desencriptConvKey);
+                                if(!hadTheSameKey)
+                                    procesarMokMessage(message, desencriptConvKey);
                                 messagesToDelete.add(message);
                             }
                         }
