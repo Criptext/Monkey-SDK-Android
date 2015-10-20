@@ -539,7 +539,9 @@ public class CriptextLib{
                             catch (BadPaddingException e){
                                 e.printStackTrace();
                                 messagesToSendAfterOpen.add(message);
-                                sendOpenConversation(sessionId,message.getSid());
+                                int numTries=prefs.getInt("tries:"+message.getMessage_id(),0);
+                                prefs.edit().putInt("tries:"+message.getMessage_id(),numTries+1).apply();
+                                sendOpenConversation(sessionId, message.getSid());
                             }
                             catch (Exception e) {
                                 e.printStackTrace();
@@ -555,7 +557,10 @@ public class CriptextLib{
                             }
                             break;
                         case MessageTypes.MOKProtocolOpen:{
-                            sendOpenConversation(sessionId,message.getRid());
+                            if(prefs.getString(message.getRid(),"").compareTo("")==0)
+                                sendOpenConversation(sessionId,message.getRid());
+                            else
+                                System.out.println("MONKEY - llego open pero ya tengo las claves");
                             //MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
                             executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
                             break;
@@ -742,45 +747,39 @@ public class CriptextLib{
 
     public void sendOpenConversation(String sessionId, String sessionIdTo){
 
-        if(prefs.getString(sessionIdTo, "").compareTo("")!=0){
-            executeInDelegates("onOpenConversationOK", new Object[]{sessionIdTo});
+        try {
+            String urlconnect = URL+"/user/open/secure";
+            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
+
+            JSONObject localJSONObject1 = new JSONObject();
+            localJSONObject1.put("user_to",sessionIdTo);
+            localJSONObject1.put("session_id",sessionId);
+
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("data", localJSONObject1.toString());
+
+            System.out.println("MONKEY - sending:" + params.toString());
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onOpenConversation");
+            cb.params(params);
+
+            aq.auth(handle).ajax(cb);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-        else{
-            try {
-                String urlconnect = URL+"/user/open/secure";
-                AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 
-                JSONObject localJSONObject1 = new JSONObject();
-                localJSONObject1.put("user_to",sessionIdTo);
-                localJSONObject1.put("session_id",sessionId);
-
-                Map<String, Object> params = new HashMap<String, Object>();
-                params.put("data", localJSONObject1.toString());
-
-                System.out.println("MONKEY - sending:" + params.toString());
-                cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onOpenConversation");
-                cb.params(params);
-
-                aq.auth(handle).ajax(cb);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public void onOpenConversation(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 
         if(jo!=null){
+            MOKMessage actual_message=null;
             try {
+                System.out.println("MONKEY - onopenConv:"+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
                 if(jo.getInt("status")==0){
                     String convKey=json.getString("convKey");
                     String desencriptConvKey=aesutil.decrypt(convKey);
-
-                    boolean hadTheSameKey=false;
-                    if(prefs.getString(json.getString("session_to"),"").compareTo(desencriptConvKey)==0)
-                        hadTheSameKey=true;
 
                     prefs.edit().putString(json.getString("session_to"), desencriptConvKey).apply();
                     executeInDelegates("onOpenConversationOK", new Object[]{json.getString("session_to")});
@@ -789,12 +788,17 @@ public class CriptextLib{
                     if(messagesToSendAfterOpen.size()>0){
                         List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
                         for(int i=0;i<messagesToSendAfterOpen.size();i++){
-                            MOKMessage message=messagesToSendAfterOpen.get(i);
-                            if(message.getSid().compareTo(json.getString("session_to"))==0){
-                                System.out.println("MONKEY - mensaje en espera de procesar");
-                                if(!hadTheSameKey)
-                                    procesarMokMessage(message, desencriptConvKey);
-                                messagesToDelete.add(message);
+                            actual_message=messagesToSendAfterOpen.get(i);
+                            if(actual_message.getSid().compareTo(json.getString("session_to"))==0){
+                                int numTries=prefs.getInt("tries:"+actual_message.getMessage_id(),0);
+                                System.out.println("MONKEY - mensaje en espera de procesar, numTries:" + numTries);
+                                if(numTries<=1){
+                                    procesarMokMessage(actual_message, desencriptConvKey);
+                                    messagesToDelete.add(actual_message);
+                                }
+                                else{
+                                    sendOpenSecure(actual_message.getMessage_id());
+                                }
                             }
                         }
                         //BORRO DE LA LISTA
@@ -807,7 +811,75 @@ public class CriptextLib{
                 else{
                     executeInDelegates("onOpenConversationError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
                 }
-            } catch (Exception e) {
+            }
+            catch (BadPaddingException e){
+                e.printStackTrace();
+                if(actual_message!=null) {
+                    messagesToSendAfterOpen.add(actual_message);
+                    int numTries = prefs.getInt("tries:" + actual_message.getMessage_id(), 0);
+                    prefs.edit().putInt("tries:" + actual_message.getMessage_id(), numTries + 1).apply();
+                    sendOpenConversation(actual_message.getRid(), actual_message.getSid());
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            executeInDelegates("onOpenConversationError", new Object[]{status.getCode()+" - "+status.getMessage()});
+        }
+    }
+
+    /************************************************************************/
+
+    public void sendOpenSecure(String messageId){
+
+        try {
+            String urlconnect = URL+"/message/"+messageId+"/open/secure";
+            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
+
+            System.out.println("MONKEY - sending open secure");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onSendOpenSecure");
+
+            aq.auth(handle).ajax(cb);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void onSendOpenSecure(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
+
+        System.out.println("MONKEY - onopenSecure:"+status.getCode());
+        if(jo!=null){
+            MOKMessage actual_message=null;
+            try {
+                System.out.println("MONKEY - onopenSecure:"+jo.toString());
+                JSONObject json = jo.getJSONObject("data");
+                if(jo.getInt("status") == 0) {
+                    String message_encrypted=json.getString("message");
+                    List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
+                    for(int i=0;i<messagesToSendAfterOpen.size();i++) {
+                        actual_message = messagesToSendAfterOpen.get(i);
+                        if(actual_message.getMessage_id().compareTo(json.getString("message_id"))==0) {
+                            actual_message.setMsg(message_encrypted);
+                            procesarMokMessage(actual_message, prefs.getString(actual_message.getRid(), ""));
+                            messagesToDelete.add(actual_message);
+                            break;
+                        }
+                    }
+                    //BORRO DE LA LISTA
+                    for(int i=0;i<messagesToDelete.size();i++){
+                        System.out.println("MONKEY - Borrando de la lista en opensecure");
+                        messagesToSendAfterOpen.remove(messagesToDelete.get(i));
+                    }
+                }
+                else{
+                    executeInDelegates("onOpenConversationError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
+                }
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }

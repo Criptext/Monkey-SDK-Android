@@ -73,12 +73,12 @@ public class AESUtil {
             else{
             	System.out.println("AES - SI TIENE IV");
             	//SI TIENE KEY
-            	strIV = prefs.getString(sessionId, "").split(":")[1];
+            	strIV = RSAUtil.stripGarbage(prefs.getString(sessionId, "").split(":")[1]);
                 cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
             	cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
             }
             
-            System.out.println("strIV:***"+strIV+"***");            
+            System.out.println("strIV:***"+strIV+"***");
     	}
     	catch(Exception e){
     		e.printStackTrace();
