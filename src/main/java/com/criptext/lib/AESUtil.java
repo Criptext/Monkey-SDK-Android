@@ -1,10 +1,12 @@
 package com.criptext.lib;
 
 import java.security.AlgorithmParameters;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
@@ -63,6 +65,7 @@ public class AESUtil {
                 	ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
                 else
                 	ivBytes = iv();
+
                 strIV=Base64.encodeToString(ivBytes,Base64.NO_WRAP);                                
                 
                 cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
@@ -71,7 +74,7 @@ public class AESUtil {
                 prefs.edit().putString(sessionId,strKey + ":" + strIV).apply();
             }
             else{
-            	System.out.println("AES - SI TIENE IV");
+            	System.out.println("AES - SI TIENE IV - ***"+prefs.getString(sessionId, "").split(":")[1]+"***");
             	//SI TIENE KEY
             	strIV = RSAUtil.stripGarbage(prefs.getString(sessionId, "").split(":")[1]);
                 cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
@@ -259,9 +262,15 @@ public class AESUtil {
     }
     
     private static byte[] iv(){
+        byte[] iv=null;
     	SecureRandom random = new SecureRandom();
-        byte[] iv = new byte [16]; // should be 16
-        random.nextBytes(iv);
+        try {
+            Cipher eCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            iv = new byte [eCipher.getBlockSize()]; // should be 16
+            random.nextBytes(iv);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return iv;
     }
 
