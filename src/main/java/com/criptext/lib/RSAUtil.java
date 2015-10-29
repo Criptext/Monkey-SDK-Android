@@ -213,7 +213,7 @@ public class RSAUtil {
         try {
             KeyPairGenerator generator;
             generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(4096, new SecureRandom());
+            generator.initialize(1024, new SecureRandom());
             KeyPair pair = generator.generateKeyPair();
             pubKey = pair.getPublic();
             privKey = pair.getPrivate();

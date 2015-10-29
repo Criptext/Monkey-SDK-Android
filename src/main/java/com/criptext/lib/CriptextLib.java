@@ -325,7 +325,7 @@ public class CriptextLib{
 
                                 @Override
                                 protected void onPostExecute(Void result) {
-                                    executeInDelegates("onConnectOK", new Object[]{sessionid, null});
+                                    //executeInDelegates("onConnectOK", new Object[]{sessionid, null});//Porque se hace dos veces??
                                     /****COMIENZA CONEXION CON EL SOCKET*****/
                                     startSocketConnection(sessionid, null);
                                 }
