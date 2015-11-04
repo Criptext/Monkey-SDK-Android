@@ -630,29 +630,19 @@ public class CriptextLib{
         aq.auth(handle).download(URL+"/file/open/"+target.getName(), target, new AjaxCallback<File>(){
             public void callback(String url, File file, com.androidquery.callback.AjaxStatus status) {
                 if(file != null){
-                    //CONVIERTO EL ARCHIVO A STRING
-                    Scanner scanner=null;
                     try {
-                        scanner = new Scanner(file);
-                        StringBuilder fileContents = new StringBuilder((int) file.length());
-                        String lineSeparator = System.getProperty("line.separator");
-                        while (scanner.hasNextLine()) {
-                            fileContents.append(scanner.nextLine() + lineSeparator);
-                        }
-                        String finalContent = fileContents.toString();
+                        String finalContent = "";
                         byte[] finalData = null;
                         //COMPRUEBO SI DESENCRIPTO EL CONTENIDO DEL ARCHIVO
                         if (props.get("encr").getAsString().compareTo("1") == 0) {
-                            //COMPRUEBO SI ES DESDE EL WEB O MOBILE
                             String[] claveArray = claves.split(":");
+                            finalData = aesutil.decryptWithCustomKeyAndIV(IOUtils.toByteArray(new FileInputStream(file.getAbsolutePath())),
+                                    claveArray[0], claveArray[1]);
+                            //COMPRUEBO SI ES DESDE EL WEB
                             if (props.get("device").getAsString().compareTo("web") == 0) {
-                                finalContent = aesutil.decryptWithCustomKeyAndIV(finalContent,
-                                        claveArray[0], claveArray[1]);
+                                finalContent = new String(finalData, "UTF-8");
                                 finalContent = finalContent.substring(finalContent.indexOf(",") + 1, finalContent.length());
                                 finalData = Base64.decode(finalContent.getBytes(), 0);
-                            } else {
-                                finalData = aesutil.decryptWithCustomKeyAndIV(IOUtils.toByteArray(new FileInputStream(file.getAbsolutePath())),
-                                        claveArray[0], claveArray[1]);
                             }
                         }
                         //COMPRUEBO SI EL ARCHIVO ESTA COMPRIMIDO
@@ -681,10 +671,7 @@ public class CriptextLib{
                         runnable.run();
                     }catch(Exception e){
                         e.printStackTrace();
-                    } finally {
-                        if(scanner!=null) scanner.close();
                     }
-
                 }else{
                     System.out.println("MONKEY - File failed to donwload - "+status.getCode()+" - "+status.getMessage());
                 }

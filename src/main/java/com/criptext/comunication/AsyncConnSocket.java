@@ -171,6 +171,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 
 				} catch (Exception e) {
+                    socketStatus=Status.desconectado;
 					e.printStackTrace();
 				}
 			}
