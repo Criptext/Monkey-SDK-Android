@@ -68,6 +68,7 @@ public class CriptextLib{
     static CriptextLib _sharedInstance=null;
 
     private RSAUtil rsaUtil;
+    private boolean shouldAskForGroups;
 
     public static CriptextLib instance(){
         if (_sharedInstance == null)
@@ -308,6 +309,7 @@ public class CriptextLib{
                         JSONObject json = jo.getJSONObject("data");
                         if(jo.getInt("status")==0){
                             executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_message_received")});
+                            shouldAskForGroups=true;
                             //Get data from JSON
                             Log.d("RSADecrypt", json.toString());
                             final String keys=json.getString("keys");
@@ -1000,7 +1002,7 @@ public class CriptextLib{
 
         if(jo!=null){
             try {
-                JSONObject json = jo.getJSONObject("data");
+                System.out.println("MONKEY - onDeleteGroup: "+jo.toString());
                 if(jo.getInt("status")==0){
                     executeInDelegates("onDeleteGroupOK", new Object[]{});
                 }
@@ -1334,8 +1336,10 @@ public class CriptextLib{
             JSONObject json=new JSONObject();
 
             args.put("messages_since",since);
-            if(since == null || since.equals("0"))
+            if(since == null || since.equals("0") || shouldAskForGroups) {
                 args.put("groups", 1);
+                shouldAskForGroups=false;
+            }
             args.put("qty", ""+portionsMessages);
             //args.put("G", requestGroups ? 1 : 0);
             json.put("args", args);
