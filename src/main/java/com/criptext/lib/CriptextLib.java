@@ -518,24 +518,24 @@ public class CriptextLib{
                                             type = message.getProps().get("file_type").getAsInt();
                                             if(type <= 4 && type >= 0)
                                                 executeInDelegates("onMessageRecieved", new Object[]{message});
-                                        } else if (message.getProps().has("type")){
+                                            else
+                                                System.out.println("MONKEY - archivo no soportado");
+                                        }
+                                        else if (message.getProps().has("type")){
                                             type = message.getProps().get("type").getAsInt();
                                             if(type == 2 || type == 1)
                                                 executeInDelegates("onMessageRecieved", new Object[]{message});
-                                        } else if(message.getProps().has("monkey_action")){
-                                            type = message.getProps().get("monkey_action").getAsInt();
-                                            if(type == MessageTypes.MOKGroupNewMember) {
-                                                message.setMonkeyAction(type);
-                                            }
                                         }
-
+                                        else if(message.getProps().has("monkey_action")){
+                                            type = message.getProps().get("monkey_action").getAsInt();
+                                            //if(type == MessageTypes.MOKGroupNewMember) {//PORQUE ESTABA ESTE IF?
+                                                message.setMonkeyAction(type);
+                                            //}
+                                            executeInDelegates("onNotificationReceived", new Object[]{message});
+                                        }
+                                        else
+                                            executeInDelegates("onNotificationReceived", new Object[]{message});
                                     }
-
-                                    type = message.getMonkeyAction();
-                                    if (type <= 5 && type >= 1)
-                                        executeInDelegates("onMessageRecieved", new Object[]{message});
-                                    else
-                                        executeInDelegates("onNotificationReceived", new Object[]{message});
                                 }
                             }
                             catch (BadPaddingException e){
