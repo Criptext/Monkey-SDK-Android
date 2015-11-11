@@ -24,7 +24,7 @@ public interface CriptextLibDelegate {
 	public void onCreateGroupOK(String grupoID);
 	public void onCreateGroupError(String errmsg);
 	
-	public void onDeleteGroupOK();
+	public void onDeleteGroupOK(String grupoID);
 	public void onDeleteGroupError(String errmsg);
 	
 	public void onAddMemberToGroupOK();

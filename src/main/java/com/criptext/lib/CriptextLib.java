@@ -156,7 +156,7 @@ public class CriptextLib{
             }
         }else if(method.compareTo("onDeleteGroupOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteGroupOK();
+                delegates.get(i).onDeleteGroupOK((String)info[0]);
             }
         }else if(method.compareTo("onDeleteGroupError")==0){
             for(int i=0;i<delegates.size();i++){
@@ -1003,8 +1003,9 @@ public class CriptextLib{
         if(jo!=null){
             try {
                 System.out.println("MONKEY - onDeleteGroup: "+jo.toString());
+                JSONObject json = jo.getJSONObject("data");
                 if(jo.getInt("status")==0){
-                    executeInDelegates("onDeleteGroupOK", new Object[]{});
+                    executeInDelegates("onDeleteGroupOK", new Object[]{json.getString("group_id")});
                 }
                 else{
                     executeInDelegates("onDeleteGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
