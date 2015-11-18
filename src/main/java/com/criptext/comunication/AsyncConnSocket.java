@@ -84,11 +84,12 @@ public class AsyncConnSocket implements ComServerDelegate{
 			public void handleMessage(Message msg) {
 
 				try {
-					Thread.sleep(100);
+					//Thread.sleep(100);
 					if(msg.obj.toString().compareTo("desconectar")==0){
 						if(isConnected()){
 							socketStatus = Status.desconectado;
 							socketClient.logout(true);
+                            CriptextLib.instance().destroyCriptextLib();
 							this.getLooper().quit();
 						}
 					}
@@ -390,8 +391,8 @@ public class AsyncConnSocket implements ComServerDelegate{
 			Message msg = mainMessageHandler.obtainMessage();
 			msg.what=MessageTypes.MessageSocketDisconnected;
 			mainMessageHandler.sendMessage(msg);
-			if(CriptextLib.instance() != null)
-				CriptextLib.instance().reconnectSocket(null);
+			//if(CriptextLib.instance() != null)
+			//	CriptextLib.instance().reconnectSocket(null);
 		}
 
 	}

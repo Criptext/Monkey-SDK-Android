@@ -256,7 +256,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                         out.write(request.getBuffer());
                         //Log.d("OutputWriter - run", "buffer: "+request.toString());
                         out.flush();
-                        if (debug) System.out.println("Wrote request");
+                        //if (debug) System.out.println("Wrote request");
                     } catch (IOException ex) {
                         if (!disconnected) {
                             ex.printStackTrace();
