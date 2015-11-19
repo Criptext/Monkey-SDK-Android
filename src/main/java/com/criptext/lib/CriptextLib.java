@@ -281,7 +281,7 @@ public class CriptextLib{
                 aq = new AQuery(context);
                 handle = new BasicHandle(urlUser, urlPass);
                 rsaUtil = result;
-                String url = URL+"/user/sync";
+                String url = URL+"/user/key/sync";
                 AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
                 JSONObject localJSONObject1 = new JSONObject();
 
@@ -737,7 +737,7 @@ public class CriptextLib{
     public void sendOpenConversation(String sessionId, String sessionIdTo){
 
         try {
-            String urlconnect = URL+"/user/open/secure";
+            String urlconnect = URL+"/user/key/exchange";
             AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 
             JSONObject localJSONObject1 = new JSONObject();
