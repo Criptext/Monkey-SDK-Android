@@ -658,6 +658,7 @@ public class CriptextLib{
                         FileOutputStream fos = new FileOutputStream(file);
                         fos.write(finalData);
                         fos.close();
+                        //System.out.println("TAM FILE:" + finalData.length);
 
                         //LE PONGO LA EXTENSION SI LA TIENE
                         if (props.has("ext")) {
