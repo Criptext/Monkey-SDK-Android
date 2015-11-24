@@ -128,7 +128,7 @@ public class AESUtil {
     
     /***************************************************************************/
     
-    public String encryptWithCustomKeyAndIV(String plainText, String key) throws Exception {   
+    public String encryptWithCustomKeyAndIV(String plainText, String key) throws Exception {
         
     	System.out.println("MONKEY - Encriptado msg con key:***"+key+"***");
     	
