@@ -33,7 +33,7 @@ public class Watchdog {
             public void run() {
                 Log.d("Watchdog", "Watchdog kicks in");
                 final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                CriptextLib.instance().onStop();
+                //CriptextLib.instance().onStop();
                 CriptextLib.instance().reconnectSocket(new Runnable(){
                     @Override
                     public void run() {
