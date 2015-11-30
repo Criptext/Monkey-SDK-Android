@@ -102,7 +102,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 					}
 					else if(msg.obj.toString().compareTo("desconectarpull")==0){
 						if(isConnected()){
-							socketStatus = Status.conectado;
+							socketStatus = Status.desconectado;
 							socketClient.logout(true);
 						}
 					}
@@ -162,7 +162,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 					Handler handler = new Handler(Looper.getMainLooper());
 					handler.post(new Runnable() {
 						public void run() {
-							System.out.println("SOCKET IS CONNECTED");
+							System.out.println("SOCKET IS CONNECTED AND HAS LAST ACTION? "+lastAction);
 							fireInTheHole();
 							if(lastAction != null)
 								lastAction.run();
@@ -334,31 +334,32 @@ public class AsyncConnSocket implements ComServerDelegate{
 			mainMessageHandler.sendMessage(msg);
 			break;
 		}
-			case MessageTypes.MOKProtocolGet:
-				System.out.println("MOK PROTOCOL GET");
-				if(args.get("type").getAsInt() == 1) {
-					JsonArray array = args.get("messages").getAsJsonArray();
-					String lastMessageId="";
-                    for (int i = 0; i < array.size(); i++) {
-						JsonElement jsonMessage = array.get(i);
-						JsonObject currentMessage = jsonMessage.getAsJsonObject();
-                        lastMessageId=currentMessage.get("id").getAsString();
-						buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
-					}
-                    if(args.get("remaining_messages").getAsInt()>0){
-                        CriptextLib.instance().sendGet(lastMessageId);
-                    }
-				} else {
-					//PARSE GROUPS UPDATES
-					remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
-							args.get("type").getAsString(), params, props);
-					remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
-					Message msg = mainMessageHandler.obtainMessage();
-					msg.what=MessageTypes.MOKProtocolGet;
-					msg.obj = remote;
-					mainMessageHandler.sendMessage(msg);
-
-				}
+        case MessageTypes.MOKProtocolGet:
+            System.out.println("MOK PROTOCOL GET");
+            CriptextLib.instance().watchdog.didResponseGet=true;
+            if(args.get("type").getAsInt() == 1) {
+                JsonArray array = args.get("messages").getAsJsonArray();
+                String lastMessageId="";
+                for (int i = 0; i < array.size(); i++) {
+                    JsonElement jsonMessage = array.get(i);
+                    JsonObject currentMessage = jsonMessage.getAsJsonObject();
+                    lastMessageId=currentMessage.get("id").getAsString();
+                    buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
+                }
+                if(args.get("remaining_messages").getAsInt()>0){
+                    CriptextLib.instance().sendGet(lastMessageId);
+                }
+            } else {
+                //PARSE GROUPS UPDATES
+                remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
+                        args.get("type").getAsString(), params, props);
+                remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
+                Message msg = mainMessageHandler.obtainMessage();
+                msg.what=MessageTypes.MOKProtocolGet;
+                msg.obj = remote;
+                mainMessageHandler.sendMessage(msg);
+            }
+            break;
 		default:
 			break;
 		}
@@ -441,26 +442,6 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 	public void conectSocket(){
 		try {
-			if(!isConnected()){
-				if(socketMessageHandler==null){
-					System.out.println("MONKEY - mandaron a conectar pero no esta inicializado el socketMessageHandler");
-					fireInTheHole();
-				}
-				else{
-					System.out.println("MONKEY - mandaron a conectar y SI esta inicializado el socketMessageHandler");
-					Message msg = socketMessageHandler.obtainMessage();			      
-					msg.obj ="conectar";
-					socketMessageHandler.sendMessage(msg);	
-				}				
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}	     
-	}
-
-	public void conectSocket(Runnable r){
-		try {
-			lastAction = r;
 			if(!isConnected()){
 				if(socketMessageHandler==null || handlerThread == null || !handlerThread.isAlive()){
 					System.out.println("MONKEY - mandaron a conectar pero no esta inicializado el socketMessageHandler");

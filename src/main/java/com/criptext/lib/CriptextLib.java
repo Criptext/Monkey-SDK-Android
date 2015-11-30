@@ -57,7 +57,7 @@ public class CriptextLib{
     private String sessionid;
     private String expiring;
     private List<MOKMessage> messagesToSendAfterOpen;
-    private Watchdog watchdog = null;
+    public Watchdog watchdog = null;
     //VARIALBES DE PERSISTENCIA
     public SharedPreferences prefs;
 
@@ -393,8 +393,10 @@ public class CriptextLib{
 
     public void sendDisconectOnPull(){
         if(asynConnSocket!=null){
-            if(asynConnSocket.isConnected())
+            if(asynConnSocket.isConnected()) {
                 asynConnSocket.sendDisconectFromPull();
+                asynConnSocket=null;
+            }
         }
     }
 
@@ -552,7 +554,7 @@ public class CriptextLib{
                         case MessageTypes.MOKProtocolAck:
                             try {
                                 System.out.println("ack 205");
-                                TransitionMessage.rmTransitionMessage(context, message.getMessage_id());
+                                TransitionMessage.rmTransitionMessage(context, message.getMsg());
                                 executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -605,15 +607,7 @@ public class CriptextLib{
 			} */
             if(asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.conectado && asynConnSocket.getSocketStatus() != AsyncConnSocket.Status.reconectando) {
                 System.out.println("MONKEY - onResume SOCKET - connect");
-                asynConnSocket.conectSocket(new Runnable(){
-                    @Override
-                    public void run() {
-                        //if(CriptextLib.instance() != null)
-                        //	CriptextLib.instance().executeInDelegates("onSocketConnected", new Object[]{""});
-
-                    }
-
-                });
+                asynConnSocket.conectSocket();
             }else{
                 executeInDelegates("onSocketConnected", new Object[]{""});
             }
@@ -1354,6 +1348,13 @@ public class CriptextLib{
             else
                 System.out.println("MONKEY - no pudo enviar Get - socket desconectado");
 
+            if(watchdog == null) {
+                watchdog = new Watchdog(context);
+            }
+            watchdog.didResponseGet = false;
+            Log.d("Watchdog", "Watchdog ready sending Get");
+            watchdog.start();
+
         } catch(NullPointerException ex){
             if(asynConnSocket == null)
                 startSocketConnection(this.sessionid, new Runnable() {
@@ -1492,10 +1493,10 @@ public class CriptextLib{
         TransitionMessage.addTransitionMessage(context, json);
         if(watchdog == null) {
             watchdog = new Watchdog(context);
-            Log.d("Watchdog", "Watchdog ready");
+            Log.d("Watchdog", "Watchdog ready sending Message");
             watchdog.start();
         }  else if (!watchdog.isWorking()) {
-            Log.d("Watchdog", "Watchdog ready");
+            Log.d("Watchdog", "Watchdog ready sending Message");
             watchdog.start();
         }
     }
