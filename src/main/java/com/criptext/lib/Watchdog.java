@@ -19,6 +19,7 @@ public class Watchdog {
     private final Context context;
     private final Handler handler;
     private boolean working;
+    private boolean canceled=false;
     public boolean didResponseGet = true;
 
     public Watchdog(Context context) {
@@ -28,13 +29,19 @@ public class Watchdog {
 
     }
 
+    public void cancel(){
+        if(working) {
+            canceled=true;
+        }
+    }
+
     public void start(){
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                Log.d("Watchdog", "Watchdog there are "+array.length()+" messages to send and didResponseGet "+didResponseGet);
-                if(array.length()>0 && didResponseGet) {
+                Log.i("Watchdog", "Watchdog there are "+array.length()+" messages to send and didResponseGet "+didResponseGet);
+                if(array.length()>0 && didResponseGet && !canceled) {
                     CriptextLib.instance().sendDisconectOnPull();
                     new Handler().postDelayed(new Runnable() {
                         @Override
@@ -59,6 +66,7 @@ public class Watchdog {
             }
         }, TIMEOUT);
         working = true;
+        canceled = false;
     }
 
     public boolean isWorking(){

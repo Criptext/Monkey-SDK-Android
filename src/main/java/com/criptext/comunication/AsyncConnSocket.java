@@ -337,6 +337,7 @@ public class AsyncConnSocket implements ComServerDelegate{
         case MessageTypes.MOKProtocolGet:
             System.out.println("MOK PROTOCOL GET");
             CriptextLib.instance().watchdog.didResponseGet=true;
+            CriptextLib.instance().sendGetOK();
             if(args.get("type").getAsInt() == 1) {
                 JsonArray array = args.get("messages").getAsJsonArray();
                 String lastMessageId="";

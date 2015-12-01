@@ -15,8 +15,7 @@ public interface CriptextLibDelegate {
 	public void onSocketConnected();
 	public void onSocketDisconnected();
 	
-	public void onCallOK();
-	public void onCallError();
+	public void onGetOK();
 	
 	public void onOpenConversationOK(String sessionID);
 	public void onOpenConversationError(String errmsg);

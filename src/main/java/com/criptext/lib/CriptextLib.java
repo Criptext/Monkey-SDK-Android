@@ -126,13 +126,9 @@ public class CriptextLib{
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onConnectError((String)info[0]);
             }
-        }else if(method.compareTo("onCallOK")==0){
+        }else if(method.compareTo("onGetOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCallOK();
-            }
-        }else if(method.compareTo("onCallError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCallError();
+                delegates.get(i).onGetOK();
             }
         }else if(method.compareTo("onOpenConversationOK")==0){
             for(int i=0;i<delegates.size();i++){
@@ -696,35 +692,8 @@ public class CriptextLib{
 
     /************************************************************************/
 
-    public void callCompany(String sessionId){
-        try {
-            String urlconnect = URL+"/user/call";
-            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
-
-            JSONObject localJSONObject1 = new JSONObject();
-            localJSONObject1.put("company_id","1");
-            localJSONObject1.put("session_id",sessionId);
-            localJSONObject1.put("name",fullname);
-
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("data", localJSONObject1.toString());
-
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onCall");
-            cb.params(params);
-
-            aq.auth(handle).ajax(cb);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void onCall(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
-        if(json!=null){
-            executeInDelegates("onCallOK", new Object[]{""});
-        }
-        else
-            executeInDelegates("onCallError", new Object[]{""});
+    public void sendGetOK(){
+        executeInDelegates("onGetOK", new Object[]{});
     }
 
     /************************************************************************/
@@ -1353,6 +1322,7 @@ public class CriptextLib{
             }
             watchdog.didResponseGet = false;
             Log.d("Watchdog", "Watchdog ready sending Get");
+            watchdog.cancel();
             watchdog.start();
 
         } catch(NullPointerException ex){
