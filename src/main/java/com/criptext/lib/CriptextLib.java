@@ -1015,9 +1015,8 @@ public class CriptextLib{
 
         if(jo!=null){
             try {
-                JSONObject json = jo.getJSONObject("data");
-                System.out.println("MONKEY - onAddMemberToGroup - "+json);
-
+                System.out.println("MONKEY - onAddMemberToGroup - "+jo.toString());
+                //JSONObject json = jo.getJSONObject("data");
                 if(jo.getInt("status")==0){
                     executeInDelegates("onAddMemberToGroupOK", new Object[]{});
                 }

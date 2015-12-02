@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -63,8 +64,10 @@ public class AESUtil {
             	//NO TIENE KEY            	
                 if(params!=null)
                 	ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
-                else
-                	ivBytes = iv();
+                else {
+                    System.out.println("AES - AlgorithmParameters es null tengo que sacarlo manualmente");
+                    ivBytes = iv();
+                }
 
                 strIV=Base64.encodeToString(ivBytes,Base64.NO_WRAP);                                
                 
@@ -263,11 +266,11 @@ public class AESUtil {
     
     private static byte[] iv(){
         byte[] iv=null;
-    	SecureRandom random = new SecureRandom();
         try {
-            Cipher eCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            iv = new byte [eCipher.getBlockSize()]; // should be 16
-            random.nextBytes(iv);
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            kgen.init(128);
+            SecretKey skey = kgen.generateKey();
+            iv = skey.getEncoded();
         } catch (Exception e) {
             e.printStackTrace();
         }
