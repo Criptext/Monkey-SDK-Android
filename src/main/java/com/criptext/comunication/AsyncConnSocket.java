@@ -300,7 +300,8 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}
 		case MessageTypes.MOKProtocolAck:{			
 			if(args.get("type").getAsString().equals(MessageTypes.MOKText)
-				|| args.get("type").getAsString().equals(MessageTypes.MOKNotif)){
+				|| args.get("type").getAsString().equals(MessageTypes.MOKNotif)
+                    || args.get("type").getAsString().equals(MessageTypes.MOKFile)){
 				remote=new MOKMessage(props.get("new_id").getAsString(), //En el atributo message_id va el nuevo id
 						args.get("sid").getAsString(),args.get("rid").getAsString(),
 						props.get("old_id").getAsString(), //En el atributo msg mando en el old_id
