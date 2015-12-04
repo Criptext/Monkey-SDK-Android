@@ -324,7 +324,6 @@ public class CriptextLib{
                                     System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
                                     try {
                                         aesutil = new AESUtil(prefs, sessionid);
-                                        throw new Exception();
                                     }
                                     catch (Exception ex){
                                         System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
