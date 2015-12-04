@@ -219,7 +219,12 @@ public class CriptextLib{
 
                 @Override
                 protected Void doInBackground(Void... params) {
-                    aesutil = new AESUtil(prefs, sessionId);
+                    try {
+                        aesutil = new AESUtil(prefs, sessionId);
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
                     return null;
                 }
 
@@ -317,7 +322,16 @@ public class CriptextLib{
                                     String decriptedKey=rsaUtil.desencrypt(keys);
                                     prefs.edit().putString(sessionid,decriptedKey).apply();
                                     System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
-                                    aesutil = new AESUtil(prefs, sessionid);
+                                    try {
+                                        aesutil = new AESUtil(prefs, sessionid);
+                                        throw new Exception();
+                                    }
+                                    catch (Exception ex){
+                                        System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
+                                        prefs.edit().putString(sessionid,"").apply();
+                                        startCriptext(fullname, "", "0", urlUser, urlPass, true);
+                                        CriptextLib.instance().sessionid=sessionid;
+                                    }
                                     return null;
                                 }
 
@@ -332,7 +346,8 @@ public class CriptextLib{
                         } else
                             executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
 
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         e.printStackTrace();
                     }
                 }

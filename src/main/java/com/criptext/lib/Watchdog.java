@@ -40,8 +40,8 @@ public class Watchdog {
             @Override
             public void run() {
                 final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                Log.i("Watchdog", "Watchdog there are "+array.length()+" messages to send and didResponseGet "+didResponseGet);
-                if(array.length()>0 && didResponseGet && !canceled) {
+                Log.i("Watchdog", "Watchdog there are "+array.length()+" messages to send and didResponseGet "+didResponseGet+" and canceled:"+canceled);
+                if((array.length()>0 || !didResponseGet) && !canceled) {
                     CriptextLib.instance().sendDisconectOnPull();
                     new Handler().postDelayed(new Runnable() {
                         @Override

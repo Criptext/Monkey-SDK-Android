@@ -33,62 +33,57 @@ public class AESUtil {
     public String strKey;
     public String strIV;
     
-    public AESUtil(SharedPreferences prefs, String sessionId){
-    	
-    	try{    		           
-    		SecretKeySpec secret;
-            if(prefs.getString(sessionId, "").compareTo("")==0){
-            	System.out.println("AES - NO TIENE KEY");
-            	//NO TIENE KEY
-            	PRNGFixes.apply();
-            	String newCryptoSafeString=newCryptoSafeString();
-                secret = new SecretKeySpec(newCryptoSafeString.getBytes("UTF-8"), "AES");
-                strKey=Base64.encodeToString(newCryptoSafeString.getBytes("UTF-8"),Base64.NO_WRAP);                
-            }
-            else{
-            	System.out.println("AES - SI TIENE KEY");
-            	//SI TIENE KEY
-            	strKey=prefs.getString(sessionId, "").split(":")[0];
-                secret = new SecretKeySpec(Base64.decode(strKey.getBytes("UTF-8"), Base64.NO_WRAP), "AES");
-            }     
-            
-            System.out.println("strKey:***"+strKey+"***");
-     
-            cipherENC = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipherDEC = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            
-            AlgorithmParameters params = cipherENC.getParameters();
-            
-            if(prefs.getString(sessionId, "").compareTo("")==0){
-            	System.out.println("AES - NO TIENE IV");
-            	//NO TIENE KEY            	
-                if(params!=null)
-                	ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
-                else {
-                    System.out.println("AES - AlgorithmParameters es null tengo que sacarlo manualmente");
-                    ivBytes = iv();
-                }
+    public AESUtil(SharedPreferences prefs, String sessionId) throws Exception{
 
-                strIV=Base64.encodeToString(ivBytes,Base64.NO_WRAP);                                
-                
-                cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
-                cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(ivBytes));
+        SecretKeySpec secret;
+        if(prefs.getString(sessionId, "").compareTo("")==0){
+            System.out.println("AES - NO TIENE KEY");
+            //NO TIENE KEY
+            PRNGFixes.apply();
+            String newCryptoSafeString=newCryptoSafeString();
+            secret = new SecretKeySpec(newCryptoSafeString.getBytes("UTF-8"), "AES");
+            strKey=Base64.encodeToString(newCryptoSafeString.getBytes("UTF-8"),Base64.NO_WRAP);
+        }
+        else{
+            System.out.println("AES - SI TIENE KEY");
+            //SI TIENE KEY
+            strKey=prefs.getString(sessionId, "").split(":")[0];
+            secret = new SecretKeySpec(Base64.decode(strKey.getBytes("UTF-8"), Base64.NO_WRAP), "AES");
+        }
 
-                prefs.edit().putString(sessionId,strKey + ":" + strIV).apply();
+        System.out.println("strKey:***"+strKey+"***");
+
+        cipherENC = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipherDEC = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+        AlgorithmParameters params = cipherENC.getParameters();
+
+        if(prefs.getString(sessionId, "").compareTo("")==0){
+            System.out.println("AES - NO TIENE IV");
+            //NO TIENE KEY
+            if(params!=null)
+                ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
+            else {
+                System.out.println("AES - AlgorithmParameters es null tengo que sacarlo manualmente");
+                ivBytes = iv();
             }
-            else{
-            	System.out.println("AES - SI TIENE IV - ***"+prefs.getString(sessionId, "").split(":")[1]+"***");
-            	//SI TIENE KEY
-            	strIV = RSAUtil.stripGarbage(prefs.getString(sessionId, "").split(":")[1]);
-                cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
-            	cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
-            }
-            
-            System.out.println("strIV:***"+strIV+"***");
-    	}
-    	catch(Exception e){
-    		e.printStackTrace();
-    	}
+
+            strIV=Base64.encodeToString(ivBytes,Base64.NO_WRAP);
+
+            cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
+            cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(ivBytes));
+
+            prefs.edit().putString(sessionId,strKey + ":" + strIV).apply();
+        }
+        else{
+            System.out.println("AES - SI TIENE IV - ***"+prefs.getString(sessionId, "").split(":")[1]+"***");
+            //SI TIENE KEY
+            strIV = RSAUtil.stripGarbage(prefs.getString(sessionId, "").split(":")[1]);
+            cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
+            cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
+        }
+
+        System.out.println("strIV:***"+strIV+"***");
     }
     
     /***/
