@@ -30,9 +30,9 @@ public class Watchdog {
     }
 
     public void cancel(){
-        if(working) {
+        //if(working) {
             canceled=true;
-        }
+        //}
     }
 
     public void start(){
