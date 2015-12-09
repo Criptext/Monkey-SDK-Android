@@ -18,8 +18,8 @@ public class Watchdog {
     private static int TIMEOUT = 5000;
     private final Context context;
     private final Handler handler;
+    private Runnable runnable;
     private boolean working;
-    private boolean canceled=false;
     public boolean didResponseGet = true;
 
     public Watchdog(Context context) {
@@ -29,19 +29,21 @@ public class Watchdog {
 
     }
 
-    public void cancel(){
-        //if(working) {
-            canceled=true;
-        //}
-    }
-
     public void start(){
-        handler.postDelayed(new Runnable() {
+
+        if(runnable!=null) {
+            Log.i("Watchdog", "Watchdog ya ha sido llamado primero lo cancelo");
+            handler.removeCallbacks(runnable);
+        }
+        else
+            Log.i("Watchdog", "Watchdog start");
+
+        runnable = new Runnable() {
             @Override
             public void run() {
                 final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                Log.i("Watchdog", "Watchdog there are "+array.length()+" messages to send and didResponseGet "+didResponseGet+" and canceled:"+canceled);
-                if((array.length()>0 || !didResponseGet) && !canceled) {
+                Log.i("Watchdog", "There are "+array.length()+" messages to send and didResponseGet "+didResponseGet);
+                if(array.length()>0 || !didResponseGet) {
                     CriptextLib.instance().sendDisconectOnPull();
                     new Handler().postDelayed(new Runnable() {
                         @Override
@@ -64,9 +66,10 @@ public class Watchdog {
                 }
                 working = false;
             }
-        }, TIMEOUT);
+        };
+
+        handler.postDelayed(runnable,TIMEOUT);
         working = true;
-        canceled = false;
     }
 
     public boolean isWorking(){

@@ -1336,7 +1336,6 @@ public class CriptextLib{
             }
             watchdog.didResponseGet = false;
             Log.d("Watchdog", "Watchdog ready sending Get");
-            watchdog.cancel();
             watchdog.start();
 
         } catch(NullPointerException ex){
