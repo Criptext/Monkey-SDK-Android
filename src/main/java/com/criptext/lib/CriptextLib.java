@@ -1235,7 +1235,7 @@ public class CriptextLib{
 
     public void sendFileMessage(final String idnegative, final String elmensaje, final String sessionIDFrom,
                                 final String sessionIDTo, final String file_type, final String eph,
-                                final String pushMessage){
+                                final String pushMessage, final String paramsFile){
         if(elmensaje.length()>0){
 
             try {
@@ -1253,6 +1253,7 @@ public class CriptextLib{
                 args.put("sid",sessionIDFrom);
                 args.put("rid",sessionIDTo);
                 args.put("props",propsMessage);
+                args.put("params",paramsFile);
                 args.put("id",idnegative);
                 args.put("push", pushMessage);
 
@@ -1295,7 +1296,7 @@ public class CriptextLib{
                         @Override
                         public void run() {
                             sendFileMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo,
-                                    file_type, eph, pushMessage);
+                                    file_type, eph, pushMessage, paramsFile);
                         }
                     });
                 else
