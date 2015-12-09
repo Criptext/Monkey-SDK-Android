@@ -630,6 +630,9 @@ public class CriptextLib{
     public void downloadFile(String filepath, final JsonObject props, final String sender_id,
                              final Runnable runnable){
 
+        if(prefs==null)
+            return;
+
         final String claves=prefs.getString(sender_id, ":");
         File target = new File(filepath);
         System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+target.getName());
