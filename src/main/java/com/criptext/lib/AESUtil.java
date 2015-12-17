@@ -17,6 +17,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.criptext.comunication.Base64Coder;
 import com.criptext.comunication.NewBase64;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
  
@@ -33,10 +34,10 @@ public class AESUtil {
     public String strKey;
     public String strIV;
     
-    public AESUtil(SharedPreferences prefs, String sessionId) throws Exception{
+    public AESUtil(Context context, String sessionId) throws Exception{
 
         SecretKeySpec secret;
-        if(prefs.getString(sessionId, "").compareTo("")==0){
+        if(KeyStoreCriptext.getString(context, sessionId).compareTo("")==0){
             System.out.println("AES - NO TIENE KEY");
             //NO TIENE KEY
             PRNGFixes.apply();
@@ -47,7 +48,7 @@ public class AESUtil {
         else{
             System.out.println("AES - SI TIENE KEY");
             //SI TIENE KEY
-            strKey=prefs.getString(sessionId, "").split(":")[0];
+            strKey=KeyStoreCriptext.getString(context, sessionId).split(":")[0];
             secret = new SecretKeySpec(Base64.decode(strKey.getBytes("UTF-8"), Base64.NO_WRAP), "AES");
         }
 
@@ -58,7 +59,7 @@ public class AESUtil {
 
         AlgorithmParameters params = cipherENC.getParameters();
 
-        if(prefs.getString(sessionId, "").compareTo("")==0){
+        if(KeyStoreCriptext.getString(context, sessionId).compareTo("")==0){
             System.out.println("AES - NO TIENE IV");
             //NO TIENE KEY
             if(params!=null)
@@ -73,17 +74,17 @@ public class AESUtil {
             cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
             cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(ivBytes));
 
-            prefs.edit().putString(sessionId,strKey + ":" + strIV).apply();
+            KeyStoreCriptext.putString(context, sessionId, strKey + ":" + strIV);
         }
         else{
-            System.out.println("AES - SI TIENE IV - ***"+prefs.getString(sessionId, "").split(":")[1]+"***");
+            System.out.println("AES - SI TIENE IV - ***"+KeyStoreCriptext.getString(context, sessionId).split(":")[1]+"***");
             //SI TIENE KEY
-            strIV = RSAUtil.stripGarbage(prefs.getString(sessionId, "").split(":")[1]);
+            strIV = RSAUtil.stripGarbage(KeyStoreCriptext.getString(context, sessionId).split(":")[1]);
             cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
             cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
         }
 
-        System.out.println("strIV:***"+strIV+"***");
+        System.out.println("strIV:***" + strIV + "***");
     }
     
     /***/

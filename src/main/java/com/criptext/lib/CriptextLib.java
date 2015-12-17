@@ -58,8 +58,6 @@ public class CriptextLib{
     private String expiring;
     private List<MOKMessage> messagesToSendAfterOpen;
     public Watchdog watchdog = null;
-    //VARIALBES DE PERSISTENCIA
-    public SharedPreferences prefs;
 
     //DELEGATE
     private List<CriptextLibDelegate> delegates;
@@ -201,7 +199,6 @@ public class CriptextLib{
         this.fullname=fullname;
         this.sessionid=sessionId;
         this.expiring=expiring;
-        this.prefs = PreferenceManager.getDefaultSharedPreferences(this.context);
         this.messagesToSendAfterOpen=new ArrayList<MOKMessage>();
         this.urlUser = user;
         this.urlPass = pass;
@@ -220,7 +217,7 @@ public class CriptextLib{
                 @Override
                 protected Void doInBackground(Void... params) {
                     try {
-                        aesutil = new AESUtil(prefs, sessionId);
+                        aesutil = new AESUtil(context, sessionId);
                     }
                     catch (Exception e){
                         e.printStackTrace();
@@ -308,45 +305,43 @@ public class CriptextLib{
                 if(jo!=null){
                     try {
                         JSONObject json = jo.getJSONObject("data");
-                        if(jo.getInt("status")==0){
-                            executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_message_received")});
-                            shouldAskForGroups=true;
-                            //Get data from JSON
-                            Log.d("RSADecrypt", json.toString());
-                            final String keys=json.getString("keys");
 
-                            new AsyncTask<Void, Void, Void>() {
+                        executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_message_received")});
+                        shouldAskForGroups=true;
+                        //Get data from JSON
+                        Log.d("RSADecrypt", json.toString());
+                        final String keys=json.getString("keys");
 
-                                @Override
-                                protected Void doInBackground(Void... params) {
-                                    String decriptedKey=rsaUtil.desencrypt(keys);
-                                    prefs.edit().putString(sessionid,decriptedKey).apply();
-                                    System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
-                                    try {
-                                        aesutil = new AESUtil(prefs, sessionid);
-                                    }
-                                    catch (Exception ex){
-                                        System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
-                                        prefs.edit().putString(sessionid,"").apply();
-                                        startCriptext(fullname, "", "0", urlUser, urlPass, true);
-                                        CriptextLib.instance().sessionid=sessionid;
-                                    }
-                                    return null;
+                        new AsyncTask<Void, Void, Void>() {
+
+                            @Override
+                            protected Void doInBackground(Void... params) {
+                                String decriptedKey=rsaUtil.desencrypt(keys);
+                                KeyStoreCriptext.putString(context,sessionid,decriptedKey);
+                                System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
+                                try {
+                                    aesutil = new AESUtil(context, sessionid);
                                 }
-
-                                @Override
-                                protected void onPostExecute(Void result) {
-                                    //executeInDelegates("onConnectOK", new Object[]{sessionid, null});//Porque se hace dos veces??
-                                    /****COMIENZA CONEXION CON EL SOCKET*****/
-                                    startSocketConnection(sessionid, null);
+                                catch (Exception ex){
+                                    System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
+                                    KeyStoreCriptext.putString(context, sessionid, "");
+                                    startCriptext(fullname, "", "0", urlUser, urlPass, true);
+                                    CriptextLib.instance().sessionid=sessionid;
                                 }
+                                return null;
+                            }
 
-                            }.execute();
-                        } else
-                            executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
+                            @Override
+                            protected void onPostExecute(Void result) {
+                                //executeInDelegates("onConnectOK", new Object[]{sessionid, null});//Porque se hace dos veces??
+                                /****COMIENZA CONEXION CON EL SOCKET*****/
+                                startSocketConnection(sessionid, null);
+                            }
 
+                        }.execute();
                     }
                     catch (Exception e) {
+                        executeInDelegates("onConnectError", new Object[]{"Error at onUserSync"});
                         e.printStackTrace();
                     }
                 }
@@ -423,7 +418,7 @@ public class CriptextLib{
                 //Get data from JSON
                 JSONObject json = jo.getJSONObject("data");
                 System.out.println("response session: " + jo.toString());
-                if(jo.getInt("status")==0){
+
                     String sessionId= this.sessionid.isEmpty() ? json.getString("sessionId") : this.sessionid;
                     String pubKey=json.getString("publicKey");
                     pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
@@ -435,7 +430,7 @@ public class CriptextLib{
                     String usk=rsa.encrypt(aesutil.strKey+":"+aesutil.strIV);
 
                     //Guardo mis key & Iv
-                    prefs.edit().putString(sessionId, aesutil.strKey+":"+aesutil.strIV).apply();
+                    KeyStoreCriptext.putString(context,sessionId, aesutil.strKey+":"+aesutil.strIV);
 
                     //Make the new AJAX
                     String urlconnect = URL+"/user/connect";
@@ -445,7 +440,7 @@ public class CriptextLib{
                     localJSONObject1.put("usk",usk);
                     localJSONObject1.put("session_id",sessionId);
                     localJSONObject1.put("session_name", fullname);
-                    System.out.println("CONNECT - "+sessionId+" - "+fullname);
+                    System.out.println("CONNECT - " + sessionId + " - " + fullname);
 
                     Map<String, Object> params = new HashMap<String, Object>();
                     params.put("data", localJSONObject1.toString());
@@ -454,13 +449,9 @@ public class CriptextLib{
                     cb.params(params);
 
                     aq.auth(handle).ajax(cb);
-                }
-                else{
-                    executeInDelegates("onSessionError", new Object[]{"Error number "+json.getInt("error")});
-                }
-
 
             } catch (Exception e) {
+                executeInDelegates("onSessionError", new Object[]{"Error at onSession"});
                 e.printStackTrace();
             }
         }
@@ -475,18 +466,16 @@ public class CriptextLib{
         if(jo!=null){
             try {
                 JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId"),json.getString("last_message_id")});
-                    //Get data from JSON
-                    final String sessionId=json.getString("sessionId");
 
-                    /****COMIENZA CONEXION CON EL SOCKET*****/
-                    startSocketConnection(sessionId, null);
-                }
-                else
-                    executeInDelegates("onConnectError", new Object[]{"Error number "+jo.getInt("status")});
+                executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId"),json.getString("last_message_id")});
+                //Get data from JSON
+                final String sessionId=json.getString("sessionId");
+
+                /****COMIENZA CONEXION CON EL SOCKET*****/
+                startSocketConnection(sessionId, null);
 
             } catch (Exception e) {
+                executeInDelegates("onConnectError", new Object[]{"Error at onConnect"});
                 e.printStackTrace();
             }
         }
@@ -513,8 +502,8 @@ public class CriptextLib{
                             try {
                                 if(message.getMsg().length()>0){
                                     //PUEDE SER DE TIPO TEXTO O FILE
-                                    String claves=prefs.getString(message.getSid(), ":");
-                                    if(claves.compareTo(":")==0 && !message.getSid().startsWith("legacy:")){
+                                    String claves=KeyStoreCriptext.getString(context, message.getSid());
+                                    if(claves.compareTo("")==0 && !message.getSid().startsWith("legacy:")){
                                         System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
                                         messagesToSendAfterOpen.add(message);
                                         sendOpenConversation(sessionId,message.getSid());
@@ -553,8 +542,8 @@ public class CriptextLib{
                             catch (BadPaddingException e){
                                 e.printStackTrace();
                                 messagesToSendAfterOpen.add(message);
-                                int numTries=prefs.getInt("tries:"+message.getMessage_id(),0);
-                                prefs.edit().putInt("tries:"+message.getMessage_id(),numTries+1).apply();
+                                int numTries=KeyStoreCriptext.getInt(context, "tries:"+message.getMessage_id());
+                                KeyStoreCriptext.putInt(context, "tries:" + message.getMessage_id(), numTries + 1);
                                 sendOpenConversation(sessionId, message.getSid());
                             }
                             catch (Exception e) {
@@ -571,7 +560,7 @@ public class CriptextLib{
                             }
                             break;
                         case MessageTypes.MOKProtocolOpen:{
-                            if(prefs.getString(message.getRid(),"").compareTo("")==0)
+                            if(KeyStoreCriptext.getString(context,message.getRid()).compareTo("")==0)
                                 sendOpenConversation(sessionId,message.getRid());
                             else
                                 System.out.println("MONKEY - llego open pero ya tengo las claves");
@@ -630,10 +619,10 @@ public class CriptextLib{
     public void downloadFile(String filepath, final JsonObject props, final String sender_id,
                              final Runnable runnable){
 
-        if(prefs==null)
+        if(context==null)
             return;
 
-        final String claves=prefs.getString(sender_id, ":");
+        final String claves=KeyStoreCriptext.getString(context,sender_id);
         File target = new File(filepath);
         System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+target.getName());
         aq.auth(handle).download(URL+"/file/open/"+target.getName(), target, new AjaxCallback<File>(){
@@ -747,51 +736,48 @@ public class CriptextLib{
             try {
                 System.out.println("MONKEY - onopenConv:"+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    String convKey=json.getString("convKey");
-                    String desencriptConvKey=aesutil.decrypt(convKey);
 
-                    prefs.edit().putString(json.getString("session_to"), desencriptConvKey).apply();
-                    executeInDelegates("onOpenConversationOK", new Object[]{json.getString("session_to")});
+                String convKey=json.getString("convKey");
+                String desencriptConvKey=aesutil.decrypt(convKey);
 
-                    //SI HAY MENSAJES QUE NO SE HAN PODIDO DESENCRIPTAR
-                    if(messagesToSendAfterOpen.size()>0){
-                        List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
-                        for(int i=0;i<messagesToSendAfterOpen.size();i++){
-                            actual_message=messagesToSendAfterOpen.get(i);
-                            if(actual_message.getSid().compareTo(json.getString("session_to"))==0){
-                                int numTries=prefs.getInt("tries:"+actual_message.getMessage_id(),0);
-                                System.out.println("MONKEY - mensaje en espera de procesar, numTries:" + numTries);
-                                if(numTries<=1){
-                                    procesarMokMessage(actual_message, desencriptConvKey);
-                                    messagesToDelete.add(actual_message);
-                                }
-                                else{
-                                    sendOpenSecure(actual_message.getMessage_id());
-                                }
+                KeyStoreCriptext.putString(context,json.getString("session_to"), desencriptConvKey);
+                executeInDelegates("onOpenConversationOK", new Object[]{json.getString("session_to")});
+
+                //SI HAY MENSAJES QUE NO SE HAN PODIDO DESENCRIPTAR
+                if(messagesToSendAfterOpen.size()>0){
+                    List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
+                    for(int i=0;i<messagesToSendAfterOpen.size();i++){
+                        actual_message=messagesToSendAfterOpen.get(i);
+                        if(actual_message.getSid().compareTo(json.getString("session_to"))==0){
+                            int numTries=KeyStoreCriptext.getInt(context,"tries:"+actual_message.getMessage_id());
+                            System.out.println("MONKEY - mensaje en espera de procesar, numTries:" + numTries);
+                            if(numTries<=1){
+                                procesarMokMessage(actual_message, desencriptConvKey);
+                                messagesToDelete.add(actual_message);
+                            }
+                            else{
+                                sendOpenSecure(actual_message.getMessage_id());
                             }
                         }
-                        //BORRO DE LA LISTA
-                        for(int i=0;i<messagesToDelete.size();i++){
-                            System.out.println("MONKEY - Borrando de la lista");
-                            messagesToSendAfterOpen.remove(messagesToDelete.get(i));
-                        }
                     }
-                }
-                else{
-                    executeInDelegates("onOpenConversationError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
+                    //BORRO DE LA LISTA
+                    for(int i=0;i<messagesToDelete.size();i++){
+                        System.out.println("MONKEY - Borrando de la lista");
+                        messagesToSendAfterOpen.remove(messagesToDelete.get(i));
+                    }
                 }
             }
             catch (BadPaddingException e){
                 e.printStackTrace();
                 if(actual_message!=null) {
                     messagesToSendAfterOpen.add(actual_message);
-                    int numTries = prefs.getInt("tries:" + actual_message.getMessage_id(), 0);
-                    prefs.edit().putInt("tries:" + actual_message.getMessage_id(), numTries + 1).apply();
+                    int numTries = KeyStoreCriptext.getInt(context,"tries:" + actual_message.getMessage_id());
+                    KeyStoreCriptext.putInt(context,"tries:" + actual_message.getMessage_id(), numTries + 1);
                     sendOpenConversation(actual_message.getRid(), actual_message.getSid());
                 }
             }
             catch (Exception e) {
+                executeInDelegates("onOpenConversationError", new Object[]{""});
                 e.printStackTrace();
             }
         }
@@ -827,34 +813,32 @@ public class CriptextLib{
             try {
                 System.out.println("MONKEY - onopenSecure:"+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status") == 0) {
-                    String message_encrypted=json.getString("message");
-                    List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
-                    for(int i=0;i<messagesToSendAfterOpen.size();i++) {
-                        actual_message = messagesToSendAfterOpen.get(i);
-                        if(actual_message.getMessage_id().compareTo(json.getString("message_id"))==0) {
-                            actual_message.setMsg(message_encrypted);
-                            procesarMokMessage(actual_message, prefs.getString(actual_message.getRid(), ""));
-                            messagesToDelete.add(actual_message);
-                            break;
-                        }
-                    }
-                    //BORRO DE LA LISTA
-                    for(int i=0;i<messagesToDelete.size();i++){
-                        System.out.println("MONKEY - Borrando de la lista en opensecure");
-                        messagesToSendAfterOpen.remove(messagesToDelete.get(i));
+
+                String message_encrypted=json.getString("message");
+                List<MOKMessage> messagesToDelete=new ArrayList<MOKMessage>();
+                for(int i=0;i<messagesToSendAfterOpen.size();i++) {
+                    actual_message = messagesToSendAfterOpen.get(i);
+                    if(actual_message.getMessage_id().compareTo(json.getString("message_id"))==0) {
+                        actual_message.setMsg(message_encrypted);
+                        procesarMokMessage(actual_message, KeyStoreCriptext.getString(context,actual_message.getRid()));
+                        messagesToDelete.add(actual_message);
+                        break;
                     }
                 }
-                else{
-                    executeInDelegates("onOpenConversationError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
+                //BORRO DE LA LISTA
+                for(int i=0;i<messagesToDelete.size();i++){
+                    System.out.println("MONKEY - Borrando de la lista en opensecure");
+                    messagesToSendAfterOpen.remove(messagesToDelete.get(i));
                 }
+
             }
             catch (Exception e) {
+                executeInDelegates("onSendOpenSecure", new Object[]{""});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates("onOpenConversationError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates("onSendOpenSecure", new Object[]{status.getCode()+" - "+status.getMessage()});
         }
     }
 
@@ -889,17 +873,7 @@ public class CriptextLib{
     public void onSubscribePush(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
 
         if(json!=null){
-            try {
-                if(json.getInt("status")==0){
-                    System.out.println("MONKEY - onSubscribePushOK");
-                }
-                else{
-                    System.out.println("MONKEY - onSubscribePushError - "+json.getInt("status")+" - "+json.getString("message"));
-                }
-            }
-            catch(Exception e){
-                e.printStackTrace();
-            }
+            System.out.println("MONKEY - onSubscribePushOK");
         }
         else
             System.out.println("MONKEY - onSubscribePushError - "+status.getCode()+" - "+status.getMessage());
@@ -939,14 +913,10 @@ public class CriptextLib{
         if(jo!=null){
             try {
                 JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onCreateGroupOK", new Object[]{json.getString("group_id")});
-                }
-                else{
-                    executeInDelegates("onCreateGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
-                }
+                executeInDelegates("onCreateGroupOK", new Object[]{json.getString("group_id")});
             }
             catch(Exception e){
+                executeInDelegates("onCreateGroupError", new Object[]{""});
                 e.printStackTrace();
             }
         }
@@ -985,14 +955,10 @@ public class CriptextLib{
             try {
                 System.out.println("MONKEY - onDeleteGroup: "+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onDeleteGroupOK", new Object[]{json.getString("group_id")});
-                }
-                else{
-                    executeInDelegates("onDeleteGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
-                }
+                executeInDelegates("onDeleteGroupOK", new Object[]{json.getString("group_id")});
             }
             catch(Exception e){
+                executeInDelegates("onDeleteGroupError", new Object[]{""});
                 e.printStackTrace();
             }
         }
@@ -1032,16 +998,12 @@ public class CriptextLib{
 
         if(jo!=null){
             try {
-                System.out.println("MONKEY - onAddMemberToGroup - "+jo.toString());
+                System.out.println("MONKEY - onAddMemberToGroup - " + jo.toString());
                 //JSONObject json = jo.getJSONObject("data");
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onAddMemberToGroupOK", new Object[]{});
-                }
-                else{
-                    executeInDelegates("onAddMemberToGroupError", new Object[]{jo.getInt("status")+" - "+jo.getString("message")});
-                }
+                executeInDelegates("onAddMemberToGroupOK", new Object[]{});
             }
             catch(Exception e){
+                executeInDelegates("onAddMemberToGroupError", new Object[]{""});
                 e.printStackTrace();
             }
         }
@@ -1085,16 +1047,11 @@ public class CriptextLib{
         if(jo!=null){
             try {
                 JSONObject json = jo.getJSONObject("data");
-                System.out.println("MONKEY - onGetGroupInfo - "+json);
-
-                if(jo.getInt("status")==0){
-                    executeInDelegates("onGetGroupInfoOK", new Object[]{json});
-                }
-                else{
-                    executeInDelegates("onGetGroupInfoError", new Object[]{jo.getInt("status")+" - "+json.getString("message")});
-                }
+                System.out.println("MONKEY - onGetGroupInfo - " + json);
+                executeInDelegates("onGetGroupInfoOK", new Object[]{json});
             }
             catch(Exception e){
+                executeInDelegates("onGetGroupInfoError", new Object[]{""});
                 e.printStackTrace();
             }
         }

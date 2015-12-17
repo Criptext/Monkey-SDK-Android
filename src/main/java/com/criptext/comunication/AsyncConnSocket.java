@@ -225,10 +225,10 @@ public class AsyncConnSocket implements ComServerDelegate{
 		MOKMessage remote = null;
 		JsonParser parser = new JsonParser();
 		JsonObject params = new JsonObject();
-		if(args.has("params") && !parser.parse(args.get("params").getAsString()).isJsonNull())
+		if(args.has("params") && !args.get("params").isJsonNull() && !parser.parse(args.get("params").getAsString()).isJsonNull())
 			params=(JsonObject)parser.parse(args.get("params").getAsString());
 		JsonObject props = new JsonObject();
-		if(args.has("props") && !parser.parse(args.get("props").getAsString()).isJsonNull())
+		if(args.has("props") && !args.get("props").isJsonNull() && !parser.parse(args.get("props").getAsString()).isJsonNull())
 			props=(JsonObject)parser.parse(args.get("props").getAsString());
 		switch (cmd) {
 		case MessageTypes.MOKProtocolMessage:{
