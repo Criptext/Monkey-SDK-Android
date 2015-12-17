@@ -2,6 +2,8 @@ package com.criptext.database;
 
 import android.content.Context;
 
+import com.criptext.lib.KeyStoreCriptext;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -84,9 +86,12 @@ public class TransitionMessage {
     }
 
     private static Realm getMonkeyKitRealm(Context context){
+        KeyStoreCriptext.putString(context,"encryptionKeyForMonkey","@#sx!2*&-XC=#2178");
+        byte[] encryptKey= KeyStoreCriptext.getString(context,"encryptionKeyForMonkey").getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
                 .name(realmName)
                 .setModules(new MonkeyKitRealmModule())
+                .encryptionKey(encryptKey)
                 .build();
         return Realm.getInstance(libraryConfig);
     }
