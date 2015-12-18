@@ -86,7 +86,7 @@ public class TransitionMessage {
     }
 
     private static Realm getMonkeyKitRealm(Context context){
-        KeyStoreCriptext.putString(context,"encryptionKeyForMonkey","@#sx!2*&-XC=#2178");
+        KeyStoreCriptext.putString(context,"encryptionKeyForMonkey","132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&");
         byte[] encryptKey= KeyStoreCriptext.getString(context,"encryptionKeyForMonkey").getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
                 .name(realmName)
