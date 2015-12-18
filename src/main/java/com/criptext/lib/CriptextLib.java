@@ -25,6 +25,7 @@ import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -1202,6 +1203,7 @@ public class CriptextLib{
 
                 JSONObject args = new JSONObject();
                 JSONObject propsMessage = new JSONObject();
+                JSONObject paramsMessage = new JSONObject();
                 propsMessage.put("cmpr", "gzip");
                 propsMessage.put("device", "android");
                 propsMessage.put("encr", "1");
@@ -1210,10 +1212,18 @@ public class CriptextLib{
                 propsMessage.put("str", "0");
                 propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
 
+                if(paramsFile!=null && paramsFile.length()>0) {
+                    JsonParser parser = new JsonParser();
+                    JsonObject jsonObject = parser.parse(paramsFile).getAsJsonObject();
+                    if (jsonObject.has("length")) {
+                        paramsMessage.put("length", jsonObject.get("length").getAsInt());
+                    }
+                }
+
                 args.put("sid",sessionIDFrom);
                 args.put("rid",sessionIDTo);
                 args.put("props",propsMessage);
-                args.put("params",paramsFile);
+                args.put("params",paramsMessage);
                 args.put("id",idnegative);
                 args.put("push", pushMessage);
 
