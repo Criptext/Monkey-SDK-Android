@@ -7,6 +7,7 @@ public class MessageTypes {
 
 	public static final int MessageSocketDisconnected = -2;
 	public static final int MessageSocketConnected = -1;
+    public static final int blMessageDefault = 0;
     public static final int blMessageAudio = 1;
     public static final int blMessagePhoto = 3;
     public static final int blMessageDocument = 4;

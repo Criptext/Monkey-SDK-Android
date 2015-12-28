@@ -2,6 +2,7 @@ package com.criptext.database;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 
 import com.criptext.comunication.MOKMessage;
 import com.criptext.comunication.MessageTypes;
@@ -636,6 +637,38 @@ public class CriptextDBHandler {
         }
 
         return tipo;
+    }
+
+    public String get_LastMessage() {
+        String lastmessage="0";
+        Realm realm = getMonkeyKitRealm(myContext);
+        AnonData model = realm.where(AnonData.class).equalTo("_id", "1").findFirst();
+        if (model != null && model.getLastMessage() != null && !model.getLastMessage().isEmpty()) {
+            lastmessage=model.getLastMessage();
+        }
+        realm.close();
+        return lastmessage;
+    }
+
+    public void set_LastMessage(final String paramString){
+
+        if(paramString == null || paramString.length()==0)
+            return;
+
+        Realm bgRealm = getMonkeyKitRealm(myContext);
+        bgRealm.beginTransaction();
+
+        AnonData user = bgRealm.where(AnonData.class).findFirst();
+        if(user == null) {
+            user = new AnonData();
+            user.set_id("1");
+            user.setLastMessage(paramString);
+        } else
+            user.setLastMessage(paramString);
+
+        bgRealm.copyToRealmOrUpdate(user);
+        bgRealm.commitTransaction();
+        closeRealm(bgRealm);
     }
 
 }
