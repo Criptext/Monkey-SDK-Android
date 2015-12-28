@@ -34,7 +34,7 @@ public class KeyChain {
     }
 
     private static Realm getMonkeyKitRealm(Context context){
-        System.out.println("KEYCHAIN - "+context);
+        //System.out.println("KEYCHAIN - "+context);
         byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
                 .name(realmName)

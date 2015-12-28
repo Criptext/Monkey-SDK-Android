@@ -23,6 +23,7 @@ import com.criptext.comunication.AsyncConnSocket;
 import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
+import com.criptext.database.CriptextDBHandler;
 import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -73,13 +74,17 @@ public class CriptextLib extends Service {
     private RSAUtil rsaUtil;
     private boolean shouldAskForGroups;
 
+    //PERSISTENCIA
+    public static String null_ref = ";NULL;";
+    public CriptextDBHandler criptextDBHandler;
+
     public CriptextLib(){
-        System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+context + " isInialized:" + isInialized());
+        //System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+context + " isInialized:" + isInialized());
         if(delegates==null)
             delegates=new ArrayList<CriptextLibDelegate>();
         if(context==null && isInialized())
             context=getApplicationContext();
-        System.out.println("CRIPTEXTLIB - contructor despues:"+delegates+" - "+context + " isInialized:" + isInialized());
+        //System.out.println("CRIPTEXTLIB - contructor despues:" + delegates + " - " + context + " isInialized:" + isInialized());
     }
 
     @Override
@@ -98,7 +103,7 @@ public class CriptextLib extends Service {
     }
 
     public static CriptextLib instance(){
-        System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
+        //System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
         if (_sharedInstance == null)
             _sharedInstance = new CriptextLib();
         return _sharedInstance;
@@ -110,7 +115,7 @@ public class CriptextLib extends Service {
 
     //SETTERS
     public void setContext(Context context){
-        System.out.println("CRIPTEXTLIB - seteando contexto:"+context);
+        //System.out.println("CRIPTEXTLIB - seteando contexto:"+context);
         this.context=context;
     }
 
@@ -142,6 +147,11 @@ public class CriptextLib extends Service {
         }else if(method.compareTo("onMessageRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
+            }
+            //GUARDO EL MENSAJE EN LA BASE DE MONKEY
+            MOKMessage message = (MOKMessage)info[0];
+            if(!criptextDBHandler.existMessage(message.getMessage_id())) {
+                criptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message,CriptextDBHandler.getMonkeyActionType(message),context));
             }
         }else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
@@ -237,6 +247,7 @@ public class CriptextLib extends Service {
         this.messagesToSendAfterOpen=new ArrayList<MOKMessage>();
         this.urlUser = user;
         this.urlPass = pass;
+        this.criptextDBHandler=CriptextDBHandler.instance(context);
         if(aq==null) {
             aq = new AQuery(context);
             handle = new BasicHandle(urlUser, urlPass);
