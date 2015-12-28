@@ -1,10 +1,10 @@
 package com.criptext.lib;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.security.KeyPairGeneratorSpec;
 import android.util.Base64;
+
+import com.criptext.database.KeyChain;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,31 +29,27 @@ import javax.security.auth.x500.X500Principal;
 public class KeyStoreCriptext {
 
     public static void putString(Context context, String key, String value){
-        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(context);
         KeyStoreCriptext.createNewKey(context, key);
-        prefs.edit().putString(key, KeyStoreCriptext.encryptString(key, value)).apply();
+        KeyChain.putString(context, key, KeyStoreCriptext.encryptString(key, value));
     }
 
     public static String getString(Context context,String key){
-        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(context);
-        if(prefs.getString(key,"").equals(""))
+        if(KeyChain.getString(context,key).equals(""))
             return "";
         else
-            return KeyStoreCriptext.decryptString(key,prefs.getString(key,""));
+            return KeyStoreCriptext.decryptString(key,KeyChain.getString(context,key));
     }
 
     public static void putInt(Context context, String key, int value){
-        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(context);
         KeyStoreCriptext.createNewKey(context, key);
-        prefs.edit().putString(key, KeyStoreCriptext.encryptString(key, String.valueOf(value))).apply();
+        KeyChain.putString(context, key, KeyStoreCriptext.encryptString(key, String.valueOf(value)));
     }
 
     public static int getInt(Context context,String key){
-        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(context);
-        if(prefs.getString(key,"").equals(""))
+        if(KeyChain.getString(context, key).equals(""))
             return 0;
         else
-            return Integer.parseInt(KeyStoreCriptext.decryptString(key,prefs.getString(key,"")));
+            return Integer.parseInt(KeyStoreCriptext.decryptString(key,KeyChain.getString(context, key)));
     }
 
     public static ArrayList<String> getAllAlias(){

@@ -27,16 +27,20 @@ import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import android.app.IntentService;
+import android.app.Service;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
-public class CriptextLib{
+public class CriptextLib extends Service {
 
     public static String URL="http://secure.criptext.com";
     private static String transitionMessages = "MonkeyKit.transitionMessages";
@@ -69,14 +73,44 @@ public class CriptextLib{
     private RSAUtil rsaUtil;
     private boolean shouldAskForGroups;
 
+    public CriptextLib(){
+        System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+context + " isInialized:" + isInialized());
+        if(delegates==null)
+            delegates=new ArrayList<CriptextLibDelegate>();
+        if(context==null && isInialized())
+            context=getApplicationContext();
+        System.out.println("CRIPTEXTLIB - contructor despues:"+delegates+" - "+context + " isInialized:" + isInialized());
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        System.out.println("####INICIANDO SERVICIO - "+delegates+" - "+context);
+        CriptextLib.instance().setContext(this);
+        CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
+                intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
+                intent.getStringExtra("pass"), intent.getBooleanExtra("startsession", false));
+        return START_REDELIVER_INTENT;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
     public static CriptextLib instance(){
+        System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
         if (_sharedInstance == null)
             _sharedInstance = new CriptextLib();
         return _sharedInstance;
     }
 
+    public boolean isInialized(){
+        return urlUser!=null;
+    }
+
     //SETTERS
     public void setContext(Context context){
+        System.out.println("CRIPTEXTLIB - seteando contexto:"+context);
         this.context=context;
     }
 
@@ -218,6 +252,7 @@ public class CriptextLib{
                 @Override
                 protected Void doInBackground(Void... params) {
                     try {
+                        System.out.println("CRIPTEXTLIB - inicializando aesutil:"+context);
                         aesutil = new AESUtil(context, sessionId);
                     }
                     catch (Exception e){
