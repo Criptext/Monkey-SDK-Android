@@ -112,7 +112,7 @@ public class CriptextDBHandler {
      * @param offset donde me quede la ulitma vez que llame este metodo?
      * @return lista con mensajes a mostrar en la conversacion.
      */
-    public LinkedList<RemoteMessage> get10Messages(String id, int size, int offset){
+    public LinkedList<RemoteMessage> getMessagesBySize(String id, int size, int offset){
         Realm realm = getMonkeyKitRealm(myContext);
         RealmResults<MessageModel> myMessages;
         int messageCount;
@@ -135,9 +135,9 @@ public class CriptextDBHandler {
 
 
         orderedmessages = RemoteMessage.insertSortCopy(myMessages);
-        closeRealm(realm);
+        realm.close();
         int available = Math.min(messageCount - offset, size);
-        System.out.println("THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
+        System.out.println("CRIPTEXTDBHANDLER1 - THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset + " SIZE = "+size);
         return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
 
     }
@@ -147,8 +147,8 @@ public class CriptextDBHandler {
      * @param offset donde me quede la ulitma vez que llame este metodo?
      * @return lista con mensajes a mostrar en la conversacion.
      */
-    public static LinkedList<RemoteMessage> get10Messages(Context context, String id, int offset){
-        Realm realm = getMonkeyKitRealm(context);
+    public LinkedList<RemoteMessage> get10Messages(String id, int offset){
+        Realm realm = getMonkeyKitRealm(myContext);
         RealmResults<MessageModel> myMessages;
         int messageCount;
         if(id.startsWith("G:")){
@@ -172,7 +172,7 @@ public class CriptextDBHandler {
         orderedmessages = RemoteMessage.insertSortCopy(myMessages);
         realm.close();
         int available = Math.min(messageCount - offset, 10);
-        System.out.println("THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
+        System.out.println("CRIPTEXTDBHANDLER2 - THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
         if(orderedmessages != null)
             return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
         else
@@ -189,9 +189,9 @@ public class CriptextDBHandler {
      *                    decir que es un mensaje recibido, por lo cual debe de ser borrado
      *                    inmediatamente.
      */
-    public static String deleteMessage(Context context, String id, String receiver_id){
+    public String deleteMessage(String id, String receiver_id){
 
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = getMonkeyKitRealm(myContext);
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         String path=null;
 
@@ -262,15 +262,14 @@ public class CriptextDBHandler {
 
     /**
      * Actualiza el mensaje en Realm.
-     * @param context Referencia al context de la activity que llama a esta función
      * @param message El mensaje a actualizar. El contenido de este mensaje reemplaza por completo
      *                al que estaba anteriormente en la base de datos. Hay que tener cuidado porque
      *                puede darse el caso de que se pierda información si la base tiene información
      *                más reciente que la que entra como argumento.
      */
-    public static void updateMessage(Context context, RemoteMessage message)
+    public void updateMessage(RemoteMessage message)
     {
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = getMonkeyKitRealm(myContext);
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(message.getModel());
         realm.commitTransaction();
@@ -298,11 +297,10 @@ public class CriptextDBHandler {
 
     /**
      * Borra todos los mensajes enviados por un usuario con cierto session id
-     * @param context Context del activity que llama a este método
      * @param id Session Id del usuario que envió los mensajes a borrar.
      */
-    public static void deleteAllMessagesFrom(Context context, String id) {
-        Realm realm = getMonkeyKitRealm(context);
+    public void deleteAllMessagesFrom(String id) {
+        Realm realm = getMonkeyKitRealm(myContext);
         realm.beginTransaction();
         realm.where(MessageModel.class).equalTo("_uid_sent", id).findAll().clear();
         realm.commitTransaction();
@@ -311,11 +309,10 @@ public class CriptextDBHandler {
 
     /**
      * Borra todos los mensajes enviados a un usuario con cierto session id
-     * @param context Context del activity que llama a este método
      * @param id Session Id del usuario al que se le enviaron los mensajes a borrar.
      */
-    public static void deleteAllMessagesTo(Context context, String id) {
-        Realm realm = getMonkeyKitRealm(context);
+    public void deleteAllMessagesTo(String id) {
+        Realm realm = getMonkeyKitRealm(myContext);
         realm.beginTransaction();
         realm.where(MessageModel.class).equalTo("_uid_recive", id).findAll().clear();
         realm.commitTransaction();
@@ -323,10 +320,10 @@ public class CriptextDBHandler {
 
     }
 
-    public int getNmessageNuevosConversation(String id){
+    public int getTotalMessages(String sessionid){
 
         Realm realm = getMonkeyKitRealm(myContext);
-        int count = realm.where(MessageModel.class).equalTo("_uid_sent", id).equalTo("_status", "porabrir").findAll().size();
+        int count = realm.where(MessageModel.class).equalTo("_uid_sent", sessionid).findAll().size();
         closeRealm(realm);
         return count;
 
@@ -377,20 +374,6 @@ public class CriptextDBHandler {
 
     }
 
-    /**
-     * Obtiene todos los mensajes de Realm que aún se están enviando.
-     * @param context Referencia a context del activity que llama a esta función
-     * @return lista con todos los mensajes que aún se están enviando.
-     */
-    public static ArrayList<RemoteMessage> getAllMessageSending(Context context)
-    {
-        Realm realm = getMonkeyKitRealm(context);
-        RealmResults<MessageModel> mess = realm.where(MessageModel.class).equalTo("_status", "sending").findAll();
-        ArrayList messages = new ArrayList<RemoteMessage>(RemoteMessage.insertSortCopy(mess)); //ARRAYLIST WTF!??
-        realm.close();
-        return messages;
-
-    }
     public ArrayList<RemoteMessage> getAllMessageSending(String id)
     {
         Realm realm = getMonkeyKitRealm(myContext);

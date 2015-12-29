@@ -145,27 +145,30 @@ public class CriptextLib extends Service {
                 delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
             }
             if((String)info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
-                if(Long.parseLong((String)info[1]) >= Long.parseLong(CriptextDBHandler.instance(context).get_LastMessage()))
-                    CriptextDBHandler.instance(context).set_LastMessage((String) info[1]);
+                if(Long.parseLong((String)info[1]) >= Long.parseLong(criptextDBHandler.get_LastMessage()))
+                    criptextDBHandler.set_LastMessage((String) info[1]);
             }
         }else if(method.compareTo("onMessageRecieved")==0){
+            //MANDO EL MENSAJE A CRIPTEXT
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
             }
-            //GUARDO EL MENSAJE EN LA BASE DE MONKEY
+            //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
             MOKMessage message = (MOKMessage)info[0];
-            int tipo = CriptextDBHandler.getMonkeyActionType(message);
-            switch(tipo) {
-                case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
-                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
-                    if(!criptextDBHandler.existMessage(message.getMessage_id())) {
-                        criptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message,CriptextDBHandler.getMonkeyActionType(message),context));
+            if(delegates.size()==0) {
+                int tipo = CriptextDBHandler.getMonkeyActionType(message);
+                switch (tipo) {
+                    case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
+                    case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
+                        if (!criptextDBHandler.existMessage(message.getMessage_id())) {
+                            criptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
+                        }
+                        break;
                     }
-                    break;
                 }
             }
             //ACTUALIZO EL LASTMESSAGEID
-            CriptextDBHandler.instance(context).set_LastMessage(message.getMessage_id());
+            criptextDBHandler.set_LastMessage(message.getMessage_id());
         }else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
@@ -175,7 +178,7 @@ public class CriptextLib extends Service {
                 delegates.get(i).onSocketConnected();
             }
             //MANDO EL GET
-            CriptextLib.instance().sendGet(CriptextDBHandler.instance(context).get_LastMessage());
+            CriptextLib.instance().sendGet(criptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -244,14 +247,14 @@ public class CriptextLib extends Service {
             MOKMessage message = (MOKMessage)info[0];
             int moneyAction=CriptextDBHandler.getMonkeyActionType(message);
             if(message.getParams().toString().length() > 2 && message.getParams().get("type").getAsInt()==105){
-                CriptextDBHandler.instance(context).set_LastMessage(message.getParams().get("message_id").getAsString());
+                criptextDBHandler.set_LastMessage(message.getParams().get("message_id").getAsString());
             }
             else{
                 switch (moneyAction) {
                     case MessageTypes.blMessageGroupAdded:
                     case MessageTypes.blMessageGroupRemovedMember:
                     case MessageTypes.blMessageGroupNewMember:
-                        CriptextDBHandler.instance(context).set_LastMessage(message.getMessage_id());
+                        criptextDBHandler.set_LastMessage(message.getMessage_id());
                         break;
                 }
             }
