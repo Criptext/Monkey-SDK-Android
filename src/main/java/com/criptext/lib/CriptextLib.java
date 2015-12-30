@@ -23,20 +23,29 @@ import com.criptext.comunication.AsyncConnSocket;
 import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
+import com.criptext.database.CriptextDBHandler;
+import com.criptext.database.MonkeyKitRealmModule;
 import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import android.app.IntentService;
+import android.app.Service;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
-public class CriptextLib{
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+
+public class CriptextLib extends Service {
 
     public static String URL="http://secure.criptext.com";
     private static String transitionMessages = "MonkeyKit.transitionMessages";
@@ -69,14 +78,73 @@ public class CriptextLib{
     private RSAUtil rsaUtil;
     private boolean shouldAskForGroups;
 
+    //PERSISTENCIA
+    public static String null_ref = ";NULL;";
+    private static String realmName = "MonkeyKit";
+    private static Realm monkeyRealm;
+
+    public Realm getNewMonkeyRealm(){
+        byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
+        RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
+                .name(realmName)
+                .setModules(new MonkeyKitRealmModule())
+                .encryptionKey(encryptKey)
+                .build();
+        return Realm.getInstance(libraryConfig);
+    }
+
+    public Realm getMonkeyKitRealm(){
+        if(monkeyRealm == null)
+            monkeyRealm = getNewMonkeyRealm();
+
+        return monkeyRealm;
+    }
+
+    public void closeDatabase(){
+        if(monkeyRealm != null)
+            monkeyRealm.close();
+
+        monkeyRealm = null;
+    }
+
+    public CriptextLib(){
+        //System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+context + " isInialized:" + isInialized());
+        if(delegates==null)
+            delegates=new ArrayList<CriptextLibDelegate>();
+        if(context==null && isInialized())
+            context=getApplicationContext();
+        //System.out.println("CRIPTEXTLIB - contructor despues:" + delegates + " - " + context + " isInialized:" + isInialized());
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        System.out.println("####INICIANDO SERVICIO - "+delegates+" - "+context);
+        CriptextLib.instance().setContext(this);
+        CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
+                intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
+                intent.getStringExtra("pass"), intent.getBooleanExtra("startsession", false));
+        return START_REDELIVER_INTENT;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
     public static CriptextLib instance(){
+        //System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
         if (_sharedInstance == null)
             _sharedInstance = new CriptextLib();
         return _sharedInstance;
     }
 
+    public boolean isInialized(){
+        return urlUser!=null;
+    }
+
     //SETTERS
     public void setContext(Context context){
+        //System.out.println("CRIPTEXTLIB - seteando contexto:"+context);
         this.context=context;
     }
 
@@ -105,10 +173,28 @@ public class CriptextLib{
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
             }
+            if((String)info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
+                if(Long.parseLong((String)info[1]) >= Long.parseLong(CriptextDBHandler.get_LastMessage()))
+                    CriptextDBHandler.set_LastMessage((String) info[1]);
+            }
         }else if(method.compareTo("onMessageRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
             }
+            //GUARDO EL MENSAJE EN LA BASE DE MONKEY
+            MOKMessage message = (MOKMessage)info[0];
+            int tipo = CriptextDBHandler.getMonkeyActionType(message);
+            switch(tipo) {
+                case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
+                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
+                    if(!CriptextDBHandler.existMessage(message.getMessage_id())) {
+                        CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message,CriptextDBHandler.getMonkeyActionType(message),context));
+                    }
+                    break;
+                }
+            }
+            //ACTUALIZO EL LASTMESSAGEID
+            CriptextDBHandler.set_LastMessage(message.getMessage_id());
         }else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
@@ -117,6 +203,8 @@ public class CriptextLib{
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketConnected();
             }
+            //MANDO EL GET
+            CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -178,9 +266,23 @@ public class CriptextLib{
                 delegates.get(i).onGetGroupInfoError((String)info[0]);
             }
         }else if(method.compareTo("onNotificationReceived")==0){
-            System.out.println("notif received");
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
+            }
+            //ACTUALIZO EL LASTMESSAGEID
+            MOKMessage message = (MOKMessage)info[0];
+            int moneyAction=CriptextDBHandler.getMonkeyActionType(message);
+            if(message.getParams().toString().length() > 2 && message.getParams().get("type").getAsInt()==105){
+                CriptextDBHandler.set_LastMessage(message.getParams().get("message_id").getAsString());
+            }
+            else{
+                switch (moneyAction) {
+                    case MessageTypes.blMessageGroupAdded:
+                    case MessageTypes.blMessageGroupRemovedMember:
+                    case MessageTypes.blMessageGroupNewMember:
+                        CriptextDBHandler.set_LastMessage(message.getMessage_id());
+                        break;
+                }
             }
         }
     }
@@ -218,6 +320,7 @@ public class CriptextLib{
                 @Override
                 protected Void doInBackground(Void... params) {
                     try {
+                        System.out.println("CRIPTEXTLIB - inicializando aesutil:"+context);
                         aesutil = new AESUtil(context, sessionId);
                     }
                     catch (Exception e){
@@ -1432,6 +1535,7 @@ public class CriptextLib{
             asynConnSocket.removeContext();
             asynConnSocket.socketMessageHandler = null;
         }
+        closeDatabase();
         context = null;
 
     }

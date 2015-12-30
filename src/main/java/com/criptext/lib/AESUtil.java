@@ -18,7 +18,6 @@ import com.criptext.comunication.Base64Coder;
 import com.criptext.comunication.NewBase64;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Base64;
  
 public class AESUtil {
@@ -74,7 +73,8 @@ public class AESUtil {
             cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(ivBytes));
             cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(ivBytes));
 
-            KeyStoreCriptext.putString(context, sessionId, strKey + ":" + strIV);
+            if(sessionId.length()>0)
+                KeyStoreCriptext.putString(context, sessionId, strKey + ":" + strIV);
         }
         else{
             System.out.println("AES - SI TIENE IV - ***"+KeyStoreCriptext.getString(context, sessionId).split(":")[1]+"***");
