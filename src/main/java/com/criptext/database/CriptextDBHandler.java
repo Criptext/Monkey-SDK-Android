@@ -7,6 +7,7 @@ import android.util.Log;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.lib.CriptextLib;
+import com.criptext.lib.R;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -575,7 +576,6 @@ public class CriptextDBHandler {
                 remote.setParams("" + message.getParams());
                 break;
             case MessageTypes.blMessageScreenCapture:
-                remote.set_message("Screenshot MDF!");
                 break;
         }
 
