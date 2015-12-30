@@ -17,6 +17,7 @@ public class MessageTypes {
     public static final int blMessageGroupNewMember = 7;
     public static final int blMessageGroupRemovedMember = 8;
     public static final int blMessageUserGroupsUpdate=46;
+    public static final int blMessageScreenCapture=60;
 
     //COMANDOS
 	public static final int MOKProtocolMessage = 200;

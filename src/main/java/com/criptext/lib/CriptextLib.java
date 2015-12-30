@@ -273,20 +273,10 @@ public class CriptextLib extends Service {
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
             }
-            //ACTUALIZO EL LASTMESSAGEID
+            //ACTUALIZO EL LASTMESSAGEID DE SER NECESARIO
             MOKMessage message = (MOKMessage)info[0];
-            int moneyAction=CriptextDBHandler.getMonkeyActionType(message);
-            if(message.getParams().toString().length() > 2 && message.getParams().get("type").getAsInt()==105){
-                CriptextDBHandler.set_LastMessage(message.getParams().get("message_id").getAsString());
-            }
-            else{
-                switch (moneyAction) {
-                    case MessageTypes.blMessageGroupAdded:
-                    case MessageTypes.blMessageGroupRemovedMember:
-                    case MessageTypes.blMessageGroupNewMember:
-                        CriptextDBHandler.set_LastMessage(message.getMessage_id());
-                        break;
-                }
+            if(message.getMessage_id()!=null && message.getMessage_id().length()>0 && !message.getMessage_id().equals("0")){
+                CriptextDBHandler.set_LastMessage(message.getMessage_id());
             }
         }
     }

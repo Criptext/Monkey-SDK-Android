@@ -574,6 +574,9 @@ public class CriptextDBHandler {
                 remote.setProps("" + message.getProps());
                 remote.setParams("" + message.getParams());
                 break;
+            case MessageTypes.blMessageScreenCapture:
+                remote.set_message("Screenshot MDF!");
+                break;
         }
 
         return remote;
