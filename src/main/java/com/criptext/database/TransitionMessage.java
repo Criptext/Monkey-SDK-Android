@@ -2,6 +2,7 @@ package com.criptext.database;
 
 import android.content.Context;
 
+import com.criptext.lib.CriptextLib;
 import com.criptext.lib.KeyStoreCriptext;
 
 import org.json.JSONArray;
@@ -25,12 +26,11 @@ public class TransitionMessage {
      * @param message
      */
     public static void addTransitionMessage(Context context, String id, JSONObject message){
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         TransitionMessageModel newmessage  = new TransitionMessageModel(id, message.toString());
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(newmessage);
         realm.commitTransaction();
-        realm.close();
     }
 
     public static void addTransitionMessage(Context context, JSONObject message) throws JSONException{
@@ -38,7 +38,7 @@ public class TransitionMessage {
         addTransitionMessage(context, args.get("id").toString(), message);
     }
     public static JSONArray getMessagesInTransition(Context context){
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         RealmResults<TransitionMessageModel> results = realm.where(TransitionMessageModel.class).findAll();
         JSONArray array = new JSONArray();
         for(TransitionMessageModel model : results){
@@ -49,7 +49,6 @@ public class TransitionMessage {
                 e.printStackTrace();
             }
         }
-        realm.close();
         return array;
     }
 
@@ -62,14 +61,13 @@ public class TransitionMessage {
     public static void rmTransitionMessage(Context context, String id){
         if(!id.startsWith("-"))
             id = "-" + id;
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         TransitionMessageModel sentmessage = realm.where(TransitionMessageModel.class)
                     .equalTo("id", id).findFirst();
         if(sentmessage != null)
             sentmessage.removeFromRealm();
         realm.commitTransaction();
-        realm.close();
     }
 
     /**
@@ -79,20 +77,9 @@ public class TransitionMessage {
      * recibe el ack de que llegaron al servidor
      */
     public static int getMessagesInTransitionSize(Context context){
-        Realm realm = getMonkeyKitRealm(context);
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         int result = realm.where(TransitionMessageModel.class).findAll().size();
-        realm.close();
         return result;
-    }
-
-    private static Realm getMonkeyKitRealm(Context context){
-        byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
-        RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
-                .name(realmName)
-                .setModules(new MonkeyKitRealmModule())
-                .encryptionKey(encryptKey)
-                .build();
-        return Realm.getInstance(libraryConfig);
     }
 
 }
