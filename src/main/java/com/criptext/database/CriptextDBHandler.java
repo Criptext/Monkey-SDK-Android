@@ -323,7 +323,7 @@ public class CriptextDBHandler {
 
     }
 
-    public static int getTotalMessages(String sessionid) {
+    public static int getTotalWithoutRead(String sessionid) {
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         RealmResults<MessageModel> results = realm.where(MessageModel.class).equalTo("_uid_sent", sessionid).equalTo("_status", "porabrir").findAll();
         return results.size();
