@@ -112,7 +112,7 @@ public class CriptextDBHandler {
      * @param offset donde me quede la ulitma vez que llame este metodo?
      * @return lista con mensajes a mostrar en la conversacion.
      */
-    public static LinkedList<RemoteMessage> getTopMessagesBG(String id, int size, int offset){
+    public static RealmResults<MessageModel> getTopMessagesBG(String id, int size, int offset){
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         final RealmResults<MessageModel> myMessages;
         int messageCount;
@@ -131,18 +131,7 @@ public class CriptextDBHandler {
 
             }
 
-            messageCount = myMessages.size();
-            LinkedList<RemoteMessage> orderedmessages;
-
-
-            System.out.println("TOTAL MESSAGES IN DB: " + realm.where(MessageModel.class).findAll().size());
-            orderedmessages = RemoteMessage.insertSortCopy(myMessages);
-            int available = Math.min(messageCount - offset, size);
-            System.out.println("THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
-            if (orderedmessages != null)
-                return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
-            else
-                return null;
+        return myMessages;
 
     }
 
