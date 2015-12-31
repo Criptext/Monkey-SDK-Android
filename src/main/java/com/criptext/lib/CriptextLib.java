@@ -83,13 +83,18 @@ public class CriptextLib extends Service {
     private static String realmName = "MonkeyKit";
     private static Realm monkeyRealm;
 
-    public Realm getNewMonkeyRealm(){
+    public RealmConfiguration getMonkeyConfig(){
         byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
                 .name(realmName)
                 .setModules(new MonkeyKitRealmModule())
                 .encryptionKey(encryptKey)
                 .build();
+        return libraryConfig;
+    }
+
+    public Realm getNewMonkeyRealm(){
+        RealmConfiguration libraryConfig = getMonkeyConfig();
         return Realm.getInstance(libraryConfig);
     }
 

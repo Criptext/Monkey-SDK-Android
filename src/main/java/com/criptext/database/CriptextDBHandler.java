@@ -566,4 +566,11 @@ public class CriptextDBHandler {
         });
     }
 
+    /**
+     * Borra permanente la base de datos de MonkeyKit y todos sus mensajes.
+     */
+    public static void deleteDB(){
+        Realm.deleteRealm(CriptextLib.instance().getMonkeyConfig());
+    }
+
     }
