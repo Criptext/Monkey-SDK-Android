@@ -15,6 +15,7 @@ import java.util.LinkedList;
 
 import io.realm.Case;
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
@@ -112,14 +113,13 @@ public class CriptextDBHandler {
      * @param offset donde me quede la ulitma vez que llame este metodo?
      * @return lista con mensajes a mostrar en la conversacion.
      */
-    public static LinkedList<RemoteMessage> getTopMessagesBG(String id, int size, int offset){
-        Realm realm = CriptextLib.instance().getNewMonkeyRealm();
-        RealmResults<MessageModel> myMessages;
+    public static RealmResults<MessageModel> getTopMessagesBG(String id, int size, int offset){
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        final RealmResults<MessageModel> myMessages;
         int messageCount;
-        try {
             if (id.startsWith("G:")) {
                 //SI ESTOY SACANDO MENSAJES DE UN GRUPO
-                myMessages = realm.where(MessageModel.class).equalTo("_uid_recive", id).or().equalTo("_uid_sent", id).findAll();
+                myMessages = realm.where(MessageModel.class).equalTo("_uid_recive", id).or().equalTo("_uid_sent", id).findAllAsync();
             } else {
                 //SI ESTOY SACANDO MENSAJES DE CONVERSACIONES NORMALES
                 myMessages = realm.where(MessageModel.class).beginGroup()
@@ -128,70 +128,12 @@ public class CriptextDBHandler {
                         .or()
                         .beginGroup()
                         .contains("_uid_sent", id).not().beginsWith("_uid_recive", "G:", Case.SENSITIVE)
-                        .endGroup().findAll();
+                        .endGroup().findAllAsync();
 
             }
-            messageCount = myMessages.size();
-            LinkedList<RemoteMessage> orderedmessages;
 
+        return myMessages;
 
-            orderedmessages = RemoteMessage.insertSortCopy(myMessages);
-            int available = Math.min(messageCount - offset, size);
-            System.out.println("THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
-            if (orderedmessages != null)
-                return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
-            else
-                return null;
-        } finally {
-            if(realm != null)
-                realm.close();
-        }
-
-    }
-
-    /**
-     * Obtiene n (size) cantidad de mensajes de la conversacion. Este metodo abre una nueva
-     * referencia de Realm encriptada para poder modificar el mensaje desde cualquier thread, por
-     * lo tanto esta funcion NUNCA debe de ser llamada en el thread UI.
-     * @param id identificador de la conversacion
-     * @param size cantidad de mensajes
-     * @param offset donde me quede la ulitma vez que llame este metodo?
-     * @return lista con mensajes a mostrar en la conversacion.
-     */
-    public static LinkedList<RemoteMessage> get10Messages(String id, int size, int offset){
-        Realm realm = CriptextLib.instance().getNewMonkeyRealm();
-        RealmResults<MessageModel> myMessages;
-        int messageCount;
-        try {
-            if (id.startsWith("G:")) {
-                //SI ESTOY SACANDO MENSAJES DE UN GRUPO
-                myMessages = realm.where(MessageModel.class).equalTo("_uid_recive", id).or().equalTo("_uid_sent", id).findAll();
-            } else {
-                //SI ESTOY SACANDO MENSAJES DE CONVERSACIONES NORMALES
-                myMessages = realm.where(MessageModel.class).beginGroup()
-                        .contains("_uid_recive", id).not().beginsWith("_uid_sent", "G:", Case.SENSITIVE)
-                        .endGroup()
-                        .or()
-                        .beginGroup()
-                        .contains("_uid_sent", id).not().beginsWith("_uid_recive", "G:", Case.SENSITIVE)
-                        .endGroup().findAll();
-
-            }
-            messageCount = myMessages.size();
-            LinkedList<RemoteMessage> orderedmessages;
-
-
-            orderedmessages = RemoteMessage.insertSortCopy(myMessages);
-            int available = Math.min(messageCount - offset, size);
-            System.out.println("THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset);
-            if (orderedmessages != null)
-                return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
-            else
-                return null;
-        } finally {
-            if(realm != null)
-                realm.close();
-        }
     }
 
     /**
@@ -203,6 +145,7 @@ public class CriptextDBHandler {
      *                    inmediatamente.
      */
     public static  String deleteMessage(String id, String receiver_id){
+        Log.d("UpdateRemoteMessage", "deleteMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         String path=null;
@@ -250,6 +193,7 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReadStatus(String id) {
 
+        Log.d("UpdateRemoteMessage", "updateMessageReadStatus");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         realm.beginTransaction();
@@ -260,15 +204,23 @@ public class CriptextDBHandler {
 
     }
 
-    public static void updateMessageWriteSending(RemoteMessage message)
-    {
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+/**
+     * Marca el estado de un mensaje en la base como leído.
+     * @param id el id del mensaje a marcar como leído.
+     */
+    public static void updateMessageReadStatusBG(String id) {
+
+        Log.d("UpdateRemoteMessage", "updateMessageReadStatusBG");
+        Realm realm = CriptextLib.instance().getNewMonkeyRealm();
+        MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         realm.beginTransaction();
-        realm.copyToRealmOrUpdate(message.getModel());
+        if(result != null){
+            result.set_status("leido");
+        }
         realm.commitTransaction();
+        realm.close();
 
     }
-
     /**
      * Actualiza el mensaje en Realm.
      * @param message El mensaje a actualizar. El contenido de este mensaje reemplaza por completo
@@ -278,6 +230,7 @@ public class CriptextDBHandler {
      */
     public static void updateMessage(RemoteMessage message)
     {
+        Log.d("UpdateRemoteMessage", "updateMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(message.getModel());
@@ -329,16 +282,10 @@ public class CriptextDBHandler {
         RealmResults<MessageModel> results = realm.where(MessageModel.class).equalTo("_uid_sent", sessionid).equalTo("_status", "porabrir").findAll();
         return results.size();
     }
-    public static LinkedList<RemoteMessage> getAllMessageSendingidMensaje(String id){
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        RealmResults<MessageModel> results = realm.where(MessageModel.class).equalTo("_uid_sent", id).equalTo("_status", "porabrir").findAll();
-        LinkedList<RemoteMessage> messagelist = RemoteMessage.insertSortCopy(results);
-
-        return messagelist;
-    }
 
     public static void addMessage(RemoteMessage remote)
     {
+        Log.d("UpdateRemoteMessage", "addMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         remote.printValues();
@@ -364,15 +311,6 @@ public class CriptextDBHandler {
          return messages;
     }
 
-    public static ArrayList<RemoteMessage> getAllMessageSending(String id)
-    {
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        RealmResults<MessageModel> mess = realm.where(MessageModel.class).equalTo("_message_id", id).findAll();
-        ArrayList<RemoteMessage> result = new ArrayList<RemoteMessage>(RemoteMessage.insertSortCopy(mess));
-        return  result;//ARRAYLIST WTF!??
-
-    }
-
     public static LinkedList<RemoteMessage> getAllMessageDeliveredById(String idfriend)
     {
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
@@ -389,17 +327,9 @@ public class CriptextDBHandler {
         return exists;
     }
 
-    public static RemoteMessage getMessageSending(String id)
-    {
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        MessageModel mess = realm.where(MessageModel.class).equalTo("_message_id", id).equalTo("_status", "sending").findFirst();
-        RemoteMessage result = new RemoteMessage(mess);
-        return result;
-
-    }
-
     public static void updateMessageReciveThread(RemoteMessage message)
     {
+        Log.d("UpdateRemoteMessage", "updateMessageReciveThread A");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(message.getModel());
@@ -414,6 +344,7 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReciveThreadBG(RemoteMessage message)
     {
+        Log.d("UpdateRemoteMessage", "updateMessageReciveThreadBG");
         Realm realm = CriptextLib.instance().getNewMonkeyRealm();
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(message.getModel());
@@ -428,6 +359,7 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReciveThread(RemoteMessage message, String encrypted)
     {
+        Log.d("UpdateRemoteMessage", "updateMessageReciveThread B");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         MessageModel decrypted = realm.copyToRealmOrUpdate(message.getModel());
@@ -471,36 +403,6 @@ public class CriptextDBHandler {
         return new_rid.length()>0?new_rid.substring(1):"";
     }
 
-    public static RealmResults<MessageModel> deleteMessagesFromConversation(String id){
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        realm.beginTransaction();
-        RealmResults<MessageModel> results;
-
-        //delete messages
-        if(id.startsWith("G:"))
-            results = realm.where(MessageModel.class).equalTo("_uid_recive", id).or().equalTo("_uid_sent", id).findAll();
-        else
-            results = realm.where(MessageModel.class).not().beginGroup()
-                    .beginsWith("_uid_recive", "G:")
-                    .or()
-                    .beginsWith("_uid_sent", "G:")
-                    .endGroup()
-                    .beginGroup()
-                    .equalTo("_uid_recive", id)
-                    .or()
-                    .equalTo("_uid_sent", id)
-                    .endGroup()
-                    .findAll();
-
-        //Hacer que no me aparezcan los broadcastmessages en este conversation
-        removeSessionFromMessageList(id);
-        realm.commitTransaction();
-
-        if(results.size() > 0)
-            return results;
-
-        return null;
-    }
 
     /**
      * Borra todos los mensajes enviados por un usuario a otro
@@ -665,6 +567,13 @@ public class CriptextDBHandler {
                 // transaction is automatically rolled-back, do any cleanup here
             }
         });
+    }
+
+    /**
+     * Borra permanente la base de datos de MonkeyKit y todos sus mensajes.
+     */
+    public static void deleteDB(){
+        Realm.deleteRealm(CriptextLib.instance().getMonkeyConfig());
     }
 
     }
