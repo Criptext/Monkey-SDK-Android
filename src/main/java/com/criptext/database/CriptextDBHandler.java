@@ -169,7 +169,6 @@ public class CriptextDBHandler {
             }
         }
 
-        realm.close();
         return path;
     }
 
