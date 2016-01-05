@@ -109,11 +109,9 @@ public class CriptextDBHandler {
      * referencia de Realm encriptada para poder modificar el mensaje desde cualquier thread, por
      * lo tanto esta funcion NUNCA debe de ser llamada en el thread UI.
      * @param id identificador de la conversacion
-     * @param size cantidad de mensajes
-     * @param offset donde me quede la ulitma vez que llame este metodo?
      * @return lista con mensajes a mostrar en la conversacion.
      */
-    public static RealmResults<MessageModel> getTopMessagesBG(String id, int size, int offset){
+    public static RealmResults<MessageModel> getTopMessagesBG(String id){
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         final RealmResults<MessageModel> myMessages;
         int messageCount;
