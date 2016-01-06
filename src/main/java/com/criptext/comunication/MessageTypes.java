@@ -21,6 +21,9 @@ public class MessageTypes {
 
     //COMANDOS
 	public static final int MOKProtocolMessage = 200;
+	public static final int MOKProtocolMessageHasKeys = 199;
+	public static final int MOKProtocolMessageNoKeys = 198;
+
 	public static final int MOKProtocolGet = 201;
 	public static final int MOKProtocolTransaction = 202;
 	public static final int MOKProtocolOpen = 203;
