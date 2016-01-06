@@ -192,7 +192,8 @@ public class CriptextLib extends Service {
             int tipo = CriptextDBHandler.getMonkeyActionType(message);
             switch (tipo) {
                 case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
-                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
+                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend:
+                {
                     CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
                     break;
                 }

@@ -310,7 +310,9 @@ public class CriptextDBHandler {
             @Override
             public void execute(Realm realm) {
                 remote.printValues();
-                realm.copyToRealmOrUpdate(remote.getModel());
+                MessageModel model =realm.where(MessageModel.class).equalTo("_message_id", remote.get_message_id()).findFirst();
+                if(model == null) //NO GUARDAR DUPLICADOS
+                    realm.copyToRealm(remote.getModel());
             }
         }, new Realm.Transaction.Callback(){
             @Override
