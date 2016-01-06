@@ -197,9 +197,6 @@ public class CriptextLib extends Service {
                     break;
                 }
             }
-            //ACTUALIZO EL LASTMESSAGEID
-            CriptextDBHandler.set_LastMessage(message.getMessage_id());
-
         }else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
@@ -273,21 +270,6 @@ public class CriptextLib extends Service {
         }else if(method.compareTo("onNotificationReceived")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
-            }
-            //ACTUALIZO EL LASTMESSAGEID
-            MOKMessage message = (MOKMessage)info[0];
-            int moneyAction=CriptextDBHandler.getMonkeyActionType(message);
-            if(message.getParams().toString().length() > 2 && message.getParams().get("type").getAsInt()==105){
-                CriptextDBHandler.set_LastMessage(message.getParams().get("message_id").getAsString());
-            }
-            else{
-                switch (moneyAction) {
-                    case MessageTypes.blMessageGroupAdded:
-                    case MessageTypes.blMessageGroupRemovedMember:
-                    case MessageTypes.blMessageGroupNewMember:
-                        CriptextDBHandler.set_LastMessage(message.getMessage_id());
-                        break;
-                }
             }
         }
     }
