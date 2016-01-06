@@ -201,9 +201,6 @@ public class CriptextLib extends Service {
                     }
                 }
             }
-            //ACTUALIZO EL LASTMESSAGEID
-            CriptextDBHandler.set_LastMessage(message.getMessage_id());
-
         }else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
@@ -277,11 +274,6 @@ public class CriptextLib extends Service {
         }else if(method.compareTo("onNotificationReceived")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
-            }
-            //ACTUALIZO EL LASTMESSAGEID DE SER NECESARIO
-            MOKMessage message = (MOKMessage)info[0];
-            if(message.getMessage_id()!=null && message.getMessage_id().length()>0 && !message.getMessage_id().equals("0")){
-                CriptextDBHandler.set_LastMessage(message.getMessage_id());
             }
         }
     }
