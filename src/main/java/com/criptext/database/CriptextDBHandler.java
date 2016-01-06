@@ -2,6 +2,7 @@ package com.criptext.database;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Message;
 import android.util.Log;
 
 import com.criptext.comunication.MOKMessage;
@@ -185,7 +186,21 @@ public class CriptextDBHandler {
         return message;
 
     }
+    /**
+     * Marca el estado de un mensaje en la base como leído.
+     * @param model el mensaje a marcar como leído.
+     */
+    public static void updateMessageReadStatus(MessageModel model) {
 
+        Log.d("UpdateRemoteMessage", "updateMessageReadStatus");
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        realm.beginTransaction();
+        if(model != null){
+            model.set_status("leido");
+        }
+        realm.commitTransaction();
+
+    }
     /**
      * Marca el estado de un mensaje en la base como leído.
      * @param id el id del mensaje a marcar como leído.
@@ -236,6 +251,13 @@ public class CriptextDBHandler {
         realm.commitTransaction();
     }
 
+    public static void updateMessageStatus(RemoteMessage message, String newID, int status){
+        Log.d("UpdateRemoteMessage", "updateMessageStatus");
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        realm.beginTransaction();
+        message.updateStatus(newID, status);
+        realm.commitTransaction();
+    }
     public static void deleteAllMessageFrom(String id) {
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
@@ -282,20 +304,31 @@ public class CriptextDBHandler {
         return results.size();
     }
 
-    public static void addMessage(RemoteMessage remote)
+    public static void addMessage(final RemoteMessage remote)
     {
         Log.d("UpdateRemoteMessage", "addMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        realm.beginTransaction();
-        remote.printValues();
-        realm.copyToRealmOrUpdate(remote.getModel());
-        realm.commitTransaction();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                remote.printValues();
+                realm.copyToRealmOrUpdate(remote.getModel());
+            }
+        }, new Realm.Transaction.Callback(){
+            @Override
+            public void onSuccess() {
+                Log.d("addMessage", "SUCCESS");
+            }
 
-    }
+            @Override
+            public void onError(Exception e) {
+                Log.d("addMessage", "ERROR\n");
+                e.printStackTrace();
+                // transaction is automatically rolled-back, do any cleanup here
+            }
+        });
 
-    public static void addMessageWrite(RemoteMessage remote)
-    {
-        addMessage(remote);
+
     }
 
     /**
@@ -324,31 +357,6 @@ public class CriptextDBHandler {
         MessageModel mess = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         boolean exists = mess == null ? false : true;
         return exists;
-    }
-
-    public static void updateMessageReciveThread(RemoteMessage message)
-    {
-        Log.d("UpdateRemoteMessage", "updateMessageReciveThread A");
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        realm.beginTransaction();
-        realm.copyToRealmOrUpdate(message.getModel());
-        realm.commitTransaction();
-    }
-
-    /**
-     * Actualiza un mensaje en la base de datos. Este metodo abre una nueva referencia de Realm
-     * encriptada para poder modificar el mensaje desde cualquier thread, por lo tanto esta funcion
-     * NUNCA debe de ser llamada en el thread UI.
-     * @param message el mensaje a modificar
-     */
-    public static void updateMessageReciveThreadBG(RemoteMessage message)
-    {
-        Log.d("UpdateRemoteMessage", "updateMessageReciveThreadBG");
-        Realm realm = CriptextLib.instance().getNewMonkeyRealm();
-        realm.beginTransaction();
-        realm.copyToRealmOrUpdate(message.getModel());
-        realm.commitTransaction();
-        realm.close();
     }
 
     /**

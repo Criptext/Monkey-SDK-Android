@@ -189,16 +189,12 @@ public class CriptextLib extends Service {
             }
             //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
             MOKMessage message = (MOKMessage)info[0];
-            if(delegates.size()==0) {
-                int tipo = CriptextDBHandler.getMonkeyActionType(message);
-                switch (tipo) {
-                    case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
-                    case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
-                        if(!CriptextDBHandler.existMessage(message.getMessage_id())) {
-                            CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
-                        }
-                        break;
-                    }
+            int tipo = CriptextDBHandler.getMonkeyActionType(message);
+            switch (tipo) {
+                case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
+                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: {
+                    CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
+                    break;
                 }
             }
             //ACTUALIZO EL LASTMESSAGEID

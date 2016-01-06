@@ -124,19 +124,7 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
 
 	public RemoteMessage(MessageModel mmodel){
 
-		model = new MessageModel(mmodel.get_message_id(), mmodel.get_uid_sent(),
-				mmodel.get_message(), mmodel.get_datetime(), mmodel.get_request(),
-				mmodel.get_file_type(), mmodel.get_type(), mmodel.get_uid_recive());
-		model.setGroupIdIsNull(mmodel.isGroupIdIsNull());
-		model.set_group_id(mmodel.get_group_id());
-		model.set_message_text(mmodel.get_message_text());
-		model.set_message_text_old(mmodel.get_message_text_old());
-		model.set_status(mmodel.get_status());
-		model.set_datetimeorden(mmodel.get_datetimeorden());
-		model.setKey(mmodel.getKey());
-
-		setParams(mmodel.getParams());
-		setProps(mmodel.getProps());
+		model = mmodel;
 		this.audioProgress = 0;
 	}
 	public MessageModel getModel() {
