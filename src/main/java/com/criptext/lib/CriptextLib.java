@@ -1472,18 +1472,15 @@ public class CriptextLib extends Service {
                         MOKMessage message=(MOKMessage)msg.obj;
                         switch (msg.what) {
                             case MessageTypes.MOKProtocolMessage:
+                            case MessageTypes.MOKProtocolMessageHasKeys:
+                            case MessageTypes.MOKProtocolMessageNoKeys:
                                 try {
-                                    if(message.getMsg().length()>0){
-                                        //PUEDE SER DE TIPO TEXTO O FILE
-                                        String claves=KeyStoreCriptext.getString(libWeakReference.get(), message.getSid());
-                                        if(claves.compareTo("")==0 && !message.getSid().startsWith("legacy:")){
-                                            System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
-                                            libWeakReference.get().messagesToSendAfterOpen.add(message);
-                                            libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid,message.getSid());
-                                        }
-                                        else{
-                                            libWeakReference.get().procesarMokMessage(message, claves);
-                                        }
+                                    if(msg.what == MessageTypes.MOKProtocolMessageNoKeys){
+                                        libWeakReference.get().messagesToSendAfterOpen.add(message);
+                                        libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid,message.getSid());
+                                    } else if (msg.what == MessageTypes.MOKProtocolMessageHasKeys){
+                                        String claves = message.getExtraKeys();
+                                        libWeakReference.get().procesarMokMessage(message, claves);
                                     }
                                     else {
                                         int type = 0;

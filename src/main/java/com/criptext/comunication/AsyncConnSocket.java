@@ -245,7 +245,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 						args.get("type").getAsString(),params,props);
 				Message msg = mainMessageHandler.obtainMessage();
                 String claves= KeyStoreCriptext.getString(CriptextLib.instance()
-                        .getApplicationContext(), remote.getSid());
+                        , remote.getSid());
 				remote.setExtraKeys(claves);
                 if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
                     System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
