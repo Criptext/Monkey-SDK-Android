@@ -30,26 +30,26 @@ public class KeyStoreCriptext {
 
     public static void putString(Context context, String key, String value){
         KeyStoreCriptext.createNewKey(context, key);
-        KeyChain.putString(context, key, KeyStoreCriptext.encryptString(key, value));
+        KeyChain.putString(key, KeyStoreCriptext.encryptString(key, value));
     }
 
     public static String getString(Context context,String key){
-        if(KeyChain.getString(context,key).equals(""))
+        if(KeyChain.getString(key).equals(""))
             return "";
         else
-            return KeyStoreCriptext.decryptString(key,KeyChain.getString(context,key));
+            return KeyStoreCriptext.decryptString(key,KeyChain.getString(key));
     }
 
     public static void putInt(Context context, String key, int value){
         KeyStoreCriptext.createNewKey(context, key);
-        KeyChain.putString(context, key, KeyStoreCriptext.encryptString(key, String.valueOf(value)));
+        KeyChain.putString(key, KeyStoreCriptext.encryptString(key, String.valueOf(value)));
     }
 
     public static int getInt(Context context,String key){
-        if(KeyChain.getString(context, key).equals(""))
+        if(KeyChain.getString(key).equals(""))
             return 0;
         else
-            return Integer.parseInt(KeyStoreCriptext.decryptString(key,KeyChain.getString(context, key)));
+            return Integer.parseInt(KeyStoreCriptext.decryptString(key,KeyChain.getString(key)));
     }
 
     public static ArrayList<String> getAllAlias(){

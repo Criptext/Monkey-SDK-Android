@@ -94,11 +94,21 @@ public class CriptextLib extends Service {
         return libraryConfig;
     }
 
+    /**
+     * obtiene una nueva referencia al realm encriptado de MonkeyKit, esto deberia de llamarse en
+     * bsckground porque puede que sea muy lento. Hay que cerrar el realm cuando se termina de usarlo.
+     * @return
+     */
     public Realm getNewMonkeyRealm(){
         RealmConfiguration libraryConfig = getMonkeyConfig();
         return Realm.getInstance(libraryConfig);
     }
 
+    /**
+     * Obtiene el realm encriptado de MonkeyKit. Este realm siempre debe de estar abierto, No hay que
+     * cerrarlo a menos que se vayan a eliminar todos los mensajes.
+     * @return
+     */
     public Realm getMonkeyKitRealm(){
         if(monkeyRealm == null)
             monkeyRealm = getNewMonkeyRealm();

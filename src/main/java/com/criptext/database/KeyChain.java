@@ -14,15 +14,16 @@ import io.realm.RealmConfiguration;
 public class KeyChain {
 
 
-    public static void putString(Context context, String key, String value){
+    public static void putString(String key, String value){
         Realm realm = CriptextLib.instance().getNewMonkeyRealm();
         KeyChainModel keyChainModel = new KeyChainModel(key,value);
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(keyChainModel);
         realm.commitTransaction();
+        realm.close();
     }
 
-    public static String getString(Context context, String key){
+    public static String getString(String key){
         Realm realm = CriptextLib.instance().getNewMonkeyRealm();
         KeyChainModel result = realm.where(KeyChainModel.class).equalTo("key", key).findFirst();
         if(result != null){
