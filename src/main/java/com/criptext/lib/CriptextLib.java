@@ -1479,98 +1479,101 @@ public class CriptextLib extends Service {
         }
 
         public void handleMessage(Message msg) {
-                        MOKMessage message=(MOKMessage)msg.obj;
-                        switch (msg.what) {
-                            case MessageTypes.MOKProtocolMessage:
-                            case MessageTypes.MOKProtocolMessageHasKeys:
-                            case MessageTypes.MOKProtocolMessageNoKeys:
-                                try {
-                                    if(msg.what == MessageTypes.MOKProtocolMessageNoKeys){
-                                        libWeakReference.get().messagesToSendAfterOpen.add(message);
-                                        libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid,message.getSid());
-                                    } else if (msg.what == MessageTypes.MOKProtocolMessageHasKeys){
-                                        String claves = message.getExtraKeys();
-                                        libWeakReference.get().procesarMokMessage(message, claves);
-                                    }
-                                    else {
-                                        int type = 0;
-                                        if(message.getProps() != null){
-                                            if(message.getProps().has("file_type")){
-                                                type = message.getProps().get("file_type").getAsInt();
-                                                if(type <= 4 && type >= 0)
-                                                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
-                                                else
-                                                    System.out.println("MONKEY - archivo no soportado");
-                                            }
-                                            else if (message.getProps().has("type")){
-                                                type = message.getProps().get("type").getAsInt();
-                                                if(type == 2 || type == 1)
-                                                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
-                                            }
-                                            else if(message.getProps().has("monkey_action")){
-                                                type = message.getProps().get("monkey_action").getAsInt();
-                                                //if(type == MessageTypes.MOKGroupNewMember) {//PORQUE ESTABA ESTE IF?
-                                                    message.setMonkeyAction(type);
-                                                //}
-                                                libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
-                                            }
-                                            else
-                                                libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
-                                        }
-                                    }
-                                }
-                                catch (BadPaddingException e){
-                                    e.printStackTrace();
-                                    libWeakReference.get().messagesToSendAfterOpen.add(message);
-                                    int numTries=KeyStoreCriptext.getInt(libWeakReference.get(),
-                                            "tries:"+message.getMessage_id());
-                                    KeyStoreCriptext.putInt(libWeakReference.get(),
-                                            "tries:" + message.getMessage_id(), numTries + 1);
-                                    libWeakReference.get().sendOpenConversation(
-                                            libWeakReference.get().sessionid, message.getSid());
-                                }
-                                catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-                            case MessageTypes.MOKProtocolAck:
-                                try {
-                                    System.out.println("ack 205");
-                                    TransitionMessage.rmTransitionMessage(libWeakReference.get(), message.getMsg());
-                                    libWeakReference.get().executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-                            case MessageTypes.MOKProtocolOpen:{
-                                if(KeyStoreCriptext.getString(libWeakReference.get(),message.getRid()).compareTo("")==0)
-                                    libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid ,message.getRid());
-                                else
-                                    System.out.println("MONKEY - llego open pero ya tengo las claves");
-                                //MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
-                                libWeakReference.get().executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
-                                break;
-                            }
-                            case MessageTypes.MOKProtocolDelete:{
-                                libWeakReference.get().executeInDelegates("onDeleteRecieved", new Object[]{message});
-                                break;
-                            }
-                            case MessageTypes.MessageSocketConnected:{
-                                libWeakReference.get().executeInDelegates("onSocketConnected", new Object[]{""});
-                                break;
-                            }
-                            case MessageTypes.MessageSocketDisconnected:{
-                                libWeakReference.get().executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
-                                break;
-                            }
-                            case MessageTypes.MOKProtocolGet: {
-                                libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
-                                break;
-                            }
-                            default:
-                                break;
-                        }
+            MOKMessage message=(MOKMessage)msg.obj;
 
+            if(message != null && message.getMsg() != null)
+            Log.d("MonkeyHandler", "message: " + message.getMsg() + " tipo: " + msg.what);
+            switch (msg.what) {
+                case MessageTypes.MOKProtocolMessage:
+                case MessageTypes.MOKProtocolMessageHasKeys:
+                case MessageTypes.MOKProtocolMessageNoKeys:
+                    try {
+                        if(msg.what == MessageTypes.MOKProtocolMessageNoKeys){
+                            libWeakReference.get().messagesToSendAfterOpen.add(message);
+                            libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid,message.getSid());
+                        } else if (msg.what == MessageTypes.MOKProtocolMessageHasKeys){
+                            String claves = message.getExtraKeys();
+                            libWeakReference.get().procesarMokMessage(message, claves);
+                        }
+                        else {
+                            int type = 0;
+                            if(message.getProps() != null){
+                                if(message.getProps().has("file_type")){
+                                    type = message.getProps().get("file_type").getAsInt();
+                                    if(type <= 4 && type >= 0)
+                                        libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                                    else
+                                        System.out.println("MONKEY - archivo no soportado");
+                                }
+                                else if (message.getProps().has("type")){
+                                    type = message.getProps().get("type").getAsInt();
+                                    if(type == 2 || type == 1)
+                                        libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                                }
+                                else if(message.getProps().has("monkey_action")){
+                                    type = message.getProps().get("monkey_action").getAsInt();
+                                    //if(type == MessageTypes.MOKGroupNewMember) {//PORQUE ESTABA ESTE IF?
+                                        message.setMonkeyAction(type);
+                                    //}
+                                    libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
+                                }
+                                else
+                                    libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
+                            }
+                        }
                     }
+                    catch (BadPaddingException e){
+                        e.printStackTrace();
+                        libWeakReference.get().messagesToSendAfterOpen.add(message);
+                        int numTries=KeyStoreCriptext.getInt(libWeakReference.get(),
+                                "tries:"+message.getMessage_id());
+                        KeyStoreCriptext.putInt(libWeakReference.get(),
+                                "tries:" + message.getMessage_id(), numTries + 1);
+                        libWeakReference.get().sendOpenConversation(
+                                libWeakReference.get().sessionid, message.getSid());
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case MessageTypes.MOKProtocolAck:
+                    try {
+                        System.out.println("ack 205");
+                        TransitionMessage.rmTransitionMessage(libWeakReference.get(), message.getMsg());
+                        libWeakReference.get().executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case MessageTypes.MOKProtocolOpen:{
+                    if(KeyStoreCriptext.getString(libWeakReference.get(),message.getRid()).compareTo("")==0)
+                        libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid ,message.getRid());
+                    else
+                        System.out.println("MONKEY - llego open pero ya tengo las claves");
+                    //MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
+                    libWeakReference.get().executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
+                    break;
+                }
+                case MessageTypes.MOKProtocolDelete:{
+                    libWeakReference.get().executeInDelegates("onDeleteRecieved", new Object[]{message});
+                    break;
+                }
+                case MessageTypes.MessageSocketConnected:{
+                    libWeakReference.get().executeInDelegates("onSocketConnected", new Object[]{""});
+                    break;
+                }
+                case MessageTypes.MessageSocketDisconnected:{
+                    libWeakReference.get().executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
+                    break;
+                }
+                case MessageTypes.MOKProtocolGet: {
+                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    break;
+                }
+                default:
+                    break;
+            }
+
+        }
     }
 }

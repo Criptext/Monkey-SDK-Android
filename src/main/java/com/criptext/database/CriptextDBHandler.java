@@ -512,7 +512,7 @@ public class CriptextDBHandler {
         if(message.getParams() != null && message.getParams().has("type")){
             return message.getParams().get("type").getAsInt();//Puede ser blMessageShareAFriend, blMessageChangeAvatar, etc
         }
-        System.out.println("msj de tipo: " + message.getMonkeyAction());
+        System.out.println("msj de MonkeyActionType: " + message.getMonkeyAction());
         switch(message.getMonkeyAction()) {
             case com.criptext.comunication.MessageTypes.MOKGroupCreate: //MOKGroupCreate
                 return MessageTypes.blMessageGroupAdded;
