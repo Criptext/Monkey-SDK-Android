@@ -1357,8 +1357,7 @@ public class CriptextLib extends Service {
             }
         }
     }
-
-    public void sendGet(final String since){
+public void sendGet(final String since){
 
         try {
 
@@ -1405,6 +1404,55 @@ public class CriptextLib extends Service {
 
         lastMessageId=since;
     }
+
+    public void sendSync(final String since){
+
+        try {
+
+            JSONObject args=new JSONObject();
+            JSONObject json=new JSONObject();
+
+            args.put("messages_since",since);
+            if(since == null || since.equals("0") || shouldAskForGroups) {
+                args.put("groups", 1);
+                shouldAskForGroups=false;
+            }
+            args.put("qty", ""+portionsMessages);
+            //args.put("G", requestGroups ? 1 : 0);
+            json.put("args", args);
+            json.put("cmd", MessageTypes.MOKProtocolSync);
+
+            if(asynConnSocket != null && asynConnSocket.isConnected()){
+                System.out.println("MONKEY - Enviando Get:"+json.toString());
+                asynConnSocket.sendMessage(json);
+            }
+            else
+                System.out.println("MONKEY - no pudo enviar Get - socket desconectado");
+
+            if(watchdog == null) {
+                watchdog = new Watchdog(context);
+            }
+            watchdog.didResponseGet = false;
+            Log.d("Watchdog", "Watchdog ready sending Get");
+            watchdog.start();
+
+        } catch(NullPointerException ex){
+            if(asynConnSocket == null)
+                startSocketConnection(this.sessionid, new Runnable() {
+                    @Override
+                    public void run() {
+                        sendSync(since);
+                    }
+                });
+            else
+                ex.printStackTrace();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        lastMessageId=since;
+    }
+
     public void sendSet(final String online){
 
         try {
@@ -1632,6 +1680,10 @@ public class CriptextLib extends Service {
                     break;
                 }
                 case MessageTypes.MOKProtocolGet: {
+                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    break;
+                }
+                case MessageTypes.MOKProtocolSync: {
                     libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
                     break;
                 }
