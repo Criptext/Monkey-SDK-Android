@@ -400,16 +400,16 @@ public class DarkStarSocketClient implements DarkStarClient {
      * @throws java.io.IOException
      */
     public void login(String userName, String password) throws IOException {
-    	////Log.d("DarkStarSocketClient - login", "userName: "+userName+"password: "+password);
+    	Log.d("DarkStarSocketClient", "userName: "+userName+"password: "+password);
         int len = 2 + MessageBuffer.getSize(userName) + MessageBuffer.getSize(password);
-        Log.d("DarkStarSocketClient - login", "len: "+len);
+        Log.d("DarkStarSocketClient", "len: "+len);
         MessageBuffer msg = new MessageBuffer(2 + len);
         //Log.d("DarkStarSocketClient - login", "msg: "+msg);
         msg.putShort(len).
                 putByte(SimpleSgsProtocol.LOGIN_REQUEST).
                 putByte(SimpleSgsProtocol.VERSION).
                 putString(userName).
-                putString(password);;
+                putString(password);
         postRequest(msg);
     }
     

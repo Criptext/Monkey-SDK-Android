@@ -134,7 +134,7 @@ public class CriptextLib extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        System.out.println("####INICIANDO SERVICIO - "+delegates+" - "+context);
+        System.out.println("####INICIANDO SERVICIO - " + delegates + " - " + context);
         CriptextLib.instance().setContext(this);
         CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
                 intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
@@ -1471,6 +1471,10 @@ public class CriptextLib extends Service {
      * @param run
      */
     public void reconnectSocket(Runnable run){
+        if(this.sessionid==null) {
+            System.out.println("CRIPTEXTLIB - No puedo recontectar el socket sessionid es null");
+            return;
+        }
         startSocketConnection(this.sessionid, run);
     }
 
