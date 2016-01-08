@@ -214,11 +214,14 @@ public class CriptextLib extends Service {
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
             }
         }else if(method.compareTo("onSocketConnected")==0){
+            boolean hasDelegates = false;
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketConnected();
+                hasDelegates = true;
             }
             //MANDO EL GET
-            CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
+            if(hasDelegates)
+                CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -1481,8 +1484,8 @@ public class CriptextLib extends Service {
         public void handleMessage(Message msg) {
             MOKMessage message=(MOKMessage)msg.obj;
 
-            if(message != null && message.getMsg() != null)
-            Log.d("MonkeyHandler", "message: " + message.getMsg() + " tipo: " + msg.what);
+            //if(message != null && message.getMsg() != null)
+            //Log.d("MonkeyHandler", "message: " + message.getMsg() + " tipo: " + msg.what);
             switch (msg.what) {
                 case MessageTypes.MOKProtocolMessage:
                 case MessageTypes.MOKProtocolMessageHasKeys:
