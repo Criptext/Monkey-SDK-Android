@@ -470,6 +470,7 @@ public class CriptextDBHandler {
         remote.set_status("porabrir");
         if(remote.get_uid_sent().startsWith("legacy:") ||remote.get_uid_recive().startsWith("legacy:"))
             remote.set_message(RemoteMessage.desencrypt(message.getMsg(), context));
+        Log.d("CreateRemote", "Decrypted msg: " + remote.get_message());
         remote.setDesencript(true);
         remote.set_message_text(message.getProps().get("eph").getAsString());
 

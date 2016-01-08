@@ -440,6 +440,12 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
             set_status("leido");
     }
 
+	/**
+	 * Desencriptar legacy
+	 * @param original
+	 * @param context
+	 * @return
+	 */
     public static String desencrypt(String original,Context context){
 
         try {
@@ -451,7 +457,7 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
             PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedKey);
             KeyFactory kf = KeyFactory.getInstance("RSA");
             PrivateKey pkPrivate= kf.generatePrivate(privateKeySpec);
-            //System.out.println("ANDROID   String: "+original);
+            //System.out.println("ANDROID String: "+original);
             byte[] rsaEncodedMessage = Base64Coder.decode(original);
             Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
             cipher.init(Cipher.DECRYPT_MODE, pkPrivate);
