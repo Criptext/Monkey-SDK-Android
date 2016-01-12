@@ -525,7 +525,7 @@ public class CriptextLib extends Service {
                 JSONObject json = jo.getJSONObject("data");
                 System.out.println("response session: " + jo.toString());
 
-                    String sessionId= this.sessionid.isEmpty() ? json.getString("sessionId") : this.sessionid;
+                    sessionid = this.sessionid.isEmpty() ? json.getString("sessionId") : this.sessionid;
                     String pubKey=json.getString("publicKey");
                     pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
 
@@ -536,7 +536,7 @@ public class CriptextLib extends Service {
                     String usk=rsa.encrypt(aesutil.strKey+":"+aesutil.strIV);
 
                     //Guardo mis key & Iv
-                    KeyStoreCriptext.putString(context,sessionId, aesutil.strKey+":"+aesutil.strIV);
+                    KeyStoreCriptext.putString(context, sessionid, aesutil.strKey+":"+aesutil.strIV);
 
                     //Make the new AJAX
                     String urlconnect = URL+"/user/connect";
@@ -544,9 +544,9 @@ public class CriptextLib extends Service {
 
                     JSONObject localJSONObject1 = new JSONObject();
                     localJSONObject1.put("usk",usk);
-                    localJSONObject1.put("session_id",sessionId);
+                    localJSONObject1.put("session_id",sessionid);
                     localJSONObject1.put("session_name", fullname);
-                    System.out.println("CONNECT - " + sessionId + " - " + fullname);
+                    System.out.println("CONNECT - " + sessionid + " - " + fullname);
 
                     Map<String, Object> params = new HashMap<String, Object>();
                     params.put("data", localJSONObject1.toString());
