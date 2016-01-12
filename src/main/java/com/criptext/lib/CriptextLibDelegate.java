@@ -3,6 +3,7 @@ package com.criptext.lib;
 import org.json.JSONObject;
 
 import com.criptext.comunication.MOKMessage;
+import com.criptext.database.RemoteMessage;
 
 public interface CriptextLibDelegate {
 
@@ -35,6 +36,7 @@ public interface CriptextLibDelegate {
 	public void onMessageRecieved(MOKMessage message);
 	public void onAcknowledgeRecieved(MOKMessage message);
 	public void onDeleteRecieved(MOKMessage message);
+    public void onMessageSaved(RemoteMessage remote);
 	
 	public void onContactOpenMyConversation(String sessionID);
 	public void onNotificationReceived(MOKMessage message);

@@ -310,14 +310,15 @@ public class CriptextDBHandler {
             @Override
             public void execute(Realm realm) {
                 remote.printValues();
-                MessageModel model =realm.where(MessageModel.class).equalTo("_message_id", remote.get_message_id()).findFirst();
-                if(model == null) //NO GUARDAR DUPLICADOS
+                MessageModel model = realm.where(MessageModel.class).equalTo("_message_id", remote.get_message_id()).findFirst();
+                if (model == null) //NO GUARDAR DUPLICADOS
                     realm.copyToRealm(remote.getModel());
             }
-        }, new Realm.Transaction.Callback(){
+        }, new Realm.Transaction.Callback() {
             @Override
             public void onSuccess() {
                 Log.d("addMessage", "SUCCESS");
+                CriptextLib.instance().executeInDelegates("onMessageSaved", new Object[]{remote});
             }
 
             @Override
@@ -339,7 +340,7 @@ public class CriptextDBHandler {
     {
          Realm realm = CriptextLib.instance().getMonkeyKitRealm();
          RealmResults<MessageModel> mess = realm.where(MessageModel.class).equalTo("_status", "sending").findAll();
-         ArrayList messages = new ArrayList<RemoteMessage>(RemoteMessage.insertSortCopy(mess)); //ARRAYLIST WTF!??
+        ArrayList messages = new ArrayList<RemoteMessage>(RemoteMessage.insertSortCopy(mess)); //ARRAYLIST WTF!??
          return messages;
     }
 

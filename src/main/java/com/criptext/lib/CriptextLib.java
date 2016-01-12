@@ -26,6 +26,7 @@ import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
 import com.criptext.database.MonkeyKitRealmModule;
+import com.criptext.database.RemoteMessage;
 import com.criptext.database.TransitionMessage;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -181,7 +182,7 @@ public class CriptextLib extends Service {
         delegates.remove(delegate);
     }
 
-    private void executeInDelegates(String method, Object[] info){
+    public void executeInDelegates(String method, Object[] info){
         if(method.compareTo("onSessionOK")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSessionOK();
@@ -214,7 +215,12 @@ public class CriptextLib extends Service {
                     break;
                 }
             }
-        }else if(method.compareTo("onAcknowledgeRecieved")==0){
+        }else if(method.compareTo("onMessageSaved")==0){
+            for(int i=0;i<delegates.size();i++){
+                delegates.get(i).onMessageSaved((RemoteMessage) info[0]);
+            }
+        }
+        else if(method.compareTo("onAcknowledgeRecieved")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
             }
@@ -233,7 +239,7 @@ public class CriptextLib extends Service {
             }
         }else if(method.compareTo("onConnectError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onConnectError((String)info[0]);
+                delegates.get(i).onConnectError((String) info[0]);
             }
         }else if(method.compareTo("onGetOK")==0){
             for(int i=0;i<delegates.size();i++){
@@ -241,31 +247,31 @@ public class CriptextLib extends Service {
             }
         }else if(method.compareTo("onOpenConversationOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onOpenConversationOK((String)info[0]);
+                delegates.get(i).onOpenConversationOK((String) info[0]);
             }
         }else if(method.compareTo("onOpenConversationError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onOpenConversationError((String)info[0]);
+                delegates.get(i).onOpenConversationError((String) info[0]);
             }
         }else if(method.compareTo("onDeleteRecieved")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteRecieved((MOKMessage)info[0]);
+                delegates.get(i).onDeleteRecieved((MOKMessage) info[0]);
             }
         }else if(method.compareTo("onCreateGroupOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCreateGroupOK((String)info[0]);
+                delegates.get(i).onCreateGroupOK((String) info[0]);
             }
         }else if(method.compareTo("onCreateGroupError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCreateGroupError((String)info[0]);
+                delegates.get(i).onCreateGroupError((String) info[0]);
             }
         }else if(method.compareTo("onDeleteGroupOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteGroupOK((String)info[0]);
+                delegates.get(i).onDeleteGroupOK((String) info[0]);
             }
         }else if(method.compareTo("onDeleteGroupError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteGroupError((String)info[0]);
+                delegates.get(i).onDeleteGroupError((String) info[0]);
             }
         }else if(method.compareTo("onAddMemberToGroupOK")==0){
             for(int i=0;i<delegates.size();i++){
@@ -273,19 +279,19 @@ public class CriptextLib extends Service {
             }
         }else if(method.compareTo("onAddMemberToGroupError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onAddMemberToGroupError((String)info[0]);
+                delegates.get(i).onAddMemberToGroupError((String) info[0]);
             }
         }else if(method.compareTo("onContactOpenMyConversation")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onContactOpenMyConversation((String)info[0]);
+                delegates.get(i).onContactOpenMyConversation((String) info[0]);
             }
         }else if(method.compareTo("onGetGroupInfoOK")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onGetGroupInfoOK((JSONObject)info[0]);
+                delegates.get(i).onGetGroupInfoOK((JSONObject) info[0]);
             }
         }else if(method.compareTo("onGetGroupInfoError")==0){
             for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onGetGroupInfoError((String)info[0]);
+                delegates.get(i).onGetGroupInfoError((String) info[0]);
             }
         }else if(method.compareTo("onNotificationReceived")==0){
             for(int i=0;i<delegates.size();i++){
