@@ -135,10 +135,15 @@ public class CriptextLib extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         System.out.println("####INICIANDO SERVICIO - " + delegates + " - " + context);
-        CriptextLib.instance().setContext(this);
-        CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
-                intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
-                intent.getStringExtra("pass"), intent.getBooleanExtra("startsession", false));
+        if(!isInialized()) {
+            CriptextLib.instance().setContext(this);
+            CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
+                    intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
+                    intent.getStringExtra("pass"), intent.getBooleanExtra("startsession", false));
+        }
+        else{
+            System.out.println("#### SERVICIO - no hago startCriptext");
+        }
         return START_REDELIVER_INTENT;
     }
 
