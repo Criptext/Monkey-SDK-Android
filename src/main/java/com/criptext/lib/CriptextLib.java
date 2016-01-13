@@ -1214,6 +1214,49 @@ public class CriptextLib extends Service {
         }
     }
 
+    /**
+     * Envia una notificación.
+     * @param sessionIDFrom
+     * @param sessionIDTo
+     * @param paramsObject
+     */
+    public void sendTemporalNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject){
+
+        try {
+
+            JSONObject args = new JSONObject();
+            JSONObject json=new JSONObject();
+
+            args.put("sid",sessionIDFrom);
+            args.put("rid",sessionIDTo);
+            args.put("params", paramsObject.toString());
+            args.put("type", MessageTypes.MOKTempNote);
+            args.put("msg", "");
+
+            json.put("args", args);
+            json.put("cmd", MessageTypes.MOKProtocolMessage);
+
+            if(asynConnSocket.isConnected()){
+                System.out.println("MONKEY - Enviando mensaje:"+json.toString());
+                asynConnSocket.sendMessage(json);
+            }
+            else
+                System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
+
+        } catch(NullPointerException ex){
+            if(asynConnSocket == null)
+                startSocketConnection(sessionIDFrom, new Runnable() {
+                    @Override
+                    public void run() {
+                        sendTemporalNotification(sessionIDFrom, sessionIDTo, paramsObject);
+                    }
+                });
+            else
+                ex.printStackTrace();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public void sendFileMessage(final String idnegative, final String elmensaje, final String sessionIDFrom,
                                 final String sessionIDTo, final String file_type, final String eph,
