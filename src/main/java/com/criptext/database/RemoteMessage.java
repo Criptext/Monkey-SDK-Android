@@ -191,6 +191,8 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
 
 	public String get_status()
 	{
+		if(model.get_status() == null)
+			return null;
 		return model.get_status().equals(CriptextLib.null_ref) ? null : model.get_status();
 	}
 

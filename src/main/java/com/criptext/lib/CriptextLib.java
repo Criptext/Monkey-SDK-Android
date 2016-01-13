@@ -1026,7 +1026,7 @@ public class CriptextLib extends Service {
 
     public void getGroupInfo(String groupID){
         try {
-
+            Log.d("MonkeyKit", "Info for " + groupID + " plz.");
             String urlconnect = URL+"/group/info";
             AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 

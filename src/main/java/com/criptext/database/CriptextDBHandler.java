@@ -67,7 +67,41 @@ public class CriptextDBHandler {
 
         return paths;
     }
+/**
+     * Obtiene n (size) cantidad de mensajes de la conversacion
+     * @param id identificador de la conversacion
+     * @param size cantidad de mensajes
+     * @param offset donde me quede la ulitma vez que llame este metodo?
+     * @return lista con mensajes a mostrar en la conversacion.
+     */
 
+    public static LinkedList<RemoteMessage> getTopMessages(Realm realm, String id, int size, int offset){
+        RealmResults<MessageModel> myMessages;
+        int messageCount;
+        if(id.startsWith("G:")){
+            //SI ESTOY SACANDO MENSAJES DE UN GRUPO
+            myMessages = realm.where(MessageModel.class).equalTo("_uid_recive", id).or().equalTo("_uid_sent", id).findAll();
+        } else{
+            //SI ESTOY SACANDO MENSAJES DE CONVERSACIONES NORMALES
+            myMessages = realm.where(MessageModel.class).beginGroup()
+                    .equalTo("_uid_recive", id).not().beginsWith("_uid_sent", "G:", Case.SENSITIVE)
+                    .endGroup()
+                    .or()
+                    .beginGroup()
+                    .contains("_uid_sent", id).not().beginsWith("_uid_recive", "G:", Case.SENSITIVE)
+                    .endGroup().findAll();
+
+        }
+        messageCount = myMessages.size();
+        LinkedList<RemoteMessage> orderedmessages;
+
+
+        orderedmessages = RemoteMessage.insertSortCopy(myMessages);
+        int available = Math.min(messageCount - offset, size);
+        System.out.println("CRIPTEXTDBHANDLER1 - THERE ARE " + available + " MESSAGES AVAILABLE. OFFSET = " + offset + " SIZE = "+size);
+        return new LinkedList(orderedmessages.subList(messageCount - offset - available, messageCount - offset));
+
+    }
     /**
      * Obtiene n (size) cantidad de mensajes de la conversacion
      * @param id identificador de la conversacion
@@ -171,6 +205,24 @@ public class CriptextDBHandler {
         }
 
         return path;
+    }
+
+    /**
+     * Hace una copia de un RemoteMessage. El resultado jamas debe de guardarse en realm. Esta copia
+     * debe de ser solo para lectura en diferentes Realms.
+     * @param message Mensaje a copiar
+     * @return Copia del mensajes, usable en diferentes threads.
+     */
+    public static RemoteMessage copyRealmMessage(RemoteMessage message){
+        RemoteMessage copy = new RemoteMessage();
+        copy.set_message_id(new String(message.get_message_id()));
+        copy.set_type(new String(message.get_type()));
+        copy.set_message_text(new String(message.get_message_text()));
+        copy.set_message(new String(message.get_message()));
+        copy.set_uid_recive(new String(message.get_uid_recive()));
+        if(copy.get_status() != null)
+            copy.set_status(new String(copy.get_status()));
+        return copy;
     }
 
     public static RemoteMessage getMessageBYid(String id){
