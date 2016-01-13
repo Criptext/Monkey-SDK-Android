@@ -236,6 +236,18 @@ public class CriptextDBHandler {
         return message;
 
     }
+
+    public static RemoteMessage getMessageBYid(Realm realm, String id){
+
+        MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
+        RemoteMessage message = null;
+        if(result != null){
+            message = new RemoteMessage(result);
+        }
+        return message;
+
+    }
+
     /**
      * Marca el estado de un mensaje en la base como leído.
      * @param model el mensaje a marcar como leído.
