@@ -178,7 +178,6 @@ public class CriptextDBHandler {
      *                    inmediatamente.
      */
     public static  String deleteMessage(String id, String receiver_id){
-        Log.d("UpdateRemoteMessage", "deleteMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         String path=null;
@@ -215,6 +214,7 @@ public class CriptextDBHandler {
      */
     public static RemoteMessage copyRealmMessage(RemoteMessage message){
         RemoteMessage copy = new RemoteMessage();
+        copy.set_datetime(message.get_datetime());
         copy.set_message_id(new String(message.get_message_id()));
         copy.set_type(new String(message.get_type()));
         copy.set_message_text(new String(message.get_message_text()));
@@ -254,7 +254,6 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReadStatus(MessageModel model) {
 
-        Log.d("UpdateRemoteMessage", "updateMessageReadStatus");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         if(model != null){
@@ -269,7 +268,6 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReadStatus(String id) {
 
-        Log.d("UpdateRemoteMessage", "updateMessageReadStatus");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         realm.beginTransaction();
@@ -286,7 +284,6 @@ public class CriptextDBHandler {
      */
     public static void updateMessageReadStatusBG(String id) {
 
-        Log.d("UpdateRemoteMessage", "updateMessageReadStatusBG");
         Realm realm = CriptextLib.instance().getNewMonkeyRealm();
         MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         realm.beginTransaction();
@@ -306,7 +303,6 @@ public class CriptextDBHandler {
      */
     public static void updateMessage(RemoteMessage message)
     {
-        Log.d("UpdateRemoteMessage", "updateMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         realm.copyToRealmOrUpdate(message.getModel());
@@ -314,7 +310,6 @@ public class CriptextDBHandler {
     }
 
     public static void updateMessageStatus(RemoteMessage message, String newID, int status){
-        Log.d("UpdateRemoteMessage", "updateMessageStatus");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         message.updateStatus(newID, status);

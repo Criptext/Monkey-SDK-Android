@@ -1,9 +1,7 @@
 package com.criptext.database;
 
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -224,6 +222,7 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
 	}
 
 	public void set_datetime(long param)
+
 	{
 		model.set_datetime(param);
 		if((model.getKey() == null || model.getKey().equals("")) && !(model.get_uid_sent() == null || model.get_uid_sent().equals("")))
