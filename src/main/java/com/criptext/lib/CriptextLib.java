@@ -232,7 +232,7 @@ public class CriptextLib extends Service {
             }
             //MANDO EL GET
             if(hasDelegates)
-                CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
+                CriptextLib.instance().sendSync(CriptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -737,7 +737,11 @@ public class CriptextLib extends Service {
 
     /************************************************************************/
 
+    /**
+     * Esto tambien funciona con el sync ok
+     */
     public void sendGetOK(){
+        Log.d("MonkeyKit", "SyncOK");
         executeInDelegates("onGetOK", new Object[]{});
     }
 
@@ -1412,7 +1416,7 @@ public void sendGet(final String since){
             JSONObject args=new JSONObject();
             JSONObject json=new JSONObject();
 
-            args.put("messages_since",since);
+            args.put("since",since);
             if(since == null || since.equals("0") || shouldAskForGroups) {
                 args.put("groups", 1);
                 shouldAskForGroups=false;
@@ -1423,17 +1427,17 @@ public void sendGet(final String since){
             json.put("cmd", MessageTypes.MOKProtocolSync);
 
             if(asynConnSocket != null && asynConnSocket.isConnected()){
-                System.out.println("MONKEY - Enviando Get:"+json.toString());
+                System.out.println("MONKEY - Enviando Sync:"+json.toString());
                 asynConnSocket.sendMessage(json);
             }
             else
-                System.out.println("MONKEY - no pudo enviar Get - socket desconectado");
+                System.out.println("MONKEY - no pudo enviar Sync - socket desconectado");
 
             if(watchdog == null) {
                 watchdog = new Watchdog(context);
             }
             watchdog.didResponseGet = false;
-            Log.d("Watchdog", "Watchdog ready sending Get");
+            Log.d("Watchdog", "Watchdog ready sending Sync");
             watchdog.start();
 
         } catch(NullPointerException ex){

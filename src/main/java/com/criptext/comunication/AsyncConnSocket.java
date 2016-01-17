@@ -220,7 +220,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 			CriptextLib.instance().portionsMessages--;
 			if(CriptextLib.instance().portionsMessages<1)
 				CriptextLib.instance().portionsMessages=1;
-			CriptextLib.instance().sendGet(CriptextLib.instance().lastMessageId);
+			CriptextLib.instance().sendSync(CriptextLib.instance().lastMessageId);
 		}
 	}
 
