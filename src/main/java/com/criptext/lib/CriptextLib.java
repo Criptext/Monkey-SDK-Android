@@ -556,7 +556,6 @@ public class CriptextLib extends Service {
                     JSONObject localJSONObject1 = new JSONObject();
                     localJSONObject1.put("usk",usk);
                     localJSONObject1.put("session_id",sessionid);
-                    localJSONObject1.put("session_name", fullname);
                     System.out.println("CONNECT - " + sessionid + " - " + fullname);
 
                     Map<String, Object> params = new HashMap<String, Object>();
