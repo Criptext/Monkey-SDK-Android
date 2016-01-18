@@ -418,8 +418,8 @@ public class CriptextLib extends Service {
             }
 
             public void onUserSync(String url, JSONObject jo, com.androidquery.callback.AjaxStatus status) {
-                Log.d("Sync", jo.toString());
                 if(jo!=null){
+                    Log.d("Sync", jo.toString());
                     try {
                         JSONObject json = jo.getJSONObject("data");
 
