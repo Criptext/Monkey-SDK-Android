@@ -1123,7 +1123,7 @@ public class CriptextLib extends Service {
                 args.put("rid", sessionIDTo);
                 args.put("msg", aesutil.encrypt(elmensaje));
                 args.put("type", MessageTypes.MOKText);
-                args.put("push", pushMessage);
+                args.put("push", pushMessage.replace("\\\\","\\"));
                 if(params != null)
                     args.put("params", params.toString());
                 if(props != null)
@@ -1184,7 +1184,7 @@ public class CriptextLib extends Service {
             args.put("params", paramsObject.toString());
             args.put("type", MessageTypes.MOKNotif);
             args.put("msg", "");
-            args.put("push", pushMessage);
+            args.put("push", pushMessage.replace("\\\\","\\"));
 
             json.put("args", args);
 
@@ -1288,7 +1288,7 @@ public class CriptextLib extends Service {
                 args.put("props",propsMessage);
                 args.put("params",paramsMessage);
                 args.put("id",idnegative);
-                args.put("push", pushMessage);
+                args.put("push", pushMessage.replace("\\\\","\\"));
 
                 Map<String, Object> params = new HashMap<String, Object>();
                 params.put("data", args.toString());
