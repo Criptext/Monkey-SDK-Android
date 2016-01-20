@@ -21,7 +21,6 @@ public class MOKMessage {
 	private JsonObject params;
 	private File file;
 	private int monkeyAction;
-	private String extraKeys;
 
 	public int getMonkeyAction() {
 		return monkeyAction;
@@ -166,14 +165,6 @@ public class MOKMessage {
 	public void setFile(File file) {
 
 		this.file = file;
-	}
-
-	public String getExtraKeys() {
-		return extraKeys;
-	}
-
-	public void setExtraKeys(String extraKeys) {
-		this.extraKeys = extraKeys;
 	}
 
 }

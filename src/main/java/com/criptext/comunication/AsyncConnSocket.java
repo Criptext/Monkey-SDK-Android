@@ -12,6 +12,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+import com.criptext.lib.AESUtil;
 import com.criptext.lib.CriptextLib;
 import com.criptext.lib.KeyStoreCriptext;
 import com.criptext.socket.DarkStarClient;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.SocketHandler;
+
+import javax.crypto.BadPaddingException;
 
 public class AsyncConnSocket implements ComServerDelegate{
 
@@ -246,13 +249,23 @@ public class AsyncConnSocket implements ComServerDelegate{
 				Message msg = mainMessageHandler.obtainMessage();
                 String claves= KeyStoreCriptext.getString(CriptextLib.instance()
                         , remote.getSid());
-				remote.setExtraKeys(claves);
                 if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
                     System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
                    msg.what = MessageTypes.MOKProtocolMessageNoKeys;
                 }
                 else{
 					msg.what = MessageTypes.MOKProtocolMessageHasKeys;
+					try {
+						if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
+							remote.setMsg(AESUtil.decryptWithCustomKeyAndIV(remote.getMsg(),
+									claves.split(":")[0], claves.split(":")[1]));
+					} catch (BadPaddingException ex){
+						ex.printStackTrace();
+						msg.what = MessageTypes.MOKProtocolMessageWrongKeys;
+					}
+					catch(Exception ex){
+						ex.printStackTrace();
+					}
                 }
 				msg.obj =remote;
 				mainMessageHandler.sendMessage(msg);	

@@ -36,7 +36,8 @@ public class AESUtil {
     public AESUtil(Context context, String sessionId) throws Exception{
 
         SecretKeySpec secret;
-        if(KeyStoreCriptext.getString(context, sessionId).compareTo("")==0){
+        final String key = KeyStoreCriptext.getString(context, sessionId);
+        if(key.compareTo("")==0){
             System.out.println("AES - NO TIENE KEY");
             //NO TIENE KEY
             PRNGFixes.apply();
@@ -47,7 +48,7 @@ public class AESUtil {
         else{
             System.out.println("AES - SI TIENE KEY");
             //SI TIENE KEY
-            strKey=KeyStoreCriptext.getString(context, sessionId).split(":")[0];
+            strKey=key.split(":")[0];
             secret = new SecretKeySpec(Base64.decode(strKey.getBytes("UTF-8"), Base64.NO_WRAP), "AES");
         }
 
@@ -58,7 +59,7 @@ public class AESUtil {
 
         AlgorithmParameters params = cipherENC.getParameters();
 
-        if(KeyStoreCriptext.getString(context, sessionId).compareTo("")==0){
+        if(key.compareTo("")==0){
             System.out.println("AES - NO TIENE IV");
             //NO TIENE KEY
             if(params!=null)
@@ -141,7 +142,7 @@ public class AESUtil {
         return Base64.encodeToString(encryptedTextBytes,Base64.NO_WRAP);
     }
  
-    public String decryptWithCustomKeyAndIV(String encryptedText, String key, String iv) throws Exception {
+    public static String decryptWithCustomKeyAndIV(String encryptedText, String key, String iv) throws Exception {
     	 
     	System.out.println("MONKEY - Desencriptado msg con key:***"+key+"***iv:"+stripGarbage(iv));
     	
@@ -273,7 +274,7 @@ public class AESUtil {
         return iv;
     }
 
-    public String stripGarbage(String s) {
+    public static String stripGarbage(String s) {
 		
 		StringBuilder sb = new StringBuilder(s.length());
 		for (int i = 0; i < s.length(); i++) {
