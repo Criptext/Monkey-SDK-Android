@@ -482,10 +482,14 @@ public class CriptextLib extends Service {
             AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 
             JSONObject localJSONObject1 = new JSONObject();
+            JSONObject user_info = new JSONObject();
+            user_info.put("name",fullname);
+
             localJSONObject1.put("username",urlUser);
             localJSONObject1.put("password",urlPass);
             localJSONObject1.put("session_id",sessionid);
             localJSONObject1.put("expiring",expiring);
+            localJSONObject1.put("user_info",user_info);
 
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
