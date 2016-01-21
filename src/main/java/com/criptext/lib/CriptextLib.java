@@ -711,7 +711,7 @@ public class CriptextLib extends Service {
                 String clave = params[0];
                 try {
                     if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
-                        Log.d("CriptextLib", "Decrypt: "+  message.getMsg());
+                        //Log.d("CriptextLib", "Decrypt: "+  message.getMsg());
                         message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
                                 clave.split(":")[0], clave.split(":")[1]));
                     }

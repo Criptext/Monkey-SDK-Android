@@ -11,8 +11,8 @@ public class MOKMessage {
 	private String cmpr;
 	private String str;
 	private String encr;
-
 	private String datetime;
+	private long datetimeorder;
 	private String msg;
 	private String message_id;
 	private String type;
@@ -166,5 +166,14 @@ public class MOKMessage {
 
 		this.file = file;
 	}
+
+	public long getDatetimeorder() {
+		return datetimeorder;
+	}
+
+	public void setDatetimeorder(long datetimeorder) {
+		this.datetimeorder = datetimeorder;
+	}
+
 
 }

@@ -526,7 +526,7 @@ public class CriptextDBHandler {
 
         RemoteMessage remote = new RemoteMessage(message.getMessage_id(),sid,
                 message.getMsg(),Long.parseLong(message.getDatetime()), "", "",""+tipo,rid);
-        remote.set_datetimeorden(System.currentTimeMillis());
+        remote.set_datetimeorden(message.getDatetimeorder());
         remote.set_status("porabrir");
         if(remote.get_uid_sent().startsWith("legacy:") ||remote.get_uid_recive().startsWith("legacy:"))
             remote.set_message(RemoteMessage.desencrypt(message.getMsg(), context));

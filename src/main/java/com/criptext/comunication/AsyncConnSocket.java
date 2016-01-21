@@ -246,6 +246,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 						args.get("msg").getAsString(),
 						args.get("datetime").getAsString(), 
 						args.get("type").getAsString(),params,props);
+				remote.setDatetimeorder(System.currentTimeMillis());
 				Message msg = mainMessageHandler.obtainMessage();
                 String claves= KeyStoreCriptext.getString(CriptextLib.instance()
                         , remote.getSid());
