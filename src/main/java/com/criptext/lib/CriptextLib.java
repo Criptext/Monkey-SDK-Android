@@ -704,17 +704,34 @@ public class CriptextLib extends Service {
         });
     }
     private void procesarMokMessage(final MOKMessage message, final String claves) throws Exception{
+        new AsyncTask<String , Void, Integer>() {
 
-        if(message.getProps().has("file_type")){
-            //ME DESCARGO EL ARCHIVO
-            //downloadFile(message.getMsg(), message.getProps(), message.getSid(), claves);
-            //FINALMENTE ENVIO EL MENSAJE AL APP
-            executeInDelegates("onMessageRecieved", new Object[]{message});
-        }
-        else{
-            //ES DE TIPO TEXTO SIGA NO MAS
-            executeInDelegates("onMessageRecieved", new Object[]{message});
-        }
+            @Override
+            protected Integer doInBackground(String... params) {
+                String clave = params[0];
+                try {
+                    if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
+                        Log.d("CriptextLib", "Decrypt: "+  message.getMsg());
+                        message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
+                                clave.split(":")[0], clave.split(":")[1]));
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    return 0;
+                }
+                return 1;
+            }
+
+            @Override
+            protected void onPostExecute(Integer integer) {
+                if (integer.intValue() == 1) {
+                    Log.d("CriptextLib", "process MOKMessage successful");
+                    executeInDelegates("onMessageRecieved", new Object[]{message});
+                }
+            }
+        }.execute(claves);
+
+
 
     }
 
@@ -1570,6 +1587,7 @@ public class CriptextLib extends Service {
                     break;
                 case MessageTypes.MOKProtocolMessageHasKeys:
                     libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    break;
                 case MessageTypes.MOKProtocolMessageNoKeys:
                     libWeakReference.get().messagesToSendAfterOpen.add(message);
                     libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid,message.getSid());
