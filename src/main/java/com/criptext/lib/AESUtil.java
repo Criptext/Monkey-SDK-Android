@@ -156,11 +156,13 @@ public class AESUtil {
         cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(stripGarbage(iv), Base64.NO_WRAP)));
  
         byte[] decryptedTextBytes = null;
-        try {
+
+        //try {
+            //Si esto esta en un try catch no se manda la exception en el throws
             decryptedTextBytes = cipher.doFinal(encryptedTextBytes);
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        }
+        //} catch (IllegalBlockSizeException e) {
+        //    e.printStackTrace();
+        //}
  
         return new String(decryptedTextBytes);
     }

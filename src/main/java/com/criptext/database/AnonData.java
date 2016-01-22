@@ -13,6 +13,7 @@ public class AnonData extends RealmObject {
     @PrimaryKey
     private String _id;
     private String lastMessage;
+    private long lastTimeSynced;
 
     public String get_id() {
         return _id;
@@ -28,5 +29,13 @@ public class AnonData extends RealmObject {
 
     public void setLastMessage(String lastMessage) {
         this.lastMessage = lastMessage;
+    }
+
+    public long getLastTimeSynced() {
+        return lastTimeSynced;
+    }
+
+    public void setLastTimeSynced(long lastTimeSynced) {
+        this.lastTimeSynced = lastTimeSynced;
     }
 }

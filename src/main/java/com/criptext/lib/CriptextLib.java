@@ -62,6 +62,7 @@ public class CriptextLib extends Service {
     private AsyncConnSocket asynConnSocket;
     public int portionsMessages=15;
     public String lastMessageId="0";
+    public long lastTimeSynced=0;
     private AESUtil aesutil;
     //VARIABLES DE LA ACTIVITY
     private Context context;
@@ -232,7 +233,7 @@ public class CriptextLib extends Service {
             }
             //MANDO EL GET
             if(hasDelegates)
-                CriptextLib.instance().sendSync(CriptextDBHandler.get_LastMessage());
+                CriptextLib.instance().sendSync(CriptextDBHandler.get_LastTimeSynced());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -777,6 +778,9 @@ public class CriptextLib extends Service {
         if(jo!=null){
             MOKMessage actual_message=null;
             try {
+                if(aesutil==null)
+                    aesutil = new AESUtil(context, sessionid);
+
                 System.out.println("MONKEY - onopenConv:"+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
 
@@ -798,8 +802,11 @@ public class CriptextLib extends Service {
                                 procesarMokMessage(actual_message, desencriptConvKey);
                                 messagesToDelete.add(actual_message);
                             }
-                            else{
+                            else if(numTries==2){
                                 sendOpenSecure(actual_message.getMessage_id());
+                            }
+                            else{
+                                System.out.println("MONKEY - descarto el mensaje al intento #"+numTries);
                             }
                         }
                     }
@@ -1409,15 +1416,15 @@ public void sendGet(final String since){
         lastMessageId=since;
     }
 
-    public void sendSync(final String since){
+    public void sendSync(final long last_time_synced){
 
         try {
 
             JSONObject args=new JSONObject();
             JSONObject json=new JSONObject();
 
-            args.put("since",since);
-            if(since == null || since.equals("0") || shouldAskForGroups) {
+            args.put("since",last_time_synced);
+            if(last_time_synced==0 || shouldAskForGroups) {
                 args.put("groups", 1);
                 shouldAskForGroups=false;
             }
@@ -1445,7 +1452,7 @@ public void sendGet(final String since){
                 startSocketConnection(this.sessionid, new Runnable() {
                     @Override
                     public void run() {
-                        sendSync(since);
+                        sendSync(last_time_synced);
                     }
                 });
             else
@@ -1454,7 +1461,7 @@ public void sendGet(final String since){
             e.printStackTrace();
         }
 
-        lastMessageId=since;
+        lastTimeSynced=last_time_synced;
     }
 
     public void sendSet(final String online){

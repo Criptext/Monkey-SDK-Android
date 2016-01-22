@@ -220,7 +220,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 			CriptextLib.instance().portionsMessages--;
 			if(CriptextLib.instance().portionsMessages<1)
 				CriptextLib.instance().portionsMessages=1;
-			CriptextLib.instance().sendSync(CriptextLib.instance().lastMessageId);
+			CriptextLib.instance().sendSync(CriptextLib.instance().lastTimeSynced);
 		}
 	}
 
@@ -393,15 +393,15 @@ public class AsyncConnSocket implements ComServerDelegate{
             CriptextLib.instance().sendGetOK();
             if(args.get("type").getAsInt() == 1) {
                 JsonArray array = args.get("messages").getAsJsonArray();
-                String lastMessageId="";
+                long lastTimeSynced=0;
                 for (int i = 0; i < array.size(); i++) {
                     JsonElement jsonMessage = array.get(i);
                     JsonObject currentMessage = jsonMessage.getAsJsonObject();
-                    lastMessageId=currentMessage.get("id").getAsString();
+                    lastTimeSynced=Long.parseLong(currentMessage.get("datetime").getAsString());
                     buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
                 }
                 if(args.get("remaining_messages").getAsInt()>0){
-                    CriptextLib.instance().sendSync(lastMessageId);
+                    CriptextLib.instance().sendSync(lastTimeSynced);
                 }
             } else {
                 //PARSE GROUPS UPDATES
