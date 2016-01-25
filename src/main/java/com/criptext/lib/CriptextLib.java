@@ -231,8 +231,11 @@ public class CriptextLib extends Service {
                 hasDelegates = true;
             }
             //MANDO EL GET
-            if(hasDelegates)
-                CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
+            //if(hasDelegates)//Comente esta linea porque
+            //Si el service se levanta es bueno que haga un get y obtenga los mensajes
+            //que importa si no se actualiza el lastmessage desde el service.
+            //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
+            CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
