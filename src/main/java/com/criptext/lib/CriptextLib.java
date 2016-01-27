@@ -64,7 +64,7 @@ public class CriptextLib extends Service {
     public String lastMessageId="0";
     private AESUtil aesutil;
     //VARIABLES DE LA ACTIVITY
-    private Context context;
+    public Context context;
     private String fullname;
     private String sessionid;
     private String expiring;
@@ -1614,7 +1614,7 @@ public class CriptextLib extends Service {
                     }
                     break;
                 case MessageTypes.MOKProtocolOpen:{
-                    if(KeyStoreCriptext.getString(libWeakReference.get(),message.getRid()).compareTo("")==0)
+                    if(KeyStoreCriptext.getString(libWeakReference.get().context,message.getRid()).compareTo("")==0)
                         libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid ,message.getRid());
                     else
                         System.out.println("MONKEY - llego open pero ya tengo las claves");
