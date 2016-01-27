@@ -25,6 +25,7 @@ import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
+import com.criptext.database.MessageBatch;
 import com.criptext.database.MonkeyKitRealmModule;
 import com.criptext.database.RemoteMessage;
 import com.criptext.database.TransitionMessage;
@@ -85,6 +86,8 @@ public class CriptextLib extends Service {
     private static String realmName = "MonkeyKit";
     private static Realm monkeyRealm;
 
+    private MessageBatch batchGET;
+
     public RealmConfiguration getMonkeyConfig(){
         byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
@@ -122,6 +125,27 @@ public class CriptextLib extends Service {
             monkeyRealm.close();
 
         monkeyRealm = null;
+    }
+
+    /**
+     * crea un nuevo MessageBatch si no hay uno en CriptextLib, de lo contrario aumenta el tamanio
+     * del batch que ya existe.
+     * @param max Cantidad de mensajes que debe de tener el nuevo batch.
+     */
+    public void newMessageBatch(int max){
+        if(batchGET == null)
+            batchGET = new MessageBatch(max){
+                @Override
+                public void onBatchReady(ArrayList<MOKMessage> readymessages) {
+
+                }
+            };
+        else
+            batchGET.increaseBatchSize(max);
+    }
+
+    public MessageBatch getMessageBatch(){
+        return batchGET;
     }
 
     public CriptextLib(){

@@ -12,6 +12,8 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+import com.criptext.database.MessageBatch;
+import com.criptext.database.RemoteMessage;
 import com.criptext.lib.AESUtil;
 import com.criptext.lib.CriptextLib;
 import com.criptext.lib.KeyStoreCriptext;
@@ -224,6 +226,38 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}
 	}
 
+	public MOKMessage createMOKMessageFromJSON(JsonObject args, JsonObject params, JsonObject props){
+		MOKMessage remote = new MOKMessage(args.get("id").getAsString(),
+						args.get("sid").getAsString(),
+						args.get("rid").getAsString(),
+						args.get("msg").getAsString(),
+						args.get("datetime").getAsString(),
+						args.get("type").getAsString(),params,props);
+		remote.setDatetimeorder(System.currentTimeMillis());
+		return remote;
+	}
+	public int parseMOKMessage(MOKMessage remote){
+        String claves= KeyStoreCriptext.getString(CriptextLib.instance()
+                , remote.getSid());
+        if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
+            System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
+            return MessageTypes.MOKProtocolMessageNoKeys;
+        }
+        else{
+            try {
+                if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
+                    remote.setMsg(AESUtil.decryptWithCustomKeyAndIV(remote.getMsg(),
+                            claves.split(":")[0], claves.split(":")[1]));
+            } catch (BadPaddingException ex){
+                ex.printStackTrace();
+                return MessageTypes.MOKProtocolMessageWrongKeys;
+            }
+            catch(Exception ex){
+                ex.printStackTrace();
+            }
+        }
+		return MessageTypes.MOKProtocolMessageHasKeys;
+	}
 	public MOKMessage buildMessage(int cmd, JsonObject args){
 
 		MOKMessage remote = null;
@@ -240,36 +274,11 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 			if(args.get("type").getAsString().compareTo(MessageTypes.MOKText)==0
 				|| args.get("type").getAsString().compareTo(MessageTypes.MOKFile)==0){
-				remote=new MOKMessage(args.get("id").getAsString(), 
-						args.get("sid").getAsString(), 
-						args.get("rid").getAsString(),
-						args.get("msg").getAsString(),
-						args.get("datetime").getAsString(), 
-						args.get("type").getAsString(),params,props);
-				remote.setDatetimeorder(System.currentTimeMillis());
 				Message msg = mainMessageHandler.obtainMessage();
-                String claves= KeyStoreCriptext.getString(CriptextLib.instance()
-                        , remote.getSid());
-                if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
-                    System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
-                   msg.what = MessageTypes.MOKProtocolMessageNoKeys;
-                }
-                else{
-					msg.what = MessageTypes.MOKProtocolMessageHasKeys;
-					try {
-						if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
-							remote.setMsg(AESUtil.decryptWithCustomKeyAndIV(remote.getMsg(),
-									claves.split(":")[0], claves.split(":")[1]));
-					} catch (BadPaddingException ex){
-						ex.printStackTrace();
-						msg.what = MessageTypes.MOKProtocolMessageWrongKeys;
-					}
-					catch(Exception ex){
-						ex.printStackTrace();
-					}
-                }
-				msg.obj =remote;
-				mainMessageHandler.sendMessage(msg);	
+				remote = createMOKMessageFromJSON(args, params, props);
+				msg.what = parseMOKMessage(remote);
+				msg.obj = remote;
+				mainMessageHandler.sendMessage(msg);
 			}
 			else if(args.get("type").getAsString().compareTo(MessageTypes.MOKTempNote)==0){
 				remote=new MOKMessage("",args.get("sid").getAsString(), 
@@ -367,6 +376,8 @@ public class AsyncConnSocket implements ComServerDelegate{
             if(args.get("type").getAsInt() == 1) {
                 JsonArray array = args.get("messages").getAsJsonArray();
                 String lastMessageId="";
+				CriptextLib.instance().newMessageBatch(array.size());
+				MessageBatch batch = CriptextLib.instance().getMessageBatch();
                 for (int i = 0; i < array.size(); i++) {
                     JsonElement jsonMessage = array.get(i);
                     JsonObject currentMessage = jsonMessage.getAsJsonObject();
