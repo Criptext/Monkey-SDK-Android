@@ -236,7 +236,17 @@ public class AsyncConnSocket implements ComServerDelegate{
 		remote.setDatetimeorder(System.currentTimeMillis());
 		return remote;
 	}
-	public int parseMOKMessage(MOKMessage remote){
+
+	/**
+	 * Consigues las llaves necesarias y decripta el contenido del MOKMessage.
+	 * @param remote El remote message a decriptar.
+	 * @return El MessageType de acuerdo a si se pudo o no decriptar el mensaje con las llaves
+	 * existentes. Puede ser :
+	 * 	MOKProtocolMessageNoKeys
+	 * 	MOKProtocolMessageWrongKeys
+	 * 	MOKProtocolMessageHasKeys
+	 */
+	public int decryptMOKMessage(MOKMessage remote){
         String claves= KeyStoreCriptext.getString(CriptextLib.instance()
                 , remote.getSid());
         if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
@@ -258,15 +268,16 @@ public class AsyncConnSocket implements ComServerDelegate{
         }
 		return MessageTypes.MOKProtocolMessageHasKeys;
 	}
+
 	public MOKMessage buildMessage(int cmd, JsonObject args){
 
 		MOKMessage remote = null;
-		JsonParser parser = new JsonParser();
+		JsonObject props = new JsonObject();
 		JsonObject params = new JsonObject();
+		JsonParser parser = new JsonParser();
 		if(args.has("params") && !args.get("params").isJsonNull() && !parser.parse(args.get("params").getAsString()).isJsonNull())
 			if(parser.parse(args.get("params").getAsString()) instanceof JsonObject)
                 params=(JsonObject)parser.parse(args.get("params").getAsString());
-		JsonObject props = new JsonObject();
 		if(args.has("props") && !args.get("props").isJsonNull() && !parser.parse(args.get("props").getAsString()).isJsonNull())
 			props=(JsonObject)parser.parse(args.get("props").getAsString());
 		switch (cmd) {
@@ -276,7 +287,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 				|| args.get("type").getAsString().compareTo(MessageTypes.MOKFile)==0){
 				Message msg = mainMessageHandler.obtainMessage();
 				remote = createMOKMessageFromJSON(args, params, props);
-				msg.what = parseMOKMessage(remote);
+				msg.what = decryptMOKMessage(remote);
 				msg.obj = remote;
 				mainMessageHandler.sendMessage(msg);
 			}
