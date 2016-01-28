@@ -1597,9 +1597,9 @@ public class CriptextLib extends Service {
                     break;
                 case MessageTypes.MOKProtocolMessageWrongKeys:
                     libWeakReference.get().messagesToSendAfterOpen.add(message);
-                    int numTries=KeyStoreCriptext.getInt(libWeakReference.get(),
+                    int numTries=KeyStoreCriptext.getInt(libWeakReference.get().context,
                             "tries:"+message.getMessage_id());
-                    KeyStoreCriptext.putInt(libWeakReference.get(),
+                    KeyStoreCriptext.putInt(libWeakReference.get().context,
                             "tries:" + message.getMessage_id(), numTries + 1);
                     libWeakReference.get().sendOpenConversation(
                             libWeakReference.get().sessionid, message.getSid());
