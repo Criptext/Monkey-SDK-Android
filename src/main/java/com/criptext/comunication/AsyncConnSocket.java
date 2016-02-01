@@ -225,7 +225,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 			CriptextLib.instance().portionsMessages--;
 			if(CriptextLib.instance().portionsMessages<1)
 				CriptextLib.instance().portionsMessages=1;
-			CriptextLib.instance().sendGet(CriptextLib.instance().lastMessageId);
+			CriptextLib.instance().sendSync(CriptextLib.instance().lastTimeSynced);
 		}
 	}
 
@@ -494,6 +494,33 @@ public class AsyncConnSocket implements ComServerDelegate{
                 remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
                 Message msg = mainMessageHandler.obtainMessage();
                 msg.what=MessageTypes.MOKProtocolGet;
+                msg.obj = remote;
+                mainMessageHandler.sendMessage(msg);
+            }
+            break;
+		case MessageTypes.MOKProtocolSync:
+            System.out.println("MOK PROTOCOL SYNC");
+            CriptextLib.instance().watchdog.didResponseGet=true;
+            CriptextLib.instance().sendGetOK();
+            if(args.get("type").getAsInt() == 1) {
+                JsonArray array = args.get("messages").getAsJsonArray();
+                long lastTimeSynced=0;
+                for (int i = 0; i < array.size(); i++) {
+                    JsonElement jsonMessage = array.get(i);
+                    JsonObject currentMessage = jsonMessage.getAsJsonObject();
+                    lastTimeSynced=Long.parseLong(currentMessage.get("datetime").getAsString());
+                    buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
+                }
+                if(args.get("remaining_messages").getAsInt()>0){
+                    CriptextLib.instance().sendSync(lastTimeSynced);
+                }
+            } else {
+                //PARSE GROUPS UPDATES
+                remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
+                        args.get("type").getAsString(), params, props);
+                remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
+                Message msg = mainMessageHandler.obtainMessage();
+                msg.what=MessageTypes.MOKProtocolSync;
                 msg.obj = remote;
                 mainMessageHandler.sendMessage(msg);
             }

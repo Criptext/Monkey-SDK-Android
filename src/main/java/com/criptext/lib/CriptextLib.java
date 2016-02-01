@@ -83,6 +83,7 @@ public class CriptextLib extends Service {
     private AsyncConnSocket asynConnSocket;
     public int portionsMessages=15;
     public String lastMessageId="0";
+    public long lastTimeSynced=0;
     private AESUtil aesutil;
     //VARIABLES DE LA ACTIVITY
     public Context context;
@@ -259,7 +260,7 @@ public class CriptextLib extends Service {
             //Si el service se levanta es bueno que haga un get y obtenga los mensajes
             //que importa si no se actualiza el lastmessage desde el service.
             //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
-            CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
+            CriptextLib.instance().sendSync(CriptextDBHandler.get_LastTimeSynced());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -772,7 +773,11 @@ public class CriptextLib extends Service {
 
     /************************************************************************/
 
+    /**
+     * Esto tambien funciona con el sync ok
+     */
     public void sendGetOK(){
+        Log.d("MonkeyKit", "SyncOK");
         executeInDelegates("onGetOK", new Object[]{});
     }
 
@@ -932,6 +937,9 @@ public class CriptextLib extends Service {
         if(jo!=null){
             MOKMessage actual_message=null;
             try {
+                if(aesutil==null)
+                    aesutil = new AESUtil(context, sessionid);
+
                 System.out.println("MONKEY - onopenConv:"+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
 
@@ -953,8 +961,11 @@ public class CriptextLib extends Service {
                                 procesarMokMessage(actual_message, desencriptConvKey);
                                 messagesToDelete.add(actual_message);
                             }
-                            else{
+                            else if(numTries==2){
                                 sendOpenSecure(actual_message.getMessage_id());
+                            }
+                            else{
+                                System.out.println("MONKEY - descarto el mensaje al intento #"+numTries);
                             }
                         }
                     }
@@ -1516,8 +1527,7 @@ public class CriptextLib extends Service {
             }
         }
     }
-
-    public void sendGet(final String since){
+public void sendGet(final String since){
 
         try {
 
@@ -1565,6 +1575,55 @@ public class CriptextLib extends Service {
 
         lastMessageId=since;
     }
+
+    public void sendSync(final long last_time_synced){
+
+        try {
+
+            JSONObject args=new JSONObject();
+            JSONObject json=new JSONObject();
+
+            args.put("since",last_time_synced);
+            if(last_time_synced==0 || shouldAskForGroups) {
+                args.put("groups", 1);
+                shouldAskForGroups=false;
+            }
+            args.put("qty", ""+portionsMessages);
+            //args.put("G", requestGroups ? 1 : 0);
+            json.put("args", args);
+            json.put("cmd", MessageTypes.MOKProtocolSync);
+
+            if(asynConnSocket != null && asynConnSocket.isConnected()){
+                System.out.println("MONKEY - Enviando Sync:"+json.toString());
+                asynConnSocket.sendMessage(json);
+            }
+            else
+                System.out.println("MONKEY - no pudo enviar Sync - socket desconectado");
+
+            if(watchdog == null) {
+                watchdog = new Watchdog(context);
+            }
+            watchdog.didResponseGet = false;
+            Log.d("Watchdog", "Watchdog ready sending Sync");
+            watchdog.start();
+
+        } catch(NullPointerException ex){
+            if(asynConnSocket == null)
+                startSocketConnection(this.sessionid, new Runnable() {
+                    @Override
+                    public void run() {
+                        sendSync(last_time_synced);
+                    }
+                });
+            else
+                ex.printStackTrace();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        lastTimeSynced=last_time_synced;
+    }
+
     public void sendSet(final String online){
 
         try {
@@ -1799,6 +1858,10 @@ public class CriptextLib extends Service {
                     break;
                 }
                 case MessageTypes.MOKProtocolGet: {
+                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    break;
+                }
+                case MessageTypes.MOKProtocolSync: {
                     libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
                     break;
                 }

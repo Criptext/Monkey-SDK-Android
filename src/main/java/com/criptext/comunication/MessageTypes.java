@@ -33,6 +33,7 @@ public class MessageTypes {
 	public static final int MOKProtocolAck = 205;
 	public static final int MOKProtocolDelete = 207;
 	public static final int MOKProtocolClose = 208;
+	public static final int MOKProtocolSync = 209;
 
 	//TIPOS DE MENSAJES
 	public static final String MOKText = "1";

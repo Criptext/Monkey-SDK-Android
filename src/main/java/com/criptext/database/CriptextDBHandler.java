@@ -587,7 +587,7 @@ public class CriptextDBHandler {
     }
 
     /**
-     * Coloca el timestamp del ultimo mensaje de la base de datos de UserData de forma asincrona.
+     * Coloca el message id del ultimo mensaje de la base de datos de UserData de forma asincrona.
      * @param paramString
      */
     public static void set_LastMessage(final String paramString) {
@@ -616,6 +616,51 @@ public class CriptextDBHandler {
             @Override
             public void onError(Exception e) {
                 Log.d("AccountModel", "set lastMessage: ERROR\n");
+                e.printStackTrace();
+                // transaction is automatically rolled-back, do any cleanup here
+            }
+        });
+    }
+
+    public static long get_LastTimeSynced()
+    {
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        AnonData model = realm.where(AnonData.class).findFirst();
+        if(model != null){
+            Log.d("lastTimeSynced", "GET " + model.getLastTimeSynced());
+            return model.getLastTimeSynced();
+        }
+        return 0;
+    }
+
+    /**
+     * Coloca el timestamp del ultimo mensaje de la base de datos de UserData de forma asincrona.
+     * @param paramLong
+     */
+    public static void set_LastTimeSynced(final long paramLong) {
+
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm bgRealm) {
+                AnonData user = bgRealm.where(AnonData.class).findFirst();
+                if (user == null) {
+                    user = bgRealm.createObject(AnonData.class);
+                    user.set_id("1");
+                }
+
+                user.setLastTimeSynced(paramLong);
+                Log.d("lastTimeSynced", String.valueOf(user.getLastTimeSynced()));
+            }
+        }, new Realm.Transaction.Callback() {
+            @Override
+            public void onSuccess() {
+                Log.d("AccountModel", "set lastTimeSynced: SUCCESS");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.d("AccountModel", "set lastTimeSynced: ERROR\n");
                 e.printStackTrace();
                 // transaction is automatically rolled-back, do any cleanup here
             }
