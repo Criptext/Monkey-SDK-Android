@@ -13,7 +13,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import com.criptext.database.MessageBatch;
 import com.criptext.database.RemoteMessage;
 import com.criptext.lib.AESUtil;
 import com.criptext.lib.CriptextLib;

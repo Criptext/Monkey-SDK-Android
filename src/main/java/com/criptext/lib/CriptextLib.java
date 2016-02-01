@@ -45,7 +45,6 @@ import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
-import com.criptext.database.MessageBatch;
 import com.criptext.database.MessageModel;
 import com.criptext.database.MonkeyKitRealmModule;
 import com.criptext.database.RemoteMessage;
@@ -86,7 +85,7 @@ public class CriptextLib extends Service {
     public String lastMessageId="0";
     private AESUtil aesutil;
     //VARIABLES DE LA ACTIVITY
-    private Context context;
+    public Context context;
     private String fullname;
     private String sessionid;
     private String expiring;
@@ -255,9 +254,12 @@ public class CriptextLib extends Service {
                 hasDelegates = true;
             }
             //MANDO EL GET
-            if(hasDelegates) {
-                CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
-            }
+
+            //if(hasDelegates)//Comente esta linea porque
+            //Si el service se levanta es bueno que haga un get y obtenga los mensajes
+            //que importa si no se actualiza el lastmessage desde el service.
+            //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
+            CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -1759,9 +1761,9 @@ public class CriptextLib extends Service {
                     break;
                 case MessageTypes.MOKProtocolMessageWrongKeys:
                     libWeakReference.get().messagesToSendAfterOpen.add(message);
-                    int numTries=KeyStoreCriptext.getInt(libWeakReference.get(),
+                    int numTries=KeyStoreCriptext.getInt(libWeakReference.get().context,
                             "tries:"+message.getMessage_id());
-                    KeyStoreCriptext.putInt(libWeakReference.get(),
+                    KeyStoreCriptext.putInt(libWeakReference.get().context,
                             "tries:" + message.getMessage_id(), numTries + 1);
                     libWeakReference.get().sendOpenConversation(
                             libWeakReference.get().sessionid, message.getSid());
@@ -1776,7 +1778,7 @@ public class CriptextLib extends Service {
                     }
                     break;
                 case MessageTypes.MOKProtocolOpen:{
-                    if(KeyStoreCriptext.getString(libWeakReference.get(),message.getRid()).compareTo("")==0)
+                    if(KeyStoreCriptext.getString(libWeakReference.get().context,message.getRid()).compareTo("")==0)
                         libWeakReference.get().sendOpenConversation(libWeakReference.get().sessionid ,message.getRid());
                     else
                         System.out.println("MONKEY - llego open pero ya tengo las claves");
