@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 
 import com.criptext.database.MessageBatch;
 import com.criptext.database.RemoteMessage;
@@ -27,6 +28,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.SocketHandler;
@@ -226,6 +230,13 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}
 	}
 
+	/**
+	 * Crea un MOKMessage a partir de un JSON
+	 * @param args
+	 * @param params
+	 * @param props
+	 * @return
+	 */
 	public MOKMessage createMOKMessageFromJSON(JsonObject args, JsonObject params, JsonObject props){
 		MOKMessage remote = new MOKMessage(args.get("id").getAsString(),
 						args.get("sid").getAsString(),
@@ -259,7 +270,7 @@ public class AsyncConnSocket implements ComServerDelegate{
                     remote.setMsg(AESUtil.decryptWithCustomKeyAndIV(remote.getMsg(),
                             claves.split(":")[0], claves.split(":")[1]));
             } catch (BadPaddingException ex){
-                ex.printStackTrace();
+                Log.d("MonkeyKit", "BadPaddingException Wrong Keys");
                 return MessageTypes.MOKProtocolMessageWrongKeys;
             }
             catch(Exception ex){
@@ -269,6 +280,50 @@ public class AsyncConnSocket implements ComServerDelegate{
 		return MessageTypes.MOKProtocolMessageHasKeys;
 	}
 
+	/**
+	 * Intenta decriptar un MOKMessage. Si no tiene llaves o estan mal, hace los requerimientos
+	 * pertinentes al servidor y recursivamente vuelve a intentar. Si no tiene llaves, las pide al server.
+	 * Si estan mal las llaves, pide las ultimas llaves al server, si son iguales a las que ya tiene,
+	 * pide al server el texto del mensaje encriptado con las ultimas llaves. Si nada de eso funciona
+	 * retorna null
+	 * @param remote El mensaje a decriptar
+	 * @param lastChance Esta variable se usa internamente para controlar la recursion. Al llamar
+	 *                   esta funcion debe de hacerse con false.
+	 * @return El mensaje con su texto decriptado. Si no se pudo decriptar retorna null
+	 */
+	private MOKMessage getKeysAndDecryptMOKMessage(MOKMessage remote, boolean lastChance){
+		int what = decryptMOKMessage(remote);
+
+		if(lastChance && what != MessageTypes.MOKProtocolMessageHasKeys)
+			return null;
+
+        if(what == MessageTypes.MOKProtocolMessageHasKeys) {
+            return remote;
+        } else if(what == MessageTypes.MOKProtocolMessageNoKeys) {
+            CriptextLib.instance().requestKeyBySession(remote.getSid());
+            Log.d("BatchGET", "Got Keys for " + remote.getSid() + ". Apply recursion");
+			return getKeysAndDecryptMOKMessage(remote, false);
+        } else if(what == MessageTypes.MOKProtocolMessageWrongKeys){
+            String claves= KeyStoreCriptext.getString(CriptextLib.instance()
+                  , remote.getSid());
+            String newClaves = CriptextLib.instance().requestKeyBySession(remote.getSid());
+            if(newClaves != null && !newClaves.equals(claves))
+                return getKeysAndDecryptMOKMessage(remote, false);
+            else if (newClaves != null){
+				String newMsg = CriptextLib.instance().requestTextWithLatestKeys(remote.getMsg());
+				if(newMsg != null) {
+					remote.setMsg(newMsg);
+					return getKeysAndDecryptMOKMessage(remote, true);
+				} else {
+					Log.d("BatchGET", "Message discarded due to wrong keys");
+					return null;
+				}
+			}
+        }
+
+		Log.d("BatchGET", "wrong Protocol");
+		return null;
+	}
 	public MOKMessage buildMessage(int cmd, JsonObject args){
 
 		MOKMessage remote = null;
@@ -387,14 +442,49 @@ public class AsyncConnSocket implements ComServerDelegate{
             if(args.get("type").getAsInt() == 1) {
                 JsonArray array = args.get("messages").getAsJsonArray();
                 String lastMessageId="";
-				CriptextLib.instance().newMessageBatch(array.size());
-				MessageBatch batch = CriptextLib.instance().getMessageBatch();
+				ArrayList<MOKMessage> batch = new ArrayList<>();
+
                 for (int i = 0; i < array.size(); i++) {
                     JsonElement jsonMessage = array.get(i);
                     JsonObject currentMessage = jsonMessage.getAsJsonObject();
+
+					//init params props
+                    if(currentMessage.has("params") && !currentMessage.get("params").isJsonNull() && !parser.parse(currentMessage.get("params").getAsString()).isJsonNull())
+                        if(parser.parse(currentMessage.get("params").getAsString()) instanceof JsonObject)
+                            params=(JsonObject)parser.parse(currentMessage.get("params").getAsString());
+                        if(currentMessage.has("props") && !currentMessage.get("props").isJsonNull() && !parser.parse(currentMessage.get("props").getAsString()).isJsonNull())
+                            props=(JsonObject)parser.parse(currentMessage.get("props").getAsString());
+
                     lastMessageId=currentMessage.get("id").getAsString();
-                    buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
+
+
+					if(currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKText)==0
+                        || currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKFile)==0){
+                        remote = createMOKMessageFromJSON(currentMessage, params, props);
+
+						if(remote.getType().equals("1") || remote.getType().equals("2")) {
+							if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
+								remote = getKeysAndDecryptMOKMessage(remote, false);
+							if (remote != null)
+								batch.add(remote);
+						} else{
+							Message msg = mainMessageHandler.obtainMessage();
+                            msg.what=MessageTypes.MOKProtocolDelete;
+                            msg.obj =remote;
+                            mainMessageHandler.sendMessage(msg);
+						}
+                    }
+                    //buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);ssage
+
+
                 }
+
+				Message msg = mainMessageHandler.obtainMessage();
+				msg.what=MessageTypes.MOKProtocolMessageBatch;
+				Log.d("AsyncConnSocket", "Batch Ready with " + batch.size() + '/' + array.size());
+				msg.obj = batch;
+				mainMessageHandler.sendMessage(msg);
+
                 if(args.get("remaining_messages").getAsInt()>0){
                     CriptextLib.instance().sendGet(lastMessageId);
                 }

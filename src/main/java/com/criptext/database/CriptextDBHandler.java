@@ -420,21 +420,6 @@ public class CriptextDBHandler {
     }
 
     /**
-     * Guarda un mensaje desencriptado en la base, una vez dentro le coloca el contenido encriptado.
-     * @param message Mensaje a guardar
-     * @param encrypted contenido del mensaje encriptado
-     */
-    public static void updateMessageReciveThread(RemoteMessage message, String encrypted)
-    {
-        Log.d("UpdateRemoteMessage", "updateMessageReciveThread B");
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        realm.beginTransaction();
-        MessageModel decrypted = realm.copyToRealmOrUpdate(message.getModel());
-        decrypted.set_message(encrypted);
-        realm.commitTransaction();
-    }
-
-    /**
      * Toma una lista de mensajes y borra un session id en particular entre varios del Rid. Este
      * metodo deberia de llamarse despues de borrar todos los mensajes enviados al usuario 'id' que
      * no son broadcast.

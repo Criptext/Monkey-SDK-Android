@@ -1,9 +1,13 @@
 package com.criptext.lib;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +18,24 @@ import javax.crypto.BadPaddingException;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import com.androidquery.AQuery;
 import com.androidquery.callback.AjaxCallback;
 import com.androidquery.callback.AjaxStatus;
@@ -26,6 +46,7 @@ import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
 import com.criptext.database.MessageBatch;
+import com.criptext.database.MessageModel;
 import com.criptext.database.MonkeyKitRealmModule;
 import com.criptext.database.RemoteMessage;
 import com.criptext.database.TransitionMessage;
@@ -86,8 +107,6 @@ public class CriptextLib extends Service {
     private static String realmName = "MonkeyKit";
     private static Realm monkeyRealm;
 
-    private MessageBatch batchGET;
-
     public RealmConfiguration getMonkeyConfig(){
         byte[] encryptKey= "132576QFS?(;oh{7Ds9vv|TsPP3=0izz5#6k):>h1&:Upz5[62X{ZPd|Aa522-8&".getBytes();
         RealmConfiguration libraryConfig = new RealmConfiguration.Builder(context)
@@ -127,27 +146,6 @@ public class CriptextLib extends Service {
         monkeyRealm = null;
     }
 
-    /**
-     * crea un nuevo MessageBatch si no hay uno en CriptextLib, de lo contrario aumenta el tamanio
-     * del batch que ya existe.
-     * @param max Cantidad de mensajes que debe de tener el nuevo batch.
-     */
-    public void newMessageBatch(int max){
-        if(batchGET == null)
-            batchGET = new MessageBatch(max){
-                @Override
-                public void onBatchReady(ArrayList<MOKMessage> readymessages) {
-
-                }
-            };
-        else
-            batchGET.increaseBatchSize(max);
-    }
-
-    public MessageBatch getMessageBatch(){
-        return batchGET;
-    }
-
     public CriptextLib(){
         //System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+context + " isInialized:" + isInialized());
         if(delegates==null)
@@ -155,6 +153,8 @@ public class CriptextLib extends Service {
         if(context==null && isInialized())
             context=getApplicationContext();
         //System.out.println("CRIPTEXTLIB - contructor despues:" + delegates + " - " + context + " isInialized:" + isInialized());
+
+
     }
 
     @Override
@@ -177,7 +177,7 @@ public class CriptextLib extends Service {
         return null;
     }
 
-    public static CriptextLib instance(){
+    public static CriptextLib instance() {
         //System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
         if (_sharedInstance == null)
             _sharedInstance = new CriptextLib();
@@ -255,8 +255,9 @@ public class CriptextLib extends Service {
                 hasDelegates = true;
             }
             //MANDO EL GET
-            if(hasDelegates)
+            if(hasDelegates) {
                 CriptextLib.instance().sendGet(CriptextDBHandler.get_LastMessage());
+            }
         }else if(method.compareTo("onSocketDisconnected")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onSocketDisconnected();
@@ -320,6 +321,14 @@ public class CriptextLib extends Service {
         }else if(method.compareTo("onNotificationReceived")==0){
             for(int i=0;i<delegates.size();i++){
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
+            }
+        } else if(method.compareTo("onMessageBatchReady")==0){
+            ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
+            for(int i=0;i<delegates.size();i++){
+                delegates.get(i).onMessageBatchReady(batch);
+            }
+            for(MOKMessage message : batch){
+                CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
             }
         }
     }
@@ -767,6 +776,130 @@ public class CriptextLib extends Service {
 
     /************************************************************************/
 
+    /**
+     * Manda un requerimiento HTTP a Monkey para obtener las llaves mas recientes de un usuario que
+     * tiene el server. Esta funcion debe de ser llamada en background de lo contrario lanza una excepcion.
+     * @param sessionIdTo El session id del usuario cuyas llaves se desean obtener
+     * @return Un String con las llaves del usuario. Antes de retornar el resultado, las llaves se
+     * guardan en el KeyStoreCriptext.
+     */
+    public String requestKeyBySession(String sessionIdTo){
+        // Create a new HttpClient and Post Header
+        HttpClient httpclient = newMonkeyHttpClient();
+        HttpPost httppost = new HttpPost(URL+"/user/key/exchange");
+
+        try {
+
+            String base64EncodedCredentials = "Basic " + Base64.encodeToString(
+                    (urlUser + ":" + urlPass).getBytes(),
+                    Base64.NO_WRAP);
+
+            httppost.setHeader("Authorization", base64EncodedCredentials);
+
+            JSONObject localJSONObject1 = new JSONObject();
+            JSONObject params = new JSONObject();
+            localJSONObject1.put("user_to",sessionIdTo);
+            localJSONObject1.put("session_id",sessionid);
+            params.put("data", localJSONObject1.toString());
+
+            Log.d("OpenConversation", "Req: " + params.toString());
+            StringEntity se = new StringEntity(params.toString());
+            // Add your data
+            httppost.setEntity(se);
+            //sets a request header so the page receving the request
+            //will know what to do with it
+            httppost.setHeader("Accept", "application/json");
+            httppost.setHeader("Content-type", "application/json");
+            // Execute HTTP Post Request
+            HttpResponse response = httpclient.execute(httppost);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+            String json = reader.readLine();
+            JSONTokener tokener = new JSONTokener(json);
+            JSONObject finalResult = new JSONObject(tokener);
+
+            Log.d("OpenConversation", finalResult.toString());
+            String newKeys = aesutil.decrypt(finalResult.getJSONObject("data").getString("convKey"));
+            KeyStoreCriptext.putString(context, sessionIdTo, newKeys);
+            return newKeys;
+
+        } catch (JSONException ex) {
+            ex.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+            // TODO Auto-generated catch block
+        } catch (IOException e) {
+            e.printStackTrace();
+            // TODO Auto-generated catch block
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     * Crea un HTTP Client con timeout
+     * @return
+     */
+    public HttpClient newMonkeyHttpClient(){
+        HttpParams httpParams = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(httpParams, 3000);
+        HttpConnectionParams.setSoTimeout(httpParams, 5000);
+        return new DefaultHttpClient(httpParams);
+    }
+
+    /**
+     * Manda un requerimiento HTTP a Monkey para obtener el texto de un mensaje encriptado con
+     * las ultimas llaves del remitente que tiene el server. Esta funcion debe de ser llamada en
+     * background de lo contrario lanza una excepcion
+     * @param messageId Id del mensaje cuyo texto se quiere obtener
+     * @return Un String con el texto encriptado con las llaves mas recientes.
+     */
+    public String requestTextWithLatestKeys(String messageId){
+        HttpParams httpParams = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(httpParams, 3000);
+        HttpConnectionParams.setSoTimeout(httpParams, 5000);
+        // Create a new HttpClient and Post Header
+        HttpClient httpclient = newMonkeyHttpClient();
+        HttpGet httppost = new HttpGet(URL+"/message/"+messageId+"/open/secure");
+
+        try {
+
+            String base64EncodedCredentials = "Basic " + Base64.encodeToString(
+                    (urlUser + ":" + urlPass).getBytes(),
+                    Base64.NO_WRAP);
+
+
+            httppost.setHeader("Authorization", base64EncodedCredentials);
+
+            Log.d("OpenSecure", "Req: " + messageId);
+            //sets a request header so the page receving the request
+            //will know what to do with it
+            // Execute HTTP Post Request
+            HttpResponse response = httpclient.execute(httppost);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+            String json = reader.readLine();
+            JSONTokener tokener = new JSONTokener(json);
+            JSONObject finalResult = new JSONObject(tokener);
+
+            Log.d("OpenSecure", finalResult.toString());
+            String newEncryptedMessage = finalResult.getJSONObject("data").getString("message");
+            Log.d("OpenSecure", newEncryptedMessage);
+            return newEncryptedMessage;
+
+        } catch (JSONException ex) {
+            ex.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+            // TODO Auto-generated catch block
+        } catch (IOException e) {
+            e.printStackTrace();
+            // TODO Auto-generated catch block
+        }
+
+        return null;
+    }
+
     public void sendOpenConversation(String sessionId, String sessionIdTo){
 
         try {
@@ -823,7 +956,7 @@ public class CriptextLib extends Service {
                             }
                         }
                     }
-                    //BORRO DE LA LISTA
+                    //BORReeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeO DE LA LISTA
                     for(int i=0;i<messagesToDelete.size();i++){
                         System.out.println("MONKEY - Borrando de la lista");
                         messagesToSendAfterOpen.remove(messagesToDelete.get(i));
@@ -1400,6 +1533,7 @@ public class CriptextLib extends Service {
             json.put("cmd", MessageTypes.MOKProtocolGet);
 
             if(asynConnSocket != null && asynConnSocket.isConnected()){
+                Log.d("MonkeyKit", "Send Get " + since);
                 System.out.println("MONKEY - Enviando Get:"+json.toString());
                 asynConnSocket.sendMessage(json);
             }
@@ -1581,7 +1715,11 @@ public class CriptextLib extends Service {
         }
 
         public void handleMessage(Message msg) {
-            MOKMessage message=(MOKMessage)msg.obj;
+
+            MOKMessage message = null;
+            if(msg.obj instanceof MOKMessage){
+                message=(MOKMessage)msg.obj;
+            }
 
             //if(message != null && message.getMsg() != null)
             //Log.d("MonkeyHandler", "message: " + message.getMsg() + " tipo: " + msg.what);
@@ -1608,6 +1746,9 @@ public class CriptextLib extends Service {
                         } else
                             libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
                     }
+                    break;
+                case MessageTypes.MOKProtocolMessageBatch:
+                    libWeakReference.get().executeInDelegates("onMessageBatchReady", new Object[]{(ArrayList<MOKMessage>)msg.obj});
                     break;
                 case MessageTypes.MOKProtocolMessageHasKeys:
                     libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});

@@ -5,6 +5,8 @@ import org.json.JSONObject;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.RemoteMessage;
 
+import java.util.ArrayList;
+
 public interface CriptextLibDelegate {
 
 	public void onSessionOK();
@@ -40,4 +42,6 @@ public interface CriptextLibDelegate {
 	
 	public void onContactOpenMyConversation(String sessionID);
 	public void onNotificationReceived(MOKMessage message);
+
+	public void onMessageBatchReady(ArrayList<MOKMessage> messages);
 }

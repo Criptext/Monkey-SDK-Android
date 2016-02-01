@@ -24,6 +24,7 @@ public class MessageTypes {
 	public static final int MOKProtocolMessageHasKeys = 199;
 	public static final int MOKProtocolMessageNoKeys = 198;
 	public static final int MOKProtocolMessageWrongKeys = 197;
+	public static final int MOKProtocolMessageBatch = 196;
 
 	public static final int MOKProtocolGet = 201;
 	public static final int MOKProtocolTransaction = 202;
