@@ -1,5 +1,6 @@
 package com.criptext.comunication;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
@@ -191,6 +192,81 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 	}
 
+	/**
+	 * Procesa el JSONArray que llega despues de un GET O SYNC. Decripta los mensajes que necesitan
+	 * ser decriptados y arma un ArrayList de MOKMessages para pasarselo al Thread principal
+	 * @param protocol GET o SYNC de MessageTypes
+	 * @param args JsonObject "args" del GET o SYNC
+	 * @param parser
+	 */
+	private void processBatch(int protocol, JsonObject args, JsonParser parser){
+		System.out.println("MOK PROTOCOL SYNC");
+		JsonObject props = new JsonObject(), params = new JsonObject();
+        CriptextLib.instance().watchdog.didResponseGet=true;
+        CriptextLib.instance().sendGetOK();
+		MOKMessage remote;
+        if(args.get("type").getAsInt() == 1) {
+            JsonArray array = args.get("messages").getAsJsonArray();
+            long lastTimeSynced = 0;
+			String lastMessageId = "";
+            ArrayList<MOKMessage> batch = new ArrayList<>();
+
+            for (int i = 0; i < array.size(); i++) {
+				JsonObject currentMessage =  null;
+				try {
+					JsonElement jsonMessage = array.get(i);
+					currentMessage = jsonMessage.getAsJsonObject();
+					//init params props
+					if (currentMessage.has("params") && !currentMessage.get("params").isJsonNull() && !parser.parse(currentMessage.get("params").getAsString()).isJsonNull())
+						if (parser.parse(currentMessage.get("params").getAsString()) instanceof JsonObject)
+							params = (JsonObject) parser.parse(currentMessage.get("params").getAsString());
+					if (currentMessage.has("props") && !currentMessage.get("props").isJsonNull() && !parser.parse(currentMessage.get("props").getAsString()).isJsonNull())
+						props = (JsonObject) parser.parse(currentMessage.get("props").getAsString());
+
+					lastTimeSynced = Long.parseLong(currentMessage.get("datetime").getAsString());
+					lastMessageId = currentMessage.get("id").getAsString();
+
+					if (currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKText) == 0
+							|| currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKFile) == 0) {
+						remote = createMOKMessageFromJSON(currentMessage, params, props);
+
+						if (remote.getType().equals("1") || remote.getType().equals("2")) {
+							if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
+								remote = getKeysAndDecryptMOKMessage(remote, false);
+							if (remote != null)
+								batch.add(remote);
+						} else {
+							Message msg = mainMessageHandler.obtainMessage();
+							msg.what = MessageTypes.MOKProtocolDelete;
+							msg.obj = remote;
+							mainMessageHandler.sendMessage(msg);
+						}
+					}
+				} catch( Exception ex){
+					if(currentMessage != null)
+						Log.d("MissingDateTime", currentMessage.toString());
+					ex.printStackTrace();
+				}
+                //buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);ssage
+            }
+
+            Message msg = mainMessageHandler.obtainMessage();
+            msg.what = MessageTypes.MOKProtocolMessageBatch;
+            Log.d("AsyncConnSocket", "Batch Ready with " + batch.size() + '/' + array.size());
+            msg.obj = batch;
+            mainMessageHandler.sendMessage(msg);
+
+            if (args.get("remaining_messages").getAsInt() > 0) {
+				if(protocol == MessageTypes.MOKProtocolSync)
+                	CriptextLib.instance().sendSync(lastTimeSynced);
+				else if(protocol == MessageTypes.MOKProtocolGet)
+					CriptextLib.instance().sendGet(lastMessageId);
+            }
+        } else {
+            //PARSE GROUPS UPDATES
+            parseGroupUpdates(MessageTypes.MOKProtocolSync, args, params, props);
+        }
+	}
 	public boolean isConnected(){
 		return socketStatus == Status.conectado;
 	}
@@ -257,7 +333,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 	 * 	MOKProtocolMessageHasKeys
 	 */
 	public int decryptMOKMessage(MOKMessage remote){
-        String claves= KeyStoreCriptext.getString(CriptextLib.instance()
+        String claves= KeyStoreCriptext.getString(CriptextLib.instance().context
                 , remote.getSid());
         if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
             System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
@@ -303,7 +379,7 @@ public class AsyncConnSocket implements ComServerDelegate{
             Log.d("BatchGET", "Got Keys for " + remote.getSid() + ". Apply recursion");
 			return getKeysAndDecryptMOKMessage(remote, false);
         } else if(what == MessageTypes.MOKProtocolMessageWrongKeys){
-            String claves= KeyStoreCriptext.getString(CriptextLib.instance()
+            String claves= KeyStoreCriptext.getString(CriptextLib.instance().context
                   , remote.getSid());
             String newClaves = CriptextLib.instance().requestKeyBySession(remote.getSid());
             if(newClaves != null && !newClaves.equals(claves))
@@ -434,97 +510,11 @@ public class AsyncConnSocket implements ComServerDelegate{
 			mainMessageHandler.sendMessage(msg);
 			break;
 		}
-        case MessageTypes.MOKProtocolGet:
-            System.out.println("MOK PROTOCOL GET");
-            CriptextLib.instance().watchdog.didResponseGet=true;
-            CriptextLib.instance().sendGetOK();
-            if(args.get("type").getAsInt() == 1) {
-                JsonArray array = args.get("messages").getAsJsonArray();
-                String lastMessageId="";
-				ArrayList<MOKMessage> batch = new ArrayList<>();
-
-                for (int i = 0; i < array.size(); i++) {
-                    JsonElement jsonMessage = array.get(i);
-                    JsonObject currentMessage = jsonMessage.getAsJsonObject();
-
-					//init params props
-                    if(currentMessage.has("params") && !currentMessage.get("params").isJsonNull() && !parser.parse(currentMessage.get("params").getAsString()).isJsonNull())
-                        if(parser.parse(currentMessage.get("params").getAsString()) instanceof JsonObject)
-                            params=(JsonObject)parser.parse(currentMessage.get("params").getAsString());
-                        if(currentMessage.has("props") && !currentMessage.get("props").isJsonNull() && !parser.parse(currentMessage.get("props").getAsString()).isJsonNull())
-                            props=(JsonObject)parser.parse(currentMessage.get("props").getAsString());
-
-                    lastMessageId=currentMessage.get("id").getAsString();
-
-
-					if(currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKText)==0
-                        || currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKFile)==0){
-                        remote = createMOKMessageFromJSON(currentMessage, params, props);
-
-						if(remote.getType().equals("1") || remote.getType().equals("2")) {
-							if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
-								remote = getKeysAndDecryptMOKMessage(remote, false);
-							if (remote != null)
-								batch.add(remote);
-						} else{
-							Message msg = mainMessageHandler.obtainMessage();
-                            msg.what=MessageTypes.MOKProtocolDelete;
-                            msg.obj =remote;
-                            mainMessageHandler.sendMessage(msg);
-						}
-                    }
-                    //buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);ssage
-
-
-                }
-
-				Message msg = mainMessageHandler.obtainMessage();
-				msg.what=MessageTypes.MOKProtocolMessageBatch;
-				Log.d("AsyncConnSocket", "Batch Ready with " + batch.size() + '/' + array.size());
-				msg.obj = batch;
-				mainMessageHandler.sendMessage(msg);
-
-                if(args.get("remaining_messages").getAsInt()>0){
-                    CriptextLib.instance().sendGet(lastMessageId);
-                }
-            } else {
-                //PARSE GROUPS UPDATES
-                remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
-                        args.get("type").getAsString(), params, props);
-                remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
-                Message msg = mainMessageHandler.obtainMessage();
-                msg.what=MessageTypes.MOKProtocolGet;
-                msg.obj = remote;
-                mainMessageHandler.sendMessage(msg);
-            }
-            break;
-		case MessageTypes.MOKProtocolSync:
-            System.out.println("MOK PROTOCOL SYNC");
-            CriptextLib.instance().watchdog.didResponseGet=true;
-            CriptextLib.instance().sendGetOK();
-            if(args.get("type").getAsInt() == 1) {
-                JsonArray array = args.get("messages").getAsJsonArray();
-                long lastTimeSynced=0;
-                for (int i = 0; i < array.size(); i++) {
-                    JsonElement jsonMessage = array.get(i);
-                    JsonObject currentMessage = jsonMessage.getAsJsonObject();
-                    lastTimeSynced=Long.parseLong(currentMessage.get("datetime").getAsString());
-                    buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);
-                }
-                if(args.get("remaining_messages").getAsInt()>0){
-                    CriptextLib.instance().sendSync(lastTimeSynced);
-                }
-            } else {
-                //PARSE GROUPS UPDATES
-                remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
-                        args.get("type").getAsString(), params, props);
-                remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
-                Message msg = mainMessageHandler.obtainMessage();
-                msg.what=MessageTypes.MOKProtocolSync;
-                msg.obj = remote;
-                mainMessageHandler.sendMessage(msg);
-            }
-            break;
+		case MessageTypes.MOKProtocolGet:
+		case MessageTypes.MOKProtocolSync:{
+			processBatch(cmd, args, parser);
+			break;
+		}
 		default:
 			break;
 		}
@@ -563,6 +553,16 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 	}
 
+
+	private void parseGroupUpdates(int protocol, JsonObject args, JsonObject  params, JsonObject props){
+         MOKMessage remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
+                args.get("type").getAsString(), params, props);
+        remote.setMonkeyAction(MessageTypes.MOKGroupJoined);
+        Message msg = mainMessageHandler.obtainMessage();
+        msg.what=protocol;
+        msg.obj = remote;
+        mainMessageHandler.sendMessage(msg);
+	}
 	@Override
 	public void disconnected(){
 		if(socketStatus != Status.desconectado)
