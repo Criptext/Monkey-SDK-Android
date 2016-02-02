@@ -279,38 +279,8 @@ public class CriptextDBHandler {
 
     }
 
-/**
-     * Marca el estado de un mensaje en la base como leído.
-     * @param id el id del mensaje a marcar como leído.
-     */
-    public static void updateMessageReadStatusBG(String id) {
-
-        Realm realm = CriptextLib.instance().getNewMonkeyRealm();
-        MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
-        realm.beginTransaction();
-        if(result != null){
-            result.set_status("leido");
-        }
-        realm.commitTransaction();
-        realm.close();
-
-    }
-    /**
-     * Actualiza el mensaje en Realm.
-     * @param message El mensaje a actualizar. El contenido de este mensaje reemplaza por completo
-     *                al que estaba anteriormente en la base de datos. Hay que tener cuidado porque
-     *                puede darse el caso de que se pierda información si la base tiene información
-     *                más reciente que la que entra como argumento.
-     */
-    public static void updateMessage(RemoteMessage message)
-    {
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
-        realm.beginTransaction();
-        realm.copyToRealmOrUpdate(message.getModel());
-        realm.commitTransaction();
-    }
-
     public static void updateMessageStatus(RemoteMessage message, String newID, int status){
+        Log.d("UpdateMessage", "updateMessageStatus " + status);
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.beginTransaction();
         message.updateStatus(newID, status);
@@ -392,35 +362,32 @@ public class CriptextDBHandler {
 
     }
 
+    /**
+     * Agrega los mensajes de un batch a la base de datos. Si el mensaje ya esta en la base, no se
+     * lo agrega y se lo borra de la lista.
+     * @param messages Lista de mensajes del batch
+     * @param c Referencia a context
+     * @param callback Callback para cuando termina la transaccion.
+     */
     public static void addMessageBatch(final ArrayList<MOKMessage> messages, Context c, Realm.Transaction.Callback callback)
     {
         final WeakReference<Context> weakContext = new WeakReference<>(c);
-        Log.d("UpdateRemoteMessage", "addMessage");
         Realm realm = CriptextLib.instance().getMonkeyKitRealm();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                for(MOKMessage message : messages){
-                    if(!CriptextDBHandler.existMessage(realm, message.getMessage_id()) && weakContext.get() != null){
+
+                for(int i = messages.size() - 1; i > -1; i--){
+                    MOKMessage message = messages.get(i);
+                    if(!CriptextDBHandler.existMessage(realm, message.getMessage_id())){
                         RemoteMessage remote = CriptextDBHandler.createIncomingRemoteMessage(message,
                                 CriptextDBHandler.getMonkeyActionType(message), weakContext.get());
-                        realm.copyToRealm(remote.getModel());
-                    }
+                        realm.copyToRealmOrUpdate(remote.getModel()); //No deberia de hacerse update porque el mensaje es nuevo pero ya que chucha
+                    } else
+                        messages.remove(i);
                 }
             }
-        }, new Realm.Transaction.Callback() {
-            @Override
-            public void onSuccess() {
-                Log.d("addMessageBatch", "SUCCESS");
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.d("addMessageBatch", "ERROR\n");
-                e.printStackTrace();
-                // transaction is automatically rolled-back, do any cleanup here
-            }
-        });
+        }, callback);
 
 
     }

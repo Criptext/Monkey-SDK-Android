@@ -14,6 +14,7 @@ import java.util.ListIterator;
 
 import android.content.Context;
 import android.os.CountDownTimer;
+import android.util.Log;
 
 import com.criptext.comunication.Base64Coder;
 import com.criptext.comunication.MOKMessage;
