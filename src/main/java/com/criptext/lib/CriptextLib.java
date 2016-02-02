@@ -459,7 +459,7 @@ public class CriptextLib extends Service {
                     try {
                         JSONObject json = jo.getJSONObject("data");
 
-                        executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_message_received")});
+                        executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_time_synced")});
                         shouldAskForGroups=true;
                         //Get data from JSON
                         Log.d("RSADecrypt", json.toString());
@@ -1527,7 +1527,8 @@ public class CriptextLib extends Service {
             }
         }
     }
-public void sendGet(final String since){
+
+    public void sendGet(final String since){
 
         try {
 
