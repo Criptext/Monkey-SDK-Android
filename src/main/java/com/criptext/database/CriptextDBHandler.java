@@ -11,6 +11,7 @@ import com.criptext.lib.CriptextLib;
 import com.criptext.lib.R;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -391,6 +392,38 @@ public class CriptextDBHandler {
 
     }
 
+    public static void addMessageBatch(final ArrayList<MOKMessage> messages, Context c, Realm.Transaction.Callback callback)
+    {
+        final WeakReference<Context> weakContext = new WeakReference<>(c);
+        Log.d("UpdateRemoteMessage", "addMessage");
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                for(MOKMessage message : messages){
+                    if(!CriptextDBHandler.existMessage(realm, message.getMessage_id()) && weakContext.get() != null){
+                        RemoteMessage remote = CriptextDBHandler.createIncomingRemoteMessage(message,
+                                CriptextDBHandler.getMonkeyActionType(message), weakContext.get());
+                        realm.copyToRealm(remote.getModel());
+                    }
+                }
+            }
+        }, new Realm.Transaction.Callback() {
+            @Override
+            public void onSuccess() {
+                Log.d("addMessageBatch", "SUCCESS");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.d("addMessageBatch", "ERROR\n");
+                e.printStackTrace();
+                // transaction is automatically rolled-back, do any cleanup here
+            }
+        });
+
+
+    }
     /**
     * Obtiene todos los mensajes de Realm que aún se están enviando.
     * @return lista con todos los mensajes que aún se están enviando.
@@ -411,12 +444,15 @@ public class CriptextDBHandler {
         return messages;
     }
 
-    public static boolean existMessage(String id) {
-
-        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+    public static boolean existMessage(Realm realm, String id) {
         MessageModel mess = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
         boolean exists = mess == null ? false : true;
         return exists;
+    }
+
+    public static boolean existMessage(String id) {
+
+        return  existMessage(CriptextLib.instance().getMonkeyKitRealm(), id);
     }
 
     /**
