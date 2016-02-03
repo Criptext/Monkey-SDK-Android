@@ -14,13 +14,16 @@ import java.util.ListIterator;
 
 import android.content.Context;
 import android.os.CountDownTimer;
+import android.util.Log;
 
 import com.criptext.comunication.Base64Coder;
+import com.criptext.comunication.MOKMessage;
 import com.criptext.lib.CriptextLib;
 import com.criptext.lib.R;
 
 import javax.crypto.Cipher;
 
+import io.realm.Realm;
 import io.realm.RealmList;
 import io.realm.RealmResults;
 
@@ -114,6 +117,7 @@ public class RemoteMessage implements Comparable<RemoteMessage>{
 		model = new MessageModel();
 		this.audioProgress = 0;
 	}
+
 	public RemoteMessage(String message_id, String ud_sent, String message, long datatime, String request, String file_type, String type,String uid_recive)
 	{
 		model = new MessageModel(message_id, ud_sent, message, datatime, request, file_type, type, uid_recive);

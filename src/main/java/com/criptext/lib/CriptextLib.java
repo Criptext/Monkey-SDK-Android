@@ -326,13 +326,21 @@ public class CriptextLib extends Service {
                 delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
             }
         } else if(method.compareTo("onMessageBatchReady")==0){
-            ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onMessageBatchReady(batch);
-            }
-            for(MOKMessage message : batch){
-                CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
-            }
+            final ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
+            CriptextDBHandler.addMessageBatch(batch, context, new Realm.Transaction.Callback() {
+                @Override
+                public void onError(Exception e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onSuccess() {
+                    for (int i = 0; i < delegates.size(); i++) {
+                        delegates.get(i).onMessageBatchReady(batch);
+                    }
+                }
+            });
+
         }
     }
 
@@ -1581,7 +1589,7 @@ public class CriptextLib extends Service {
 
         try {
 
-            JSONObject args=new JSONObject();
+           JSONObject args=new JSONObject();
             JSONObject json=new JSONObject();
 
             args.put("since",last_time_synced);
