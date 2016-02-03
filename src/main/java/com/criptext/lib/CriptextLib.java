@@ -88,7 +88,7 @@ public class CriptextLib extends Service {
     //VARIABLES DE LA ACTIVITY
     public Context context;
     private String fullname;
-    private String sessionid;
+    public String sessionid;
     private String expiring;
     private List<MOKMessage> messagesToSendAfterOpen;
     public Watchdog watchdog = null;

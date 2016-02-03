@@ -511,11 +511,16 @@ public class CriptextDBHandler {
         String sid=message.getRid().contains("G")?message.getRid():message.getSid();
         String rid=message.getRid().contains("G")?message.getSid():message.getRid();
 
+        boolean msgIsMyOwn = message.getSid().equals(CriptextLib.instance().sessionid);
+        if(msgIsMyOwn) {//Verifico que si es un mensaje mio
+            sid = message.getSid();
+            rid = message.getRid();
+        }
 
         RemoteMessage remote = new RemoteMessage(message.getMessage_id(),sid,
                 message.getMsg(),Long.parseLong(message.getDatetime()), "", "",""+tipo,rid);
         remote.set_datetimeorden(message.getDatetimeorder());
-        remote.set_status("porabrir");
+        remote.set_status(msgIsMyOwn?"entregado":"porabrir");
         if(remote.get_uid_sent().startsWith("legacy:") ||remote.get_uid_recive().startsWith("legacy:"))
             remote.set_message(RemoteMessage.desencrypt(message.getMsg(), context));
         Log.d("CreateRemote", "Decrypted msg: " + remote.get_message());
