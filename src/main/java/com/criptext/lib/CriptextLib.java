@@ -220,8 +220,8 @@ public class CriptextLib extends Service {
                 delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
             }
             if((String)info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
-                if(Long.parseLong((String)info[1]) >= Long.parseLong(CriptextDBHandler.get_LastMessage()))
-                    CriptextDBHandler.set_LastMessage((String) info[1]);
+                if(Long.parseLong((String)info[1]) >= CriptextDBHandler.get_LastTimeSynced())
+                    CriptextDBHandler.set_LastTimeSynced(Long.parseLong((String) info[1]));
             }
         }else if(method.compareTo("onMessageRecieved")==0){
             //MANDO EL MENSAJE A CRIPTEXT
