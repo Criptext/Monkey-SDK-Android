@@ -70,6 +70,13 @@ import io.realm.RealmConfiguration;
 
 public class CriptextLib extends Service {
 
+    public enum CBTypes { onSessionOK, onSessionError, onConnectOK, onMessageReceived,
+        onMessageSaved, onAcknowledgeReceived, onSocketConnected, onSocketDisconnected, onConnectError,
+        onGetOK, onOpenConversationOK, onOpenConversationError, onDeleteReceived, onCreateGroupOK,
+        onCreateGroupError, onDeleteGroupOK, onDeleteGroupError, onAddMemberToGroupOK, onAddMemberToGroupError,
+        onContactOpenMyConversation, onGetGroupInfoOK, onGetGroupInfoError, onNotificationReceived,
+        onMessageBatchReady}
+
     public static String URL="http://secure.criptext.com";
     private static String transitionMessages = "MonkeyKit.transitionMessages";
     //public static String URL="http://192.168.0.102";
@@ -206,142 +213,187 @@ public class CriptextLib extends Service {
         delegates.remove(delegate);
     }
 
-    public void executeInDelegates(String method, Object[] info){
-        if(method.compareTo("onSessionOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onSessionOK();
-            }
-        }else if(method.compareTo("onSessionError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onSessionError((String)info[0]);
-            }
-        }else if(method.compareTo("onConnectOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
-            }
-            if((String)info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
-                if(Long.parseLong((String)info[1]) >= CriptextDBHandler.get_LastTimeSynced())
-                    CriptextDBHandler.set_LastTimeSynced(Long.parseLong((String) info[1]));
-            }
-        }else if(method.compareTo("onMessageRecieved")==0){
-            //MANDO EL MENSAJE A CRIPTEXT
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
-            }
-            //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
-            MOKMessage message = (MOKMessage)info[0];
-            int tipo = CriptextDBHandler.getMonkeyActionType(message);
-            switch (tipo) {
-                case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
-                case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend:
-                {
-                    CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
-                    break;
+    public void executeInDelegates(CBTypes method, Object[] info){
+        switch(method){
+            case onSessionOK:{
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onSessionOK();
                 }
             }
-        }else if(method.compareTo("onMessageSaved")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onMessageSaved((RemoteMessage) info[0]);
-            }
-        }
-        else if(method.compareTo("onAcknowledgeRecieved")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
-            }
-        }else if(method.compareTo("onSocketConnected")==0){
-            boolean hasDelegates = false;
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onSocketConnected();
-                hasDelegates = true;
-            }
-            //MANDO EL GET
-
-            //if(hasDelegates)//Comente esta linea porque
-            //Si el service se levanta es bueno que haga un get y obtenga los mensajes
-            //que importa si no se actualiza el lastmessage desde el service.
-            //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
-            CriptextLib.instance().sendSync(CriptextDBHandler.get_LastTimeSynced());
-        }else if(method.compareTo("onSocketDisconnected")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onSocketDisconnected();
-            }
-        }else if(method.compareTo("onConnectError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onConnectError((String) info[0]);
-            }
-        }else if(method.compareTo("onGetOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onGetOK();
-            }
-        }else if(method.compareTo("onOpenConversationOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onOpenConversationOK((String) info[0]);
-            }
-        }else if(method.compareTo("onOpenConversationError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onOpenConversationError((String) info[0]);
-            }
-        }else if(method.compareTo("onDeleteRecieved")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteRecieved((MOKMessage) info[0]);
-            }
-        }else if(method.compareTo("onCreateGroupOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCreateGroupOK((String) info[0]);
-            }
-        }else if(method.compareTo("onCreateGroupError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onCreateGroupError((String) info[0]);
-            }
-        }else if(method.compareTo("onDeleteGroupOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteGroupOK((String) info[0]);
-            }
-        }else if(method.compareTo("onDeleteGroupError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onDeleteGroupError((String) info[0]);
-            }
-        }else if(method.compareTo("onAddMemberToGroupOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onAddMemberToGroupOK();
-            }
-        }else if(method.compareTo("onAddMemberToGroupError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onAddMemberToGroupError((String) info[0]);
-            }
-        }else if(method.compareTo("onContactOpenMyConversation")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onContactOpenMyConversation((String) info[0]);
-            }
-        }else if(method.compareTo("onGetGroupInfoOK")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onGetGroupInfoOK((JSONObject) info[0]);
-            }
-        }else if(method.compareTo("onGetGroupInfoError")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onGetGroupInfoError((String) info[0]);
-            }
-        }else if(method.compareTo("onNotificationReceived")==0){
-            for(int i=0;i<delegates.size();i++){
-                delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
-            }
-        } else if(method.compareTo("onMessageBatchReady")==0){
-            final ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
-            CriptextDBHandler.addMessageBatch(batch, context, new Realm.Transaction.Callback() {
-                @Override
-                public void onError(Exception e) {
-                    e.printStackTrace();
+            break;
+            case onConnectOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
                 }
-
-                @Override
-                public void onSuccess() {
-                    for (int i = 0; i < delegates.size(); i++) {
-                        delegates.get(i).onMessageBatchReady(batch);
+                if(info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
+                    if(Long.parseLong((String)info[1]) >= CriptextDBHandler.get_LastTimeSynced())
+                        CriptextDBHandler.set_LastTimeSynced(Long.parseLong((String) info[1]));
+                }
+            }
+            break;
+            case onMessageReceived:
+            {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
+                }
+                //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
+                MOKMessage message = (MOKMessage)info[0];
+                int tipo = CriptextDBHandler.getMonkeyActionType(message);
+                switch (tipo) {
+                    case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
+                    case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend:
+                    {
+                        CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message, CriptextDBHandler.getMonkeyActionType(message), context));
+                        break;
                     }
                 }
-            });
+            }
+            break;
+            case onMessageSaved:
+            {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onMessageSaved((RemoteMessage) info[0]);
+                }
+            }
+            break;
+            case onAcknowledgeReceived:
+            {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onAcknowledgeRecieved((MOKMessage)info[0]);
+                }
+            }
+            break;
+            case onSocketConnected:
+            {
+                boolean hasDelegates = false;
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onSocketConnected();
+                    hasDelegates = true;
+                }
+                //MANDO EL GET
 
+                //if(hasDelegates)//Comente esta linea porque
+                //Si el service se levanta es bueno que haga un get y obtenga los mensajes
+                //que importa si no se actualiza el lastmessage desde el service.
+                //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
+                CriptextLib.instance().sendSync(CriptextDBHandler.get_LastTimeSynced());
+            }
+            break;
+            case onSocketDisconnected:
+            {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onSocketDisconnected();
+                }
+            }
+            break;
+            case onConnectError:{
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onConnectError((String) info[0]);
+                }
+            }
+            break;
+            case onGetOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onGetOK();
+                }
+            }
+            break;
+            case onOpenConversationOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onOpenConversationOK((String) info[0]);
+                }
+            }
+            break;
+            case onOpenConversationError: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onOpenConversationError((String) info[0]);
+                }
+            }
+            break;
+            case onDeleteReceived: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onDeleteRecieved((MOKMessage) info[0]);
+                }
+            }
+            break;
+            case onCreateGroupOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onCreateGroupOK((String) info[0]);
+                }
+            }
+            break;
+            case onCreateGroupError: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onCreateGroupError((String) info[0]);
+                }
+            }
+            break;
+            case onDeleteGroupOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onDeleteGroupOK((String) info[0]);
+                }
+            }
+            break;
+            case onDeleteGroupError: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onDeleteGroupError((String) info[0]);
+                }
+            }
+            break;
+            case onAddMemberToGroupOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onAddMemberToGroupOK();
+                }
+            }
+            break;
+            case onAddMemberToGroupError: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onAddMemberToGroupError((String) info[0]);
+                }
+            }
+            break;
+            case onContactOpenMyConversation: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onContactOpenMyConversation((String) info[0]);
+                }
+            }
+            break;
+            case onGetGroupInfoOK: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onGetGroupInfoOK((JSONObject) info[0]);
+                }
+            }
+            break;
+            case onGetGroupInfoError: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onGetGroupInfoError((String) info[0]);
+                }
+            }
+            break;
+            case onNotificationReceived: {
+                for(int i=0;i<delegates.size();i++){
+                    delegates.get(i).onNotificationReceived((MOKMessage)info[0]);
+                }
+            }
+            break;
+            case onMessageBatchReady: {
+                final ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
+                CriptextDBHandler.addMessageBatch(batch, context, new Realm.Transaction.Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    @Override
+                    public void onSuccess() {
+                        for (int i = 0; i < delegates.size(); i++) {
+                            delegates.get(i).onMessageBatchReady(batch);
+                        }
+                    }
+                });
+            }
         }
+
     }
 
     /**
@@ -392,7 +444,7 @@ public class CriptextLib extends Service {
                         didGenerateAESKeys();
                     } else {
                         System.out.println("CRIPTEXTLIB - no hago startsession");
-                        executeInDelegates("onConnectOK", new Object[]{sessionId, null});
+                        executeInDelegates(CBTypes.onConnectOK, new Object[]{sessionId, null});
                         /****COMIENZA CONEXION CON EL SOCKET*****/
                         startSocketConnection(sessionId, null);
                     }
@@ -467,7 +519,7 @@ public class CriptextLib extends Service {
                     try {
                         JSONObject json = jo.getJSONObject("data");
 
-                        executeInDelegates("onConnectOK", new Object[]{sessionid, json.getString("last_time_synced")});
+                        executeInDelegates(CBTypes.onConnectOK, new Object[]{sessionid, json.getString("last_time_synced")});
                         shouldAskForGroups=true;
                         //Get data from JSON
                         Log.d("RSADecrypt", json.toString());
@@ -502,12 +554,12 @@ public class CriptextLib extends Service {
                         }.execute();
                     }
                     catch (Exception e) {
-                        executeInDelegates("onConnectError", new Object[]{"Error at onUserSync"});
+                        executeInDelegates(CBTypes.onConnectError, new Object[]{"Error at onUserSync"});
                         e.printStackTrace();
                     }
                 }
                 else{
-                    executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
+                    executeInDelegates(CBTypes.onConnectError, new Object[]{status.getCode()+" - "+status.getMessage()});
                 }
             }
 
@@ -588,7 +640,7 @@ public class CriptextLib extends Service {
                     String pubKey=json.getString("publicKey");
                     pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
 
-                    executeInDelegates("onSessionOK",new Object[]{""});
+                    executeInDelegates(CBTypes.onSessionOK,new Object[]{""});
 
                     //Encrypt workers
                     RSAUtil rsa = new RSAUtil(Base64.decode(pubKey.getBytes(),0));
@@ -615,12 +667,12 @@ public class CriptextLib extends Service {
                     aq.auth(handle).ajax(cb);
 
             } catch (Exception e) {
-                executeInDelegates("onSessionError", new Object[]{"Error at onSession"});
+                executeInDelegates(CBTypes.onSessionError, new Object[]{"Error at onSession"});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates("onSessionError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onSessionError, new Object[]{status.getCode()+" - "+status.getMessage()});
         }
 
     }
@@ -631,7 +683,7 @@ public class CriptextLib extends Service {
             try {
                 JSONObject json = jo.getJSONObject("data");
 
-                executeInDelegates("onConnectOK", new Object[]{json.getString("sessionId"),json.getString("last_message_id")});
+                executeInDelegates(CBTypes.onConnectOK, new Object[]{json.getString("sessionId"),json.getString("last_message_id")});
                 //Get data from JSON
                 final String sessionId=json.getString("sessionId");
 
@@ -639,12 +691,12 @@ public class CriptextLib extends Service {
                 startSocketConnection(sessionId, null);
 
             } catch (Exception e) {
-                executeInDelegates("onConnectError", new Object[]{"Error at onConnect"});
+                executeInDelegates(CBTypes.onConnectError, new Object[]{"Error at onConnect"});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates("onConnectError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onConnectError, new Object[]{status.getCode()+" - "+status.getMessage()});
         }
     }
 
@@ -677,7 +729,7 @@ public class CriptextLib extends Service {
                 System.out.println("MONKEY - onResume SOCKET - connect");
                 asynConnSocket.conectSocket();
             }else{
-                executeInDelegates("onSocketConnected", new Object[]{""});
+                executeInDelegates(CBTypes.onSocketConnected, new Object[]{""});
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -770,7 +822,7 @@ public class CriptextLib extends Service {
             protected void onPostExecute(Integer integer) {
                 if (integer.intValue() == 1) {
                     Log.d("CriptextLib", "process MOKMessage successful");
-                    executeInDelegates("onMessageRecieved", new Object[]{message});
+                    executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                 }
             }
         }.execute(claves);
@@ -786,7 +838,7 @@ public class CriptextLib extends Service {
      */
     public void sendGetOK(){
         Log.d("MonkeyKit", "SyncOK");
-        executeInDelegates("onGetOK", new Object[]{});
+        executeInDelegates(CBTypes.onGetOK, new Object[]{});
     }
 
     /************************************************************************/
@@ -955,7 +1007,7 @@ public class CriptextLib extends Service {
                 String desencriptConvKey=aesutil.decrypt(convKey);
 
                 KeyStoreCriptext.putString(context,json.getString("session_to"), desencriptConvKey);
-                executeInDelegates("onOpenConversationOK", new Object[]{json.getString("session_to")});
+                executeInDelegates(CBTypes.onOpenConversationOK, new Object[]{json.getString("session_to")});
 
                 //SI HAY MENSAJES QUE NO SE HAN PODIDO DESENCRIPTAR
                 if(messagesToSendAfterOpen.size()>0){
@@ -994,12 +1046,12 @@ public class CriptextLib extends Service {
                 }
             }
             catch (Exception e) {
-                executeInDelegates("onOpenConversationError", new Object[]{""});
+                executeInDelegates(CBTypes.onOpenConversationError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates("onOpenConversationError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onOpenConversationError, new Object[]{status.getCode()+" - "+status.getMessage()});
         }
     }
 
@@ -1050,12 +1102,8 @@ public class CriptextLib extends Service {
 
             }
             catch (Exception e) {
-                executeInDelegates("onSendOpenSecure", new Object[]{""});
                 e.printStackTrace();
             }
-        }
-        else{
-            executeInDelegates("onSendOpenSecure", new Object[]{status.getCode()+" - "+status.getMessage()});
         }
     }
 
@@ -1130,15 +1178,15 @@ public class CriptextLib extends Service {
         if(jo!=null){
             try {
                 JSONObject json = jo.getJSONObject("data");
-                executeInDelegates("onCreateGroupOK", new Object[]{json.getString("group_id")});
+                executeInDelegates(CBTypes.onCreateGroupOK, new Object[]{json.getString("group_id")});
             }
             catch(Exception e){
-                executeInDelegates("onCreateGroupError", new Object[]{""});
+                executeInDelegates(CBTypes.onCreateGroupError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else
-            executeInDelegates("onCreateGroupError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onCreateGroupError, new Object[]{status.getCode()+" - "+status.getMessage()});
     }
 
     /************************************************************************/
@@ -1172,15 +1220,15 @@ public class CriptextLib extends Service {
             try {
                 System.out.println("MONKEY - onDeleteGroup: "+jo.toString());
                 JSONObject json = jo.getJSONObject("data");
-                executeInDelegates("onDeleteGroupOK", new Object[]{json.getString("group_id")});
+                executeInDelegates(CBTypes.onDeleteGroupOK, new Object[]{json.getString("group_id")});
             }
             catch(Exception e){
-                executeInDelegates("onDeleteGroupError", new Object[]{""});
+                executeInDelegates(CBTypes.onDeleteGroupError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else
-            executeInDelegates("onDeleteGroupError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onDeleteGroupError, new Object[]{status.getCode()+" - "+status.getMessage()});
     }
 
     /************************************************************************/
@@ -1217,15 +1265,15 @@ public class CriptextLib extends Service {
             try {
                 System.out.println("MONKEY - onAddMemberToGroup - " + jo.toString());
                 //JSONObject json = jo.getJSONObject("data");
-                executeInDelegates("onAddMemberToGroupOK", new Object[]{});
+                executeInDelegates(CBTypes.onAddMemberToGroupOK, new Object[]{});
             }
             catch(Exception e){
-                executeInDelegates("onAddMemberToGroupError", new Object[]{""});
+                executeInDelegates(CBTypes.onAddMemberToGroupError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else
-            executeInDelegates("onAddMemberToGroupError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onAddMemberToGroupError, new Object[]{status.getCode()+" - "+status.getMessage()});
     }
 
     /************************************************************************/
@@ -1265,15 +1313,15 @@ public class CriptextLib extends Service {
             try {
                 JSONObject json = jo.getJSONObject("data");
                 System.out.println("MONKEY - onGetGroupInfo - " + json);
-                executeInDelegates("onGetGroupInfoOK", new Object[]{json});
+                executeInDelegates(CBTypes.onGetGroupInfoOK, new Object[]{json});
             }
             catch(Exception e){
-                executeInDelegates("onGetGroupInfoError", new Object[]{""});
+                executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else
-            executeInDelegates("onGetGroupInfoError", new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{status.getCode()+" - "+status.getMessage()});
     }
 
     /************************************************************************/
@@ -1508,7 +1556,7 @@ public class CriptextLib extends Service {
                             try {
                                 JSONObject response = json.getJSONObject("data");
                                 System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
-                                executeInDelegates("onAcknowledgeRecieved", new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject(), new JsonObject())});
+                                executeInDelegates(CBTypes.onAcknowledgeReceived, new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject(), new JsonObject())});
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -1800,28 +1848,28 @@ public class CriptextLib extends Service {
                         if (message.getProps().has("file_type")) {
                             type = message.getProps().get("file_type").getAsInt();
                             if (type <= 4 && type >= 0)
-                                libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                                libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                             else
                                 System.out.println("MONKEY - archivo no soportado");
                         } else if (message.getProps().has("type")) {
                             type = message.getProps().get("type").getAsInt();
                             if (type == 2 || type == 1)
-                                libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                                libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                         } else if (message.getProps().has("monkey_action")) {
                             type = message.getProps().get("monkey_action").getAsInt();
                             //if(type == MessageTypes.MOKGroupNewMember) {//PORQUE ESTABA ESTE IF?
                             message.setMonkeyAction(type);
                             //}
-                            libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
+                            libWeakReference.get().executeInDelegates(CBTypes.onNotificationReceived, new Object[]{message});
                         } else
-                            libWeakReference.get().executeInDelegates("onNotificationReceived", new Object[]{message});
+                            libWeakReference.get().executeInDelegates(CBTypes.onNotificationReceived, new Object[]{message});
                     }
                     break;
                 case MessageTypes.MOKProtocolMessageBatch:
-                    libWeakReference.get().executeInDelegates("onMessageBatchReady", new Object[]{(ArrayList<MOKMessage>)msg.obj});
+                    libWeakReference.get().executeInDelegates(CBTypes.onMessageBatchReady, new Object[]{(ArrayList<MOKMessage>)msg.obj});
                     break;
                 case MessageTypes.MOKProtocolMessageHasKeys:
-                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                     break;
                 case MessageTypes.MOKProtocolMessageNoKeys:
                     libWeakReference.get().messagesToSendAfterOpen.add(message);
@@ -1840,7 +1888,7 @@ public class CriptextLib extends Service {
                     try {
                         System.out.println("ack 205");
                         TransitionMessage.rmTransitionMessage(libWeakReference.get(), message.getMsg());
-                        libWeakReference.get().executeInDelegates("onAcknowledgeRecieved", new Object[]{message});
+                        libWeakReference.get().executeInDelegates(CBTypes.onAcknowledgeReceived, new Object[]{message});
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -1851,27 +1899,27 @@ public class CriptextLib extends Service {
                     else
                         System.out.println("MONKEY - llego open pero ya tengo las claves");
                     //MANDAR AL APP QUE PONGA LEIDO TODOS LOS MENSAJES
-                    libWeakReference.get().executeInDelegates("onContactOpenMyConversation", new Object[]{message.getSid()});
+                    libWeakReference.get().executeInDelegates(CBTypes.onContactOpenMyConversation, new Object[]{message.getSid()});
                     break;
                 }
                 case MessageTypes.MOKProtocolDelete:{
-                    libWeakReference.get().executeInDelegates("onDeleteRecieved", new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onDeleteReceived, new Object[]{message});
                     break;
                 }
                 case MessageTypes.MessageSocketConnected:{
-                    libWeakReference.get().executeInDelegates("onSocketConnected", new Object[]{""});
+                    libWeakReference.get().executeInDelegates(CBTypes.onSocketConnected, new Object[]{""});
                     break;
                 }
                 case MessageTypes.MessageSocketDisconnected:{
-                    libWeakReference.get().executeInDelegates("onSocketDisconnected", new Object[]{""});//new Object[]{""}
+                    libWeakReference.get().executeInDelegates(CBTypes.onSocketDisconnected, new Object[]{""});//new Object[]{""}
                     break;
                 }
                 case MessageTypes.MOKProtocolGet: {
-                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                     break;
                 }
                 case MessageTypes.MOKProtocolSync: {
-                    libWeakReference.get().executeInDelegates("onMessageRecieved", new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                     break;
                 }
                 default:

@@ -274,11 +274,11 @@ public class CriptextDBHandler {
             @Override
             public void execute(Realm realm) {
                 MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
-                if(result != null){
+                if (result != null) {
                     result.set_status("leido");
                 }
             }
-        }, new Realm.Transaction.Callback(){
+        }, new Realm.Transaction.Callback() {
             @Override
             public void onSuccess() {
                 Log.d("updateMessageReadAsync", "Success");
@@ -375,7 +375,7 @@ public class CriptextDBHandler {
             @Override
             public void onSuccess() {
                 Log.d("addMessage", "SUCCESS");
-                CriptextLib.instance().executeInDelegates("onMessageSaved", new Object[]{remote});
+                CriptextLib.instance().executeInDelegates(CriptextLib.CBTypes.onMessageSaved, new Object[]{remote});
             }
 
             @Override
