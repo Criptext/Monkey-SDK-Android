@@ -264,6 +264,33 @@ public class CriptextDBHandler {
 
     }
     /**
+     * Marca el estado de un mensaje en la base como leído de forma asincrona.
+     * @param id el id del mensaje a marcar como leído.
+     */
+    public static void updateMessageReadStatusAsync(final String id) {
+
+        Realm realm = CriptextLib.instance().getMonkeyKitRealm();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                MessageModel result = realm.where(MessageModel.class).equalTo("_message_id", id).findFirst();
+                if(result != null){
+                    result.set_status("leido");
+                }
+            }
+        }, new Realm.Transaction.Callback(){
+            @Override
+            public void onSuccess() {
+                Log.d("updateMessageReadAsync", "Success");
+            }
+
+            @Override
+            public void onError(Exception e) {
+                onError(e);
+            }
+        });
+    }
+    /**
      * Marca el estado de un mensaje en la base como leído.
      * @param id el id del mensaje a marcar como leído.
      */
