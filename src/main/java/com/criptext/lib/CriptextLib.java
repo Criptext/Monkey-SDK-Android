@@ -691,6 +691,11 @@ public class CriptextLib extends Service {
         if(context==null)
             return;
 
+        if(aq==null) {
+            aq = new AQuery(context);
+            handle = new BasicHandle(urlUser, urlPass);
+        }
+
         final String claves=KeyStoreCriptext.getString(context,sender_id);
         File target = new File(filepath);
         System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+target.getName());
