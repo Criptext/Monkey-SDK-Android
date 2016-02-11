@@ -542,6 +542,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 
 	private void parseGroupUpdates(int protocol, JsonObject args, JsonObject  params, JsonObject props){
+		Log.d("MissingGroups", "ParseGroupUpdates");
          MOKMessage remote=new MOKMessage("","","",args.get("messages").getAsString(), "",
                 args.get("type").getAsString(), params, props);
         remote.setMonkeyAction(MessageTypes.MOKGroupJoined);

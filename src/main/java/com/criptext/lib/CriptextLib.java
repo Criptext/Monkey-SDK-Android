@@ -397,28 +397,6 @@ public abstract class CriptextLib extends Service {
     }
 
     public void userSync(final String sessionid){
-		/*
-		RSAUtil util = new RSAUtil();
-		util.generateKeys();
-		aq = new AQuery(getContext());
-        handle = new BasicHandle(urlUser, urlPass);
-		rsaUtil = util;
-		String url = URL+"/user/sync";
-        AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
-		JSONObject localJSONObject1 = new JSONObject();
-		try{
-			localJSONObject1.put("session_id", sessionid);
-			localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
-            System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
-			Map<String, Object> params = new HashMap<String, Object>();
-            params.put("data", localJSONObject1.toString());
-			cb.url(url).type(JSONObject.class).weakHandler(this, "onUserSync");
-            cb.params(params);
-            aq.auth(handle).ajax(cb);
-			} catch(JSONException ex){
-				ex.printStackTrace();
-			}
-*/
         //Generar RSA keys de forma asincrona
         new AsyncTask<Void, Void, RSAUtil>() {
 
@@ -1630,7 +1608,10 @@ public abstract class CriptextLib extends Service {
             JSONObject json=new JSONObject();
 
             args.put("since",last_time_synced);
+
+            Log.d("MissingGroups", "Send Sync");
             if(last_time_synced==0 || shouldAskForGroups) {
+                Log.d("MissingGroups", "groups = 1");
                 args.put("groups", 1);
                 shouldAskForGroups=false;
             }

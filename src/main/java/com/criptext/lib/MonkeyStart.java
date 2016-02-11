@@ -5,18 +5,13 @@ import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 
@@ -32,9 +27,10 @@ public class MonkeyStart {
     private AsyncTask<String, String, String> async;
     private WeakReference<Context> ctxRef;
     private AESUtil aesUtil;
-    String urlUser, urlPass, fullname;
+    final String urlUser, urlPass, fullname, myOldMonkeyId;
 
-    public MonkeyStart(Context context, String user, String pass, String fullname){
+    public MonkeyStart(Context context, String sessionId, String user, String pass, String fullname){
+        this.myOldMonkeyId = sessionId == null ? "" : sessionId;
         this.urlUser = user;
         this.urlPass = pass;
         this.fullname = fullname;
@@ -54,8 +50,12 @@ public class MonkeyStart {
             protected String doInBackground(String... params) {
                 try {
                     //Generate keys
-                    aesUtil = new AESUtil(ctxRef.get(), "");
-                    return getSessionHTTP(params[0], params[1], params[2]);
+                    if(myOldMonkeyId.isEmpty()) {
+                        aesUtil = new AESUtil(ctxRef.get(), myOldMonkeyId);
+                        return getSessionHTTP(params[0], params[1], params[2]);
+                    } else {
+                        return userSync(myOldMonkeyId);
+                    }
 
                 }catch (Exception ex){
                     ex.printStackTrace();
@@ -72,7 +72,11 @@ public class MonkeyStart {
     public void onSessionError(String exceptionName){
     //grab your new session id
     }
-    public void execute(){
+
+    /**
+     * Debes de llamar a este metodo para que de forma asincrona se registre el usuario con MonkeyKit
+     */
+    public void register(){
         async.execute(urlUser, urlPass, fullname);
     }
 
@@ -128,17 +132,49 @@ public class MonkeyStart {
 
     }
 
+    private String userSync(String sessionId) throws Exception{
+ // Create a new HttpClient and Post Header
+        RSAUtil rsaUtil = new RSAUtil();
+        rsaUtil.generateKeys();
+
+        HttpClient httpclient = CriptextLib.newMonkeyHttpClient();
+        HttpPost httppost = CriptextLib.newMonkeyHttpPost(CriptextLib.URL+"/user/key/sync", urlUser, urlPass);
+
+        JSONObject localJSONObject1 = new JSONObject();
+
+        localJSONObject1.put("session_id", sessionId);
+        localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
+        System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
+        JSONObject params = new JSONObject();
+        params.put("data", localJSONObject1.toString());
+        Log.d("userSyncMS", "Req: " + params.toString());
+
+        JSONObject finalResult = CriptextLib.getHttpResponseJson(httpclient, httppost, params.toString());
+         Log.d("userSyncMS", finalResult.toString());
+        finalResult = finalResult.getJSONObject("data");
+
+        final String keys = finalResult.getString("keys");
+        String decriptedKey = rsaUtil.desencrypt(keys);
+        KeyStoreCriptext.putString(ctxRef.get() ,sessionId, decriptedKey);
+
+        try {
+            aesUtil = new AESUtil(ctxRef.get(), sessionId);
+        } catch (Exception ex){
+            ex.printStackTrace();
+            KeyStoreCriptext.putString(ctxRef.get() , "", decriptedKey);
+            throw ex;
+        }
+
+        return sessionId;
+
+
+    }
     private String connectHTTP(String sessionId, String encriptedKeys) throws JSONException,
             UnsupportedEncodingException, ClientProtocolException, IOException{
  // Create a new HttpClient and Post Header
         HttpClient httpclient = CriptextLib.newMonkeyHttpClient();
         HttpPost httppost = CriptextLib.newMonkeyHttpPost(CriptextLib.URL+"/user/connect", urlUser, urlPass);
 
-        String base64EncodedCredentials = "Basic " + Base64.encodeToString(
-                (urlUser + ":" + urlPass).getBytes(),
-                Base64.NO_WRAP);
-
-        httppost.setHeader("Authorization", base64EncodedCredentials);
         JSONObject localJSONObject1 = new JSONObject();
 
         localJSONObject1.put("usk", encriptedKeys);
