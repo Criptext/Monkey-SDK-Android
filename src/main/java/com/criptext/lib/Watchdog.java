@@ -1,12 +1,7 @@
 package com.criptext.lib;
 
-import android.content.Context;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-
-import com.criptext.database.TransitionMessage;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -16,17 +11,28 @@ import org.json.JSONObject;
  */
 public class Watchdog {
     private static int TIMEOUT = 5000;
-    private final Context context;
     private final Handler handler;
     private Runnable runnable;
     private boolean working;
     public boolean didResponseGet = true;
 
-    public Watchdog(Context context) {
-        this.context = context;
+    public Watchdog() {
         this.handler = new Handler();
         working = false;
 
+    }
+
+    private JSONArray getPendingMessages(){
+        JSONArray array = new JSONArray();
+        String[] strings = CriptextLib.instance().getPendingMessages();
+        for(String str : strings){
+            try {
+                array.put(new JSONObject(str));
+            } catch (JSONException ex){
+                ex.printStackTrace();
+            }
+        }
+        return array;
     }
 
     public void start(){
@@ -41,16 +47,16 @@ public class Watchdog {
         runnable = new Runnable() {
             @Override
             public void run() {
-                final JSONArray array = TransitionMessage.getMessagesInTransition(context);
-                Log.i("Watchdog", "There are "+array.length()+" messages to send and didResponseGet "+didResponseGet);
-                if(array.length()>0 || !didResponseGet) {
+                final JSONArray array = getPendingMessages();
+                Log.i("Watchdog", "There are " + array.length() + " messages to send and didResponseGet " + didResponseGet);
+                if (array.length() > 0 || !didResponseGet) {
                     CriptextLib.instance().sendDisconectOnPull();
                     new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
+                                          @Override
+                                          public void run() {
                             CriptextLib.instance().reconnectSocket(new Runnable() {
-                                @Override
-                                public void run() {
+                                                               @Override
+                                                               public void run() {
                                     final int len = array.length();
                                     for (int i = 0; i < len; i++) {
                                         try {
@@ -59,10 +65,10 @@ public class Watchdog {
                                             e.printStackTrace();
                                         }
                                     }
-                                }
-                            });
-                        }
-                    }, 2000);
+                            }
+                        });
+                    }
+                }, 2000);
                 }
                 working = false;
             }

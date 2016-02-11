@@ -1,20 +1,13 @@
 package com.criptext.comunication;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import com.criptext.database.RemoteMessage;
 import com.criptext.lib.AESUtil;
 import com.criptext.lib.CriptextLib;
 import com.criptext.lib.KeyStoreCriptext;
@@ -23,17 +16,11 @@ import com.criptext.socket.DarkStarListener;
 import com.criptext.socket.DarkStarSocketClient;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Timer;
-import java.util.TimerTask;
-import java.util.logging.SocketHandler;
 
 import javax.crypto.BadPaddingException;
 
@@ -333,7 +320,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 	 * 	MOKProtocolMessageHasKeys
 	 */
 	public int decryptMOKMessage(MOKMessage remote){
-        String claves= KeyStoreCriptext.getString(CriptextLib.instance().context
+        String claves= KeyStoreCriptext.getString(CriptextLib.instance().getApplicationContext()
                 , remote.getSid());
         if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
             System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
@@ -377,9 +364,9 @@ public class AsyncConnSocket implements ComServerDelegate{
         } else if(what == MessageTypes.MOKProtocolMessageNoKeys) {
             CriptextLib.instance().requestKeyBySession(remote.getSid());
             Log.d("BatchGET", "Got Keys for " + remote.getSid() + ". Apply recursion");
-			return getKeysAndDecryptMOKMessage(remote, false);
+			return getKeysAndDecryptMOKMessage(remote, true);
         } else if(what == MessageTypes.MOKProtocolMessageWrongKeys){
-            String claves= KeyStoreCriptext.getString(CriptextLib.instance().context
+            String claves= KeyStoreCriptext.getString(CriptextLib.instance().getApplicationContext()
                   , remote.getSid());
             String newClaves = CriptextLib.instance().requestKeyBySession(remote.getSid());
             if(newClaves != null && !newClaves.equals(claves))
