@@ -43,8 +43,10 @@ public class MonkeyStart {
 
             @Override
             protected void onPostExecute(String res){
-                if(res != null)
+                if(!res.endsWith("Exception"))
                     onSessionOK(res);
+                else
+                    onSessionError(res);
 
             }
 
@@ -57,7 +59,7 @@ public class MonkeyStart {
 
                 }catch (Exception ex){
                     ex.printStackTrace();
-                    return null;
+                    return ex.getClass().getName();
                 }
             }
         };
@@ -67,6 +69,9 @@ public class MonkeyStart {
     //grab your new session id
     }
 
+    public void onSessionError(String exceptionName){
+    //grab your new session id
+    }
     public void execute(){
         async.execute(urlUser, urlPass, fullname);
     }

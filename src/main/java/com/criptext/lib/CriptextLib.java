@@ -330,6 +330,28 @@ public abstract class CriptextLib extends Service {
 
     }
 
+    private void initAESUtilAsync(final String sessionId, final Runnable runnable){
+        new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... params) {
+                    try {
+                        System.out.println("CRIPTEXTLIB - inicializando aesutil:");
+                        aesutil = new AESUtil(getContext(), sessionId);
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void result) {
+                    runnable.run();
+                }
+
+            }.execute();
+    }
+
     /**
      * Start Session in Criptext
      *
@@ -358,22 +380,9 @@ public abstract class CriptextLib extends Service {
         }
         else {
             //EJECUTO ESTO EN UN ASYNCTASK PORQUE AL GENERAR LAS CLAVES AES SE INHIBE
-            new AsyncTask<Void, Void, Void>() {
-
+            initAESUtilAsync(sessionId, new Runnable() {
                 @Override
-                protected Void doInBackground(Void... params) {
-                    try {
-                        System.out.println("CRIPTEXTLIB - inicializando aesutil:");
-                        aesutil = new AESUtil(getContext(), sessionId);
-                    }
-                    catch (Exception e){
-                        e.printStackTrace();
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void onPostExecute(Void result) {
+                public void run() {
                     if (startSession) {
                         didGenerateAESKeys();
                     } else {
@@ -383,8 +392,7 @@ public abstract class CriptextLib extends Service {
                         startSocketConnection(sessionId, null);
                     }
                 }
-
-            }.execute();
+            });
         }
     }
 
@@ -1326,6 +1334,17 @@ public abstract class CriptextLib extends Service {
                             final JSONObject props){
 
         if(elmensaje.length()>0){
+
+            if(aesutil == null) {
+                initAESUtilAsync(sessionIDFrom, new Runnable() {
+                    @Override
+                    public void run() {
+                        sendMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo, pushMessage,
+                                params, props);
+                    }
+                });
+                return;
+            }
 
             try {
 
