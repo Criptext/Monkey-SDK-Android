@@ -1,4 +1,3 @@
-
 buildscript {
     repositories {
         jcenter()
@@ -87,7 +86,7 @@ bintray {
         version {
             name = '1.0.1'
             desc = 'MonkeyKit'
-            released  = new Date()
+            released = new Date()
             vcsTag = '1.0.1'
         }
 
