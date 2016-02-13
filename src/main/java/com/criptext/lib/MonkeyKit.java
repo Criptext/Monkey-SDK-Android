@@ -52,7 +52,7 @@ import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 
-public abstract class CriptextLib extends Service {
+public abstract class MonkeyKit extends Service {
 
     public enum CBTypes { onSessionOK, onSessionError, onConnectOK, onMessageReceived,
         onMessageSaved, onAcknowledgeReceived, onSocketConnected, onSocketDisconnected, onConnectError,
@@ -84,10 +84,10 @@ public abstract class CriptextLib extends Service {
     public Watchdog watchdog = null;
 
     //DELEGATE
-    private List<CriptextLibDelegate> delegates;
+    private List<MonkeyKitDelegate> delegates;
 
     //SINGLETON
-    static CriptextLib _sharedInstance=null;
+    static MonkeyKit _sharedInstance=null;
 
     private RSAUtil rsaUtil;
     private boolean shouldAskForGroups;
@@ -95,10 +95,10 @@ public abstract class CriptextLib extends Service {
     //PERSISTENCIA
     public static String null_ref = ";NULL;";
 
-    public CriptextLib(){
+    public MonkeyKit(){
         //System.out.println("CRIPTEXTLIB - contructor antes:"+delegates+" - "+getContext() + " isInialized:" + isInialized());
         if(delegates==null)
-            delegates=new ArrayList<CriptextLibDelegate>();
+            delegates=new ArrayList<MonkeyKitDelegate>();
         //System.out.println("CRIPTEXTLIB - contructor despues:" + delegates + " - " + getContext() + " isInialized:" + isInialized());
 
 
@@ -109,7 +109,7 @@ public abstract class CriptextLib extends Service {
         System.out.println("####INICIANDO SERVICIO - " + delegates + " - ");
         _sharedInstance = this;
         if(!isInialized()) {
-            CriptextLib.instance().startCriptext(intent.getStringExtra("fullname"),
+            MonkeyKit.instance().startCriptext(intent.getStringExtra("fullname"),
                     intent.getStringExtra("sessionid"), "0", intent.getStringExtra("user"),
                     intent.getStringExtra("pass"), intent.getBooleanExtra("startsession", false));
         }
@@ -124,7 +124,7 @@ public abstract class CriptextLib extends Service {
         return null;
     }
 
-    public static CriptextLib instance() {
+    public static MonkeyKit instance() {
         //System.out.println("CRIPTEXTLIB - _sharedInstance:"+_sharedInstance);
         return _sharedInstance;
     }
@@ -133,15 +133,15 @@ public abstract class CriptextLib extends Service {
         return urlUser!=null;
     }
 
-    public void addDelegate(CriptextLibDelegate delegate){
+    public void addDelegate(MonkeyKitDelegate delegate){
         if(delegates==null)
-            delegates=new ArrayList<CriptextLibDelegate>();
+            delegates=new ArrayList<MonkeyKitDelegate>();
         delegates.add(delegate);
     }
 
-    public void removeDelegate(CriptextLibDelegate delegate){
+    public void removeDelegate(MonkeyKitDelegate delegate){
         if(delegates==null)
-            delegates=new ArrayList<CriptextLibDelegate>();
+            delegates=new ArrayList<MonkeyKitDelegate>();
         delegates.remove(delegate);
     }
 
@@ -210,7 +210,7 @@ public abstract class CriptextLib extends Service {
                 //Si el service se levanta es bueno que haga un get y obtenga los mensajes
                 //que importa si no se actualiza el lastmessage desde el service.
                 //Con esto cuando abres el mensaje desde el push siempre muestra los unread messages
-                CriptextLib.instance().sendSync(getLastTimeSynced());
+                MonkeyKit.instance().sendSync(getLastTimeSynced());
             }
             break;
             case onSocketDisconnected:
@@ -326,7 +326,7 @@ public abstract class CriptextLib extends Service {
 
     public void messageStored(MOKMessage message){
 
-        executeInDelegates(CriptextLib.CBTypes.onMessageSaved, new Object[]{message});
+        executeInDelegates(MonkeyKit.CBTypes.onMessageSaved, new Object[]{message});
 
     }
 
@@ -450,16 +450,16 @@ public abstract class CriptextLib extends Service {
                             @Override
                             protected Void doInBackground(Void... params) {
                                 String decriptedKey=rsaUtil.desencrypt(keys);
-                                KeyStoreCriptext.putString(CriptextLib.this.getContext() ,sessionid,decriptedKey);
+                                KeyStoreCriptext.putString(MonkeyKit.this.getContext() ,sessionid,decriptedKey);
                                 System.out.println("USERSYNC DESENCRIPTADO - " + decriptedKey + " " + decriptedKey.length());
                                 try {
-                                    aesutil = new AESUtil(CriptextLib.this.getContext(), sessionid);
+                                    aesutil = new AESUtil(MonkeyKit.this.getContext(), sessionid);
                                 }
                                 catch (Exception ex){
                                     System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
                                     KeyStoreCriptext.putString(getContext(), sessionid, "");
                                     startCriptext(fullname, "", "0", urlUser, urlPass, true);
-                                    CriptextLib.instance().sessionid=sessionid;
+                                    MonkeyKit.instance().sessionid=sessionid;
                                 }
                                 return null;
                             }
@@ -732,7 +732,7 @@ public abstract class CriptextLib extends Service {
                 String clave = params[0];
                 try {
                     if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
-                        //Log.d("CriptextLib", "Decrypt: "+  message.getMsg());
+                        //Log.d("MonkeyKit", "Decrypt: "+  message.getMsg());
                         message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
                                 clave.split(":")[0], clave.split(":")[1]));
                     }
@@ -746,7 +746,7 @@ public abstract class CriptextLib extends Service {
             @Override
             protected void onPostExecute(Integer integer) {
                 if (integer.intValue() == 1) {
-                    Log.d("CriptextLib", "process MOKMessage successful");
+                    Log.d("MonkeyKit", "process MOKMessage successful");
                     executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
                 }
             }
@@ -915,7 +915,7 @@ public abstract class CriptextLib extends Service {
             params.put("data", localJSONObject1.toString());
 
             System.out.println("MONKEY - sending:" + params.toString());
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onOpenConversation");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onOpenConversation");
             cb.params(params);
 
             aq.auth(handle).ajax(cb);
@@ -998,7 +998,7 @@ public abstract class CriptextLib extends Service {
             AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 
             System.out.println("MONKEY - sending open secure");
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onSendOpenSecure");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onSendOpenSecure");
 
             aq.auth(handle).ajax(cb);
 
@@ -1086,7 +1086,7 @@ public abstract class CriptextLib extends Service {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
 
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onSubscribePush");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onSubscribePush");
             cb.params(params);
 
             aq.auth(handle).ajax(cb);
@@ -1124,7 +1124,7 @@ public abstract class CriptextLib extends Service {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
 
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onCreateGroup");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onCreateGroup");
             cb.params(params);
 
             aq.auth(handle).ajax(cb);
@@ -1165,7 +1165,7 @@ public abstract class CriptextLib extends Service {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
 
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onDeleteGroup");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onDeleteGroup");
             cb.params(params);
 
             aq.auth(handle).ajax(cb);
@@ -1210,7 +1210,7 @@ public abstract class CriptextLib extends Service {
 
             System.out.println("MONKEY - Sending api - "+localJSONObject1);
 
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onAddMemberToGroup");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onAddMemberToGroup");
             cb.params(params);
 
             aq.auth(handle).ajax(cb);
@@ -1253,7 +1253,7 @@ public abstract class CriptextLib extends Service {
 
             System.out.println("MONKEY - Sending api - "+localJSONObject1);
 
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(CriptextLib.this, "onGetGroupInfo");
+            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onGetGroupInfo");
             cb.params(params);
 
             if(handle==null){
@@ -1759,7 +1759,7 @@ public abstract class CriptextLib extends Service {
         return false;
     }
 
-    public void destroyCriptextLib(){
+    public void destroyMonkeyKit(){
         if(asynConnSocket != null) {
             asynConnSocket.removeContext();
             asynConnSocket.socketMessageHandler = null;
@@ -1804,10 +1804,10 @@ public abstract class CriptextLib extends Service {
     }
 
     public static class MonkeyHandler extends Handler{
-        private WeakReference<CriptextLib> libWeakReference;
+        private WeakReference<MonkeyKit> libWeakReference;
 
-        public MonkeyHandler(CriptextLib lib){
-            libWeakReference = new WeakReference<CriptextLib>(lib);
+        public MonkeyHandler(MonkeyKit lib){
+            libWeakReference = new WeakReference<MonkeyKit>(lib);
         }
 
         public void handleMessage(Message msg) {

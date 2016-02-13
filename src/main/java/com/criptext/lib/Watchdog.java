@@ -24,7 +24,7 @@ public class Watchdog {
 
     private JSONArray getPendingMessages(){
         JSONArray array = new JSONArray();
-        String[] strings = CriptextLib.instance().getPendingMessages();
+        String[] strings = MonkeyKit.instance().getPendingMessages();
         for(String str : strings){
             try {
                 array.put(new JSONObject(str));
@@ -50,17 +50,17 @@ public class Watchdog {
                 final JSONArray array = getPendingMessages();
                 Log.i("Watchdog", "There are " + array.length() + " messages to send and didResponseGet " + didResponseGet);
                 if (array.length() > 0 || !didResponseGet) {
-                    CriptextLib.instance().sendDisconectOnPull();
+                    MonkeyKit.instance().sendDisconectOnPull();
                     new Handler().postDelayed(new Runnable() {
                                           @Override
                                           public void run() {
-                            CriptextLib.instance().reconnectSocket(new Runnable() {
+                            MonkeyKit.instance().reconnectSocket(new Runnable() {
                                                                @Override
                                                                public void run() {
                                     final int len = array.length();
                                     for (int i = 0; i < len; i++) {
                                         try {
-                                            CriptextLib.instance().sendJSONviaSocket((JSONObject) array.get(i));
+                                            MonkeyKit.instance().sendJSONviaSocket((JSONObject) array.get(i));
                                         } catch (JSONException e) {
                                             e.printStackTrace();
                                         }

@@ -6,7 +6,7 @@ import com.criptext.comunication.MOKMessage;
 
 import java.util.ArrayList;
 
-public interface CriptextLibDelegate {
+public interface MonkeyKitDelegate {
 
 	public void onSessionOK();
 	public void onSessionError(String errmsg);
@@ -37,7 +37,7 @@ public interface CriptextLibDelegate {
 	public void onMessageRecieved(MOKMessage message);
 	public void onAcknowledgeRecieved(MOKMessage message);
 	public void onDeleteRecieved(MOKMessage message);
-    public void onMessageSaved(MOKMessage remote);
+        public void onMessageSaved(MOKMessage remote);
 	
 	public void onContactOpenMyConversation(String sessionID);
 	public void onNotificationReceived(MOKMessage message);

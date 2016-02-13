@@ -9,7 +9,7 @@ import android.os.Message;
 import android.util.Log;
 
 import com.criptext.lib.AESUtil;
-import com.criptext.lib.CriptextLib;
+import com.criptext.lib.MonkeyKit;
 import com.criptext.lib.KeyStoreCriptext;
 import com.criptext.socket.DarkStarClient;
 import com.criptext.socket.DarkStarListener;
@@ -86,7 +86,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 						if(isConnected()){
 							socketStatus = Status.desconectado;
 							socketClient.logout(true);
-                            CriptextLib.instance().destroyCriptextLib();
+                            MonkeyKit.instance().destroyMonkeyKit();
 							this.getLooper().quit();
 						}
 					}
@@ -140,7 +140,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 		socketStatus = Status.reconectando;
 		userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
-		socketClient = new DarkStarSocketClient(CriptextLib.URL.substring(7),1139,(DarkStarListener)userServerListener);
+		socketClient = new DarkStarSocketClient(MonkeyKit.URL.substring(7),1139,(DarkStarListener)userServerListener);
 		retries = 0;
 		Thread connThread = new Thread(new Runnable() {
 			@Override
@@ -189,8 +189,8 @@ public class AsyncConnSocket implements ComServerDelegate{
 	private void processBatch(int protocol, JsonObject args, JsonParser parser){
 		System.out.println("MOK PROTOCOL SYNC");
 		JsonObject props = new JsonObject(), params = new JsonObject();
-        CriptextLib.instance().watchdog.didResponseGet=true;
-        CriptextLib.instance().sendGetOK();
+        MonkeyKit.instance().watchdog.didResponseGet=true;
+        MonkeyKit.instance().sendGetOK();
 		MOKMessage remote;
         if(args.get("type").getAsInt() == 1) {
             JsonArray array = args.get("messages").getAsJsonArray();
@@ -245,9 +245,9 @@ public class AsyncConnSocket implements ComServerDelegate{
 
             if (args.get("remaining_messages").getAsInt() > 0) {
 				if(protocol == MessageTypes.MOKProtocolSync)
-                	CriptextLib.instance().sendSync(lastTimeSynced);
+                	MonkeyKit.instance().sendSync(lastTimeSynced);
 				else if(protocol == MessageTypes.MOKProtocolGet)
-					CriptextLib.instance().sendGet(lastMessageId);
+					MonkeyKit.instance().sendGet(lastMessageId);
             }
         } else {
             //PARSE GROUPS UPDATES
@@ -285,10 +285,10 @@ public class AsyncConnSocket implements ComServerDelegate{
 		}
 		else{
 			//LLEGARON MUCHOS MENSAJES POR ENDE LLAMO UPDATES CON VALORES MENORES
-			CriptextLib.instance().portionsMessages--;
-			if(CriptextLib.instance().portionsMessages<1)
-				CriptextLib.instance().portionsMessages=1;
-			CriptextLib.instance().sendSync(CriptextLib.instance().lastTimeSynced);
+			MonkeyKit.instance().portionsMessages--;
+			if(MonkeyKit.instance().portionsMessages<1)
+				MonkeyKit.instance().portionsMessages=1;
+			MonkeyKit.instance().sendSync(MonkeyKit.instance().lastTimeSynced);
 		}
 	}
 
@@ -320,7 +320,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 	 * 	MOKProtocolMessageHasKeys
 	 */
 	public int decryptMOKMessage(MOKMessage remote){
-        String claves= KeyStoreCriptext.getString(CriptextLib.instance().getApplicationContext()
+        String claves= KeyStoreCriptext.getString(MonkeyKit.instance().getApplicationContext()
                 , remote.getSid());
         if(claves.compareTo("")==0 && !remote.getSid().startsWith("legacy:")){
             System.out.println("MONKEY - NO TENGO CLAVES DE AMIGO LAS MANDO A PEDIR");
@@ -362,17 +362,17 @@ public class AsyncConnSocket implements ComServerDelegate{
         if(what == MessageTypes.MOKProtocolMessageHasKeys) {
             return remote;
         } else if(what == MessageTypes.MOKProtocolMessageNoKeys) {
-            CriptextLib.instance().requestKeyBySession(remote.getSid());
+            MonkeyKit.instance().requestKeyBySession(remote.getSid());
             Log.d("BatchGET", "Got Keys for " + remote.getSid() + ". Apply recursion");
 			return getKeysAndDecryptMOKMessage(remote, true);
         } else if(what == MessageTypes.MOKProtocolMessageWrongKeys){
-            String claves= KeyStoreCriptext.getString(CriptextLib.instance().getApplicationContext()
+            String claves= KeyStoreCriptext.getString(MonkeyKit.instance().getApplicationContext()
                   , remote.getSid());
-            String newClaves = CriptextLib.instance().requestKeyBySession(remote.getSid());
+            String newClaves = MonkeyKit.instance().requestKeyBySession(remote.getSid());
             if(newClaves != null && !newClaves.equals(claves))
                 return getKeysAndDecryptMOKMessage(remote, false);
             else if (newClaves != null){
-				String newMsg = CriptextLib.instance().requestTextWithLatestKeys(remote.getMsg());
+				String newMsg = MonkeyKit.instance().requestTextWithLatestKeys(remote.getMsg());
 				if(newMsg != null) {
 					remote.setMsg(newMsg);
 					return getKeysAndDecryptMOKMessage(remote, true);
@@ -534,8 +534,8 @@ public class AsyncConnSocket implements ComServerDelegate{
 			Message msg = mainMessageHandler.obtainMessage();
 			msg.what=MessageTypes.MessageSocketDisconnected;
 			mainMessageHandler.sendMessage(msg);
-			//if(CriptextLib.instance() != null)
-			//	CriptextLib.instance().reconnectSocket(null);
+			//if(MonkeyKit.instance() != null)
+			//	MonkeyKit.instance().reconnectSocket(null);
 		}
 
 	}

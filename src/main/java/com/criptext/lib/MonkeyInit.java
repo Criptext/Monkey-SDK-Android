@@ -23,13 +23,13 @@ import java.lang.ref.WeakReference;
  * Monkey.
  * Created by gesuwall on 2/10/16.
  */
-public class MonkeyStart {
+public class MonkeyInit {
     private AsyncTask<String, String, String> async;
     private WeakReference<Context> ctxRef;
     private AESUtil aesUtil;
     final String urlUser, urlPass, fullname, myOldMonkeyId;
 
-    public MonkeyStart(Context context, String sessionId, String user, String pass, String fullname){
+    public MonkeyInit(Context context, String sessionId, String user, String pass, String fullname){
         this.myOldMonkeyId = sessionId == null ? "" : sessionId;
         this.urlUser = user;
         this.urlPass = pass;
@@ -98,8 +98,8 @@ public class MonkeyStart {
     private String getSessionHTTP(String urlUser, String urlPass, String fullname) throws JSONException,
             UnsupportedEncodingException, ClientProtocolException, IOException{
         // Create a new HttpClient and Post Header
-        HttpClient httpclient = CriptextLib.newMonkeyHttpClient();
-        HttpPost httppost = CriptextLib.newMonkeyHttpPost(CriptextLib.URL + "/user/session", urlUser, urlPass);
+        HttpClient httpclient = MonkeyKit.newMonkeyHttpClient();
+        HttpPost httppost = MonkeyKit.newMonkeyHttpPost(MonkeyKit.URL + "/user/session", urlUser, urlPass);
 
         JSONObject localJSONObject1 = new JSONObject();
 
@@ -116,7 +116,7 @@ public class MonkeyStart {
         params.put("data", localJSONObject1.toString());
         Log.d("getSessionHTTP", "Req: " + params.toString());
 
-        JSONObject finalResult = CriptextLib.getHttpResponseJson(httpclient, httppost, params.toString());
+        JSONObject finalResult = MonkeyKit.getHttpResponseJson(httpclient, httppost, params.toString());
 
         Log.d("getSesssionHTTP", finalResult.toString());
         finalResult = finalResult.getJSONObject("data");
@@ -137,8 +137,8 @@ public class MonkeyStart {
         RSAUtil rsaUtil = new RSAUtil();
         rsaUtil.generateKeys();
 
-        HttpClient httpclient = CriptextLib.newMonkeyHttpClient();
-        HttpPost httppost = CriptextLib.newMonkeyHttpPost(CriptextLib.URL+"/user/key/sync", urlUser, urlPass);
+        HttpClient httpclient = MonkeyKit.newMonkeyHttpClient();
+        HttpPost httppost = MonkeyKit.newMonkeyHttpPost(MonkeyKit.URL+"/user/key/sync", urlUser, urlPass);
 
         JSONObject localJSONObject1 = new JSONObject();
 
@@ -149,7 +149,7 @@ public class MonkeyStart {
         params.put("data", localJSONObject1.toString());
         Log.d("userSyncMS", "Req: " + params.toString());
 
-        JSONObject finalResult = CriptextLib.getHttpResponseJson(httpclient, httppost, params.toString());
+        JSONObject finalResult = MonkeyKit.getHttpResponseJson(httpclient, httppost, params.toString());
          Log.d("userSyncMS", finalResult.toString());
         finalResult = finalResult.getJSONObject("data");
 
@@ -172,8 +172,8 @@ public class MonkeyStart {
     private String connectHTTP(String sessionId, String encriptedKeys) throws JSONException,
             UnsupportedEncodingException, ClientProtocolException, IOException{
  // Create a new HttpClient and Post Header
-        HttpClient httpclient = CriptextLib.newMonkeyHttpClient();
-        HttpPost httppost = CriptextLib.newMonkeyHttpPost(CriptextLib.URL+"/user/connect", urlUser, urlPass);
+        HttpClient httpclient = MonkeyKit.newMonkeyHttpClient();
+        HttpPost httppost = MonkeyKit.newMonkeyHttpPost(MonkeyKit.URL+"/user/connect", urlUser, urlPass);
 
         JSONObject localJSONObject1 = new JSONObject();
 
@@ -184,7 +184,7 @@ public class MonkeyStart {
         params.put("data", localJSONObject1.toString());
         Log.d("connectHTTP", "Req: " + params.toString());
 
-        JSONObject finalResult = CriptextLib.getHttpResponseJson(httpclient, httppost, params.toString());
+        JSONObject finalResult = MonkeyKit.getHttpResponseJson(httpclient, httppost, params.toString());
          Log.d("connectHTTP", finalResult.toString());
         finalResult = finalResult.getJSONObject("data");
 
