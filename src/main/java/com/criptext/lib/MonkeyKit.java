@@ -1907,19 +1907,67 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    /**
+     * Devuelve el context de la applicacion. Este metodo deberia implementarse usando el context
+     * que se obtiene al usar la clase Application para asegurar que nunca sea null.
+     * @return El context de la aplicacion
+     */
     public abstract Context getContext();
 
+    /**
+     * Guarda un mensaje de MonkeyKit en la base de datos. La implementacion de este metodo deberia de
+     * ser asincrona para mejorar el rendimiento del servicio. MonkeyKit llamara a este metodo cada
+     * vez que reciba un mensaje para guardarlo.
+     * @param message
+     */
     public abstract void storeMessage(MOKMessage message);
 
+    /**
+     * Guarda un grupo de mensajes de MonkeyKit que se recibieron despues de un sync en la base de datos.
+     * Es sumamente importante implementar esto de forma asincrona porque potencialmente, podrian
+     * llegar cientos de mensajes, haciendo la operacion sumamente costosa.
+     * @param messages
+     */
     public abstract void storeMessageBatch(ArrayList<MOKMessage> messages);
 
+    /**
+     * Guarda el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo
+     * cada vez que haga sync. La implementacion de este metodo deberia de ser asincrona para mejorar
+     * el rendimiento del servicio.
+     * @param lastTime
+     */
     public abstract void setLastTimeSynced(long lastTime);
 
+    /**
+     * Obtiene el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo cada
+     * vez que haga sync. La implementacion de este metodo debe de ser sincrona y retornar lo mas
+     * rapido posible.
+     * @return El timestamp del ultimo sync
+     */
     public abstract long getLastTimeSynced();
 
+    /**
+     * Guarda un mensaje que aun no se envia exitosamente en la base de datos. Es necesario persistir esto
+     * para que se pueda retransimitir en caso de que falle.  La implementacion de este metodo deberia de
+     * ser asincrona para mejorar el rendimiento del servicio.
+     * @param id id del mensaje a guardar.
+     * @param message String serializado del mensaje a guardar
+     */
     public abstract void addPendingMessage(String id, String message);
 
+    /**
+     * Elimina un mensaje de la base de datos de mensajes pendientes. MonkeyKit llamara a esta funcion
+     * despues de una transmision exitosa.  La implementacion de este metodo deberia de
+     * ser asincrona para mejorar el rendimiento del servicio.
+     * @param id Id del mensaje a borrar
+     */
     public abstract void removePendingMessage(String id);
 
+    /**
+     * Obtiene todos los mensajes pendientes de la base de datos. MonkeyKit llamara este metodo cuando
+     * este dispuesto a retransimitir datos. La implementacion de este metodo debe de ser sincrona y
+     * retornar lo mas rapido posible.
+     * @return
+     */
     public abstract String[] getPendingMessages();
 }
