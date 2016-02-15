@@ -16,7 +16,7 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
 
 group = 'com.criptext'
-version = '1.0.2'
+version = '1.0.0'
 
 android {
     compileSdkVersion 21
@@ -77,21 +77,21 @@ artifacts {
 }
 
 bintray {
-    user = 'danieltigse'
-    key = '9f081bdad295b7284042748b9acb50fae478a0ee'
+    user = 'criptext'
+    key = '093138d874366bedf1953c28e317439845586a08'
     pkg {
         repo = 'maven'
         name = 'com.criptext'
 
         version {
-            name = '1.0.1'
+            name = '1.0.0'
             desc = 'MonkeyKit'
             released = new Date()
             vcsTag = '1.0.1'
         }
 
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/Criptext/Criptext-Android-And-MonkeySDK.git'
+        vcsUrl = 'https://github.com/Criptext/MonkeyKitAndroid.git'
         websiteUrl = 'http://criptext.com'
     }
     configurations = ['archives']
