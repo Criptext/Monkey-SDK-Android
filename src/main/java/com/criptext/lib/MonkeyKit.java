@@ -1907,12 +1907,25 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    public static void startMonkeyService(Context context, Class<?> service, String fullname, String session_id, String app_id,
+                                         String app_key){
+        Intent intent = new Intent(context, service);
+        intent.putExtra("fullname", fullname);
+        intent.putExtra("sessionid", session_id);
+        intent.putExtra("user", app_id);
+        intent.putExtra("pass", app_key);
+        intent.putExtra("startsession", false);
+        context.startService(intent);
+
+    }
     /**
      * Devuelve el context de la applicacion. Este metodo deberia implementarse usando el context
      * que se obtiene al usar la clase Application para asegurar que nunca sea null.
      * @return El context de la aplicacion
      */
-    public abstract Context getContext();
+    public Context getContext(){
+       return getApplicationContext();
+    };
 
     /**
      * Guarda un mensaje de MonkeyKit en la base de datos. La implementacion de este metodo deberia de
