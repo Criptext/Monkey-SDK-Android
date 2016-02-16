@@ -1983,7 +1983,17 @@ public abstract class MonkeyKit extends Service {
      * @param id id del mensaje a guardar.
      * @param message String serializado del mensaje a guardar
      */
-    public abstract void addPendingMessage(String id, String message);
+    public void addPendingMessage(String id, String message){
+        new AsyncTask<String, Integer, Integer>(){
+            @Override
+            protected Integer doInBackground(String... params) {
+                SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString(params[1], params[1]);
+                return 0;
+            }
+        }.execute(id, message);
+    }
 
     /**
      * Elimina un mensaje de la base de datos de mensajes pendientes. MonkeyKit llamara a esta funcion
@@ -1991,7 +2001,17 @@ public abstract class MonkeyKit extends Service {
      * ser asincrona para mejorar el rendimiento del servicio.
      * @param id Id del mensaje a borrar
      */
-    public abstract void removePendingMessage(String id);
+    public void removePendingMessage(String id){
+        new AsyncTask<String, Integer, Integer>(){
+            @Override
+            protected Integer doInBackground(String... params) {
+                SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.remove(params[0]);
+                return 0;
+            }
+        }.execute(id);
+    }
 
     /**
      * Obtiene todos los mensajes pendientes de la base de datos. MonkeyKit llamara este metodo cuando
@@ -1999,5 +2019,21 @@ public abstract class MonkeyKit extends Service {
      * retornar lo mas rapido posible.
      * @return
      */
-    public abstract String[] getPendingMessages();
+    public String[] getPendingMessages(){
+        SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
+        Map<String, ?> prefsMap = prefs.getAll();
+
+        if(prefsMap != null) {
+            int index = 0;
+            final int size = prefsMap.size();
+            String[] result = new String[size];
+            for (Map.Entry<String, ?> entry : prefsMap.entrySet()) {
+                result[index++] = entry.getValue().toString();
+            }
+            return result;
+        }
+
+        return new String[0];
+
+    }
 }
