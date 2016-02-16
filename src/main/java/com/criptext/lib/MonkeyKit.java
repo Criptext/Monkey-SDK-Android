@@ -45,6 +45,7 @@ import com.google.gson.JsonParser;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.IBinder;
@@ -62,7 +63,10 @@ public abstract class MonkeyKit extends Service {
         onMessageBatchReady}
 
     public static String URL="http://secure.criptext.com";
-    private static String transitionMessages = "MonkeyKit.transitionMessages";
+    private static String transitionMessagesPrefs = "MonkeyKit.transitionMessages";
+    private static String lastSyncPrefs = "MonkeyKit.lastSyncTime";
+    private static String lastSyncKey = "MonkeyKit.lastSyncKey";
+
     //public static String URL="http://192.168.0.102";
     //VARIABLES PARA REQUERIMIENTOS
     private AQuery aq;
@@ -1563,7 +1567,7 @@ public abstract class MonkeyKit extends Service {
             JSONObject args=new JSONObject();
             JSONObject json=new JSONObject();
 
-            args.put("messages_since",since);
+            args.put("messages_since", since);
             if(since == null || since.equals("0") || shouldAskForGroups) {
                 args.put("groups", 1);
                 shouldAskForGroups=false;
@@ -1949,7 +1953,17 @@ public abstract class MonkeyKit extends Service {
      * el rendimiento del servicio.
      * @param lastTime
      */
-    public abstract void setLastTimeSynced(long lastTime);
+    public void setLastTimeSynced(long lastTime){
+        new AsyncTask<Long, Long, Long>(){
+            @Override
+            protected Long doInBackground(Long... params) {
+                SharedPreferences prefs = getContext().getSharedPreferences(lastSyncPrefs, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putLong(lastSyncKey, params[0]);
+                return params[0];
+            }
+        }.execute(lastTime);
+    }
 
     /**
      * Obtiene el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo cada
@@ -1957,7 +1971,10 @@ public abstract class MonkeyKit extends Service {
      * rapido posible.
      * @return El timestamp del ultimo sync
      */
-    public abstract long getLastTimeSynced();
+    public long getLastTimeSynced(){
+        SharedPreferences prefs = getContext().getSharedPreferences(lastSyncPrefs, 0);
+        return prefs.getLong(lastSyncKey, 0);
+    };
 
     /**
      * Guarda un mensaje que aun no se envia exitosamente en la base de datos. Es necesario persistir esto
