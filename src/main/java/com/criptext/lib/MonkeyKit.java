@@ -630,11 +630,16 @@ public abstract class MonkeyKit extends Service {
      * @param sessionId Session Id del usuario
      * @param lastAction runnable con la ultima accion que se trato de ejecutar antes de reiniciar la conexion
      */
-    private  void startSocketConnection(final String sessionId, Runnable lastAction){
+    private void startSocketConnection(final String sessionId, Runnable lastAction){
 
         if(mainMessageHandler == null) {
             /****COMUNICACION ENTRE EL SOCKET Y LA INTERFAZ*****/
             mainMessageHandler = new MonkeyHandler(this);
+        }
+
+        if(urlUser == null || urlPass == null) {
+            System.out.println("MONKEY - SOCKET - urlUser o urlUser son null");
+            return;
         }
 
         if(asynConnSocket==null) {
@@ -944,7 +949,7 @@ public abstract class MonkeyKit extends Service {
                 String convKey=json.getString("convKey");
                 String desencriptConvKey=aesutil.decrypt(convKey);
 
-                KeyStoreCriptext.putString(getContext(),json.getString("session_to"), desencriptConvKey);
+                KeyStoreCriptext.putString(getContext(), json.getString("session_to"), desencriptConvKey);
                 executeInDelegates(CBTypes.onOpenConversationOK, new Object[]{json.getString("session_to")});
 
                 //SI HAY MENSAJES QUE NO SE HAN PODIDO DESENCRIPTAR
@@ -1014,7 +1019,7 @@ public abstract class MonkeyKit extends Service {
 
     public void onSendOpenSecure(String url, final JSONObject jo, com.androidquery.callback.AjaxStatus status) {
 
-        System.out.println("MONKEY - onopenSecure:"+status.getCode());
+        System.out.println("MONKEY - onopenSecure:" + status.getCode());
         if(jo!=null){
             MOKMessage actual_message=null;
             try {
@@ -1183,7 +1188,7 @@ public abstract class MonkeyKit extends Service {
 
         if(jo!=null){
             try {
-                System.out.println("MONKEY - onDeleteGroup: "+jo.toString());
+                System.out.println("MONKEY - onDeleteGroup: " + jo.toString());
                 JSONObject json = jo.getJSONObject("data");
                 executeInDelegates(CBTypes.onDeleteGroupOK, new Object[]{json.getString("group_id")});
             }
@@ -1255,7 +1260,7 @@ public abstract class MonkeyKit extends Service {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
 
-            System.out.println("MONKEY - Sending api - "+localJSONObject1);
+            System.out.println("MONKEY - Sending api - " + localJSONObject1);
 
             cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onGetGroupInfo");
             cb.params(params);
@@ -1264,7 +1269,7 @@ public abstract class MonkeyKit extends Service {
                 aq = new AQuery(getContext());
                 handle = new BasicHandle(urlUser, urlPass);
             }
-            System.out.println("handle:"+handle);
+            System.out.println("handle:" + handle);
             aq.auth(handle).ajax(cb);
 
         } catch (JSONException e) {
@@ -1286,7 +1291,7 @@ public abstract class MonkeyKit extends Service {
             }
         }
         else
-            executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{status.getCode() + " - " + status.getMessage()});
     }
 
     /************************************************************************/
@@ -1495,6 +1500,8 @@ public abstract class MonkeyKit extends Service {
                 propsMessage.put("str", "0");
                 propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
 
+                paramsMessage.put("eph", eph);
+
                 if(paramsFile!=null && paramsFile.length()>0) {
                     JsonParser parser = new JsonParser();
                     JsonObject jsonObject = parser.parse(paramsFile).getAsJsonObject();
@@ -1572,7 +1579,7 @@ public abstract class MonkeyKit extends Service {
                 args.put("groups", 1);
                 shouldAskForGroups=false;
             }
-            args.put("qty", ""+portionsMessages);
+            args.put("qty", "" + portionsMessages);
             //args.put("G", requestGroups ? 1 : 0);
             json.put("args", args);
             json.put("cmd", MessageTypes.MOKProtocolGet);
@@ -1804,6 +1811,7 @@ public abstract class MonkeyKit extends Service {
             System.out.println("CRIPTEXTLIB - No puedo recontectar el socket sessionid es null");
             return;
         }
+        System.out.println("CRIPTEXTLIB - Reconectando socket");
         startSocketConnection(this.sessionid, run);
     }
 
@@ -1869,7 +1877,7 @@ public abstract class MonkeyKit extends Service {
                 case MessageTypes.MOKProtocolAck:
                     try {
                         System.out.println("ack 205");
-                        libWeakReference.get().removePendingMessage(message.getMessage_id());
+                        libWeakReference.get().removePendingMessage(message.getMsg());
                         libWeakReference.get().executeInDelegates(CBTypes.onAcknowledgeReceived, new Object[]{message});
                     } catch (Exception e) {
                         e.printStackTrace();

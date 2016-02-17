@@ -178,7 +178,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                     byte hi = (byte) in.read();
                     //Log.d("InputReader - run", "hi: "+hi);
                     if (hi == -1) {
-                    	//Log.d("InputReader - run", "hi=-1");
+                    	Log.d("InputReader - run", "hi=-1 mandando a disconnect()");
                         main.disconnect();
                         //Log.d("InputReader - run", "main desconectado");
                         //post a dummy empty message to wake up the writer - it will realize that we;return disconnected
@@ -261,6 +261,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                         if (!disconnected) {
                             ex.printStackTrace();
                             try {
+                                Log.d("OutputWriter - run", "somethin happen calling disconnect()");
                                 main.disconnect();
                             } catch (IOException ex1) {
                                 //ignore

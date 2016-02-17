@@ -7,7 +7,8 @@ import com.criptext.comunication.MessageTypes;
  * Created by daniel on 12/28/15.
  */
 public class CriptextDBHandler {
-/** Retorna el tipo de accion de un mensaje de MonkeyKit. La acción puede estar en props o en params.
+
+    /** Retorna el tipo de accion de un mensaje de MonkeyKit. La acción puede estar en props o en params.
      * props tiene prioridad, si no encuentra el action ahi, lo busca en params. Después se mapean los tipos
      * de MonkeyKit con los valores de Criptext
      * @param message el mensaje recibido desde MonkeyKit
