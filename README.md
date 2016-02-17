@@ -16,7 +16,7 @@ repositories {
 Then add the following to your app's build.gradle file dependencies block:
 ```
 dependencies {
-    compile ('com.criptext:MonkeyKit:1.0.0@aar') {
+    compile ('com.criptext:MonkeyKit:1.1.0@aar') {
         transitive = true;
     }
 }
@@ -59,6 +59,9 @@ If you have determined that the user already has a previous session and would li
 As for the last two arguments, You should have received an app ID and secret key from Criptext. 
 
 Finally override the `onSessionOK` method which is a callback containing a single argument: A valid session ID. The register process consists of various HTTP requests so it is executed asynchronously. After it's all done, the callback with your new session ID is executed. Once you have persisted it, you can start your MonkeyKit service and comence sending and receiving messages.
+
+After you have yout `MonkeyInit` object ready, you can start the register
+process by calling the `register()` method.
 
 ## Starting the service
 
