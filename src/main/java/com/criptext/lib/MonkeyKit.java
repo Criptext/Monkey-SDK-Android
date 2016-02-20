@@ -298,7 +298,7 @@ public abstract class MonkeyKit extends Service {
             break;
             case onGetGroupInfoOK: {
                 for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onGetGroupInfoOK((JSONObject) info[0]);
+                    delegates.get(i).onGetGroupInfoOK((JsonObject) info[0]);
                 }
             }
             break;
@@ -740,7 +740,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 String clave = params[0];
                 try {
-                    if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
+                    if (message.getProps().get("encr").toString().compareTo("1") == 0){
                         //Log.d("MonkeyKit", "Decrypt: "+  message.getMsg());
                         message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
                                 clave.split(":")[0], clave.split(":")[1]));
@@ -1321,30 +1321,39 @@ public abstract class MonkeyKit extends Service {
 
     }
 
-    public void sendMessage(final String idnegative,final String elmensaje, final String sessionIDFrom,
-                            final String sessionIDTo, final String pushMessage, final JSONObject params,
-                            final JSONObject props){
+    public MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
+                            final String pushMessage, final JsonObject params){
 
+        MOKMessage newMessage = null;
         if(elmensaje.length()>0){
-
-            if(aesutil == null) {
-                initAESUtilAsync(sessionIDFrom, new Runnable() {
-                    @Override
-                    public void run() {
-                        sendMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo, pushMessage,
-                                params, props);
-                    }
-                });
-                return;
-            }
-
             try {
 
+                long datetimeorder = System.currentTimeMillis();
+                long datetime = datetimeorder/1000;
+                final String idnegative = "-" + datetime;
+                JsonObject props = new JsonObject();
+                props.addProperty("str", "0");
+                props.addProperty("encr", "1");
+                props.addProperty("device", "android");
+
+                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
+                        "" + datetime, "" + MessageTypes.blMessageDefault, params, props);
+                newMessage.setDatetimeorder(datetimeorder);
+
+                if(aesutil == null) {
+                    initAESUtilAsync(this.sessionid, new Runnable() {
+                        @Override
+                        public void run() {
+                            sendMessage(elmensaje, sessionIDTo, pushMessage, params);
+                        }
+                    });
+                    return newMessage;
+                }
                 JSONObject args=new JSONObject();
                 JSONObject json=new JSONObject();
 
-                args.put("id",(idnegative.contains("-")?"":"-")+idnegative);
-                args.put("sid", sessionIDFrom);
+                args.put("id",idnegative);
+                args.put("sid", this.sessionid);
                 args.put("rid", sessionIDTo);
                 args.put("msg", aesutil.encrypt(elmensaje));
                 args.put("type", MessageTypes.MOKText);
@@ -1358,29 +1367,31 @@ public abstract class MonkeyKit extends Service {
                 json.put("cmd", MessageTypes.MOKProtocolMessage);
 
                 addMessageToWatchdog(json);
-                if(asynConnSocket.isConnected()){
+
+                if(asynConnSocket == null) {
+                    System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
+                    startSocketConnection(this.sessionid, new Runnable() {
+                        @Override
+                        public void run() {
+                            sendMessage(elmensaje, sessionIDTo, pushMessage, params);
+                        }
+                    });
+                    return newMessage;
+                } else if(asynConnSocket.isConnected()){
                     System.out.println("MONKEY - Enviando mensaje:"+json.toString());
                     asynConnSocket.sendMessage(json);
                 }
-                else
-                    System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
 
-            }
-            catch(NullPointerException ex){
-                if(asynConnSocket == null)
-                    startSocketConnection(sessionIDFrom, new Runnable() {
-                        @Override
-                        public void run() {
-                            sendMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo, pushMessage, params, props);
-                        }
-                    });
-                else
-                    ex.printStackTrace();
+                storeMessage(newMessage);
+                return newMessage;
             }
             catch (Exception e) {
                 e.printStackTrace();
+                return null;
             }
         }
+
+        return null;
     }
 
     public void sendJSONviaSocket(JSONObject params){
@@ -1482,38 +1493,56 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
-    public void sendFileMessage(final String idnegative, final String elmensaje, final String sessionIDFrom,
-                                final String sessionIDTo, final String file_type, final String eph,
+    public MOKMessage sendFileMessage(final String elmensaje, final String sessionIDTo, final String file_type, final JsonObject paramsMessage,
                                 final String pushMessage, final String paramsFile){
+        MOKMessage newMessage = null;
         if(elmensaje.length()>0){
 
             try {
 
+                long datetimeorder = System.currentTimeMillis();
+                long datetime = datetimeorder/1000;
+                final String idnegative = "-" + datetime;
+                JsonObject props = new JsonObject();
+                props.addProperty("str", "0");
+                props.addProperty("encr", "1");
+                props.addProperty("device", "android");
+
+                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
+                       "" + datetime, "" + MessageTypes.blMessageDefault, paramsMessage, props);
+                newMessage.setDatetimeorder(datetimeorder);
+
+                if(aesutil == null) {
+                    initAESUtilAsync(this.sessionid, new Runnable() {
+                        @Override
+                        public void run() {
+                            sendMessage(elmensaje, sessionIDTo, pushMessage, paramsMessage);
+                        }
+                    });
+                    return newMessage;
+                }
                 JSONObject args = new JSONObject();
                 JSONObject propsMessage = new JSONObject();
-                JSONObject paramsMessage = new JSONObject();
                 propsMessage.put("cmpr", "gzip");
                 propsMessage.put("device", "android");
                 propsMessage.put("encr", "1");
-                propsMessage.put("eph", eph);
                 propsMessage.put("file_type", file_type);
                 propsMessage.put("str", "0");
                 propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
-
-                paramsMessage.put("eph", eph);
 
                 if(paramsFile!=null && paramsFile.length()>0) {
                     JsonParser parser = new JsonParser();
                     JsonObject jsonObject = parser.parse(paramsFile).getAsJsonObject();
                     if (jsonObject.has("length")) {
-                        paramsMessage.put("length", jsonObject.get("length").getAsInt());
+                        paramsMessage.addProperty("length", jsonObject.get("length").getAsInt());
                     }
                 }
 
-                args.put("sid",sessionIDFrom);
+                args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);
                 args.put("props",propsMessage);
-                args.put("params",paramsMessage);
+                if(paramsMessage != null)
+                    args.put("params",paramsMessage);
                 args.put("id",idnegative);
                 args.put("push", pushMessage.replace("\\\\","\\"));
 
@@ -1539,7 +1568,9 @@ public abstract class MonkeyKit extends Service {
                             try {
                                 JSONObject response = json.getJSONObject("data");
                                 System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
-                                executeInDelegates(CBTypes.onAcknowledgeReceived, new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, sessionIDFrom, idnegative, "", "50", new JsonObject(), new JsonObject())});
+                                executeInDelegates(CBTypes.onAcknowledgeReceived,
+                                        new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, MonkeyKit.this.sessionid,
+                                                idnegative, "", "50", new JsonObject(), new JsonObject())});
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -1549,22 +1580,14 @@ public abstract class MonkeyKit extends Service {
                         }
                     }
                 });
+                storeMessage(newMessage);
 
-            } catch(NullPointerException ex){
-                if(asynConnSocket == null)
-                    startSocketConnection(sessionIDFrom, new Runnable() {
-                        @Override
-                        public void run() {
-                            sendFileMessage(idnegative, elmensaje, sessionIDFrom, sessionIDTo,
-                                    file_type, eph, pushMessage, paramsFile);
-                        }
-                    });
-                else
-                    ex.printStackTrace();
-            } catch (Exception e) {
+            }  catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
+        return newMessage;
     }
 
     public void sendGet(final String since){

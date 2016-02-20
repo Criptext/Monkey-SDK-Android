@@ -1,7 +1,10 @@
 package com.criptext.comunication;
 
-import java.io.File;
+
 import com.google.gson.JsonObject;
+
+import java.io.File;
+
 
 public class MOKMessage {
 	
