@@ -19,6 +19,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Timer;
 
@@ -331,12 +332,13 @@ public class AsyncConnSocket implements ComServerDelegate{
                 if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
                     remote.setMsg(AESUtil.decryptWithCustomKeyAndIV(remote.getMsg(),
                             claves.split(":")[0], claves.split(":")[1]));
-            } catch (BadPaddingException ex){
+            } catch (IOException ex){
+                Log.d("MonkeyKit", "Message with content no encrypted");
+                ex.printStackTrace();
+            }
+            catch (Exception e){
                 Log.d("MonkeyKit", "BadPaddingException Wrong Keys");
                 return MessageTypes.MOKProtocolMessageWrongKeys;
-            }
-            catch(Exception ex){
-                ex.printStackTrace();
             }
         }
 		return MessageTypes.MOKProtocolMessageHasKeys;

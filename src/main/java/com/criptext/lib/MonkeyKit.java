@@ -1736,8 +1736,10 @@ public abstract class MonkeyKit extends Service {
                 System.out.println("MONKEY - Enviando Close:"+json.toString());
                 asynConnSocket.sendMessage(json);
             }
-            else
+            else {
                 System.out.println("MONKEY - no pudo enviar Close - socket desconectado");
+                onResume();//Reconecto el socket
+            }
 
         } catch(NullPointerException ex){
             if(asynConnSocket == null)

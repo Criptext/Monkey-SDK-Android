@@ -108,7 +108,7 @@ public class MonkeyInit {
 
         localJSONObject1.put("username",urlUser);
         localJSONObject1.put("password",urlPass);
-        localJSONObject1.put("session_id", "");
+        localJSONObject1.put("session_id", myOldMonkeyId);
         localJSONObject1.put("expiring","0");
         localJSONObject1.put("user_info",user_info);
 
@@ -161,8 +161,10 @@ public class MonkeyInit {
             aesUtil = new AESUtil(ctxRef.get(), sessionId);
         } catch (Exception ex){
             ex.printStackTrace();
-            KeyStoreCriptext.putString(ctxRef.get() , "", decriptedKey);
-            throw ex;
+            //Como fallo algo con esas keys las encero y creo unas nuevas
+            KeyStoreCriptext.putString(ctxRef.get(), sessionId, "");
+            aesUtil = new AESUtil(ctxRef.get(), sessionId);
+            return getSessionHTTP(this.urlUser, this.urlPass, this.fullname);
         }
 
         return sessionId;
