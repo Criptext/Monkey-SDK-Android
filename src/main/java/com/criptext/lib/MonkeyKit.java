@@ -67,6 +67,8 @@ public abstract class MonkeyKit extends Service {
     private static String lastSyncPrefs = "MonkeyKit.lastSyncTime";
     private static String lastSyncKey = "MonkeyKit.lastSyncKey";
 
+    public static String FileImage = "3", FileAudio="1";
+
     //public static String URL="http://192.168.0.102";
     //VARIABLES PARA REQUERIMIENTOS
     private AQuery aq;
@@ -1493,8 +1495,8 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
-    public MOKMessage sendFileMessage(final String elmensaje, final String sessionIDTo, final String file_type, final JsonObject paramsMessage,
-                                final String pushMessage, final String paramsFile){
+    public MOKMessage sendFileMessage(final String elmensaje, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
+                                final String pushMessage){
         MOKMessage newMessage = null;
         if(elmensaje.length()>0){
 
@@ -1509,7 +1511,7 @@ public abstract class MonkeyKit extends Service {
                 props.addProperty("device", "android");
 
                 newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
-                       "" + datetime, "" + MessageTypes.blMessageDefault, paramsMessage, props);
+                       "" + datetime, "" + file_type, paramsMessage, props);
                 newMessage.setDatetimeorder(datetimeorder);
 
                 if(aesutil == null) {
@@ -1529,14 +1531,6 @@ public abstract class MonkeyKit extends Service {
                 propsMessage.put("file_type", file_type);
                 propsMessage.put("str", "0");
                 propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
-
-                if(paramsFile!=null && paramsFile.length()>0) {
-                    JsonParser parser = new JsonParser();
-                    JsonObject jsonObject = parser.parse(paramsFile).getAsJsonObject();
-                    if (jsonObject.has("length")) {
-                        paramsMessage.addProperty("length", jsonObject.get("length").getAsInt());
-                    }
-                }
 
                 args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);

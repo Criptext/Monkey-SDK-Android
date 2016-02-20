@@ -7,11 +7,28 @@ public class MessageTypes {
 
 	public static final int MessageSocketDisconnected = -2;
 	public static final int MessageSocketConnected = -1;
+
+	public class FileTypes {
+		public static final int Default = 0;
+        public static final int Audio = 1;
+        public static final int Photo = 3;
+        public static final int Document = 4;
+        public static final int ShareAFriend = 14;
+	}
+
     public static final int blMessageDefault = 0;
     public static final int blMessageAudio = 1;
     public static final int blMessagePhoto = 3;
     public static final int blMessageDocument = 4;
     public static final int blMessageShareAFriend = 14;
+
+	public class NotificationTypes {
+		public static final int GroupAdded = 5;
+        public static final int GroupNewMember = 7;
+        public static final int GroupRemovedMember = 8;
+        public static final int UserGroupsUpdate=46;
+        public static final int ScreenCapture=60;
+	}
 
     public static final int blMessageGroupAdded = 5;
     public static final int blMessageGroupNewMember = 7;

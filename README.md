@@ -99,3 +99,53 @@ public class MyActivity extends Activity implements MonkeyKitDelegate {
     }
 ```
 
+## Sending messages
+
+You can easily send a text message using the `sendMessage()` method. It's 4
+parameters are:
+- A string with the text message
+- A string with the session ID of the user who will receive the message
+- A string with the message to show in the push notification
+- A `JsonObject` with additional parameters to send. The receiver will get the
+  exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
+  This allows you to send customized messages.
+
+The method immediately returns the message as a `MOKMessage` object as it
+asynchronously sends it into the network and stores it into the database using
+the store message method that you implemented. this `MOKMessage` object is 
+important because it contains the message ID and the timestamp that MonkeyKit 
+has given to your message. You can send a "Hello World" message like this:
+
+```
+MyMessage newMessage = new MyMessage("Hello World!");
+JsonObject params = createJsonWithAdditionalParams();
+MOKMessage sentMessage = MonkeyKit.instance().sendMessage(newMessage.getText(),
+friend.getSessionID(), "You have received a message via MonkeyKit!", params);
+newMessage.setID(sentMessage.getMessage_id());
+```
+### Sending files
+
+If you want to send a photo or a voice note you should use the
+`sendFileMessage()` method. It's 4 parameters are: 
+- A string with the absolute path to the file to upload
+- A string with the session ID of the user who will receive the message
+- A string with the file type. You should use `MessageTypes.FileTypes.Audio` for
+  audio messages and `MessageTypes.FileTypes.Photo` for Images
+- A `JsonObject` with additional parameters to send. The receiver will get the
+  exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
+  This allows you to send customized messages.
+
+The method immediately returns the message as a `MOKMessage` object as it
+asynchronously sends it into the network and stores it into the database using
+the store message method that you implemented. this `MOKMessage` object is 
+important because it contains the message ID and the timestamp that MonkeyKit 
+has given to your message. Here's an example for a voice note message:
+
+```
+//send voice note's duration in params
+JsonObject params = new JsonObject();
+params.addProperty("duration", voiceNote.getDuration()); 
+MOKMessage sentMessage =
+MonkeyKit.instance().sendFileMessage(voiceNote.getAbsolutePath(), 
+friend.getSessionID(), "You have received a voice note via MonkeyKit!", params);
+```
