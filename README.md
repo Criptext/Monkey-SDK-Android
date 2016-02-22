@@ -126,7 +126,7 @@ newMessage.setID(sentMessage.getMessage_id());
 ### Sending files
 
 If you want to send a photo or a voice note you should use the
-`sendFileMessage()` method. It's 4 parameters are: 
+`sendFileMessage()` method. Its 5 parameters are: 
 - A string with the absolute path to the file to upload
 - A string with the session ID of the user who will receive the message
 - A string with the file type. You should use `MessageTypes.FileTypes.Audio` for
@@ -134,6 +134,7 @@ If you want to send a photo or a voice note you should use the
 - A `JsonObject` with additional parameters to send. The receiver will get the
   exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
   This allows you to send customized messages.
+- A string with the message to show in the push notification
 
 The method immediately returns the message as a `MOKMessage` object as it
 asynchronously sends it into the network and stores it into the database using
@@ -148,4 +149,44 @@ params.addProperty("duration", voiceNote.getDuration());
 MOKMessage sentMessage =
 MonkeyKit.instance().sendFileMessage(voiceNote.getAbsolutePath(), 
 friend.getSessionID(), "You have received a voice note via MonkeyKit!", params);
+```
+
+## Sending notifications
+
+Sometimes you want to send data in real time to other users, but this data is only
+useful if both parties are online. For example you might to notify other users
+that you just got online, or you just changed your profile picture. It's better
+to not receive these things than to receive them late, because by then the data
+might be out of date. MonkeyKit does not persist notifications. MonkeyKit's 
+notifications are exactly this. To send a notification, use the 
+`sendNotification()` method that has the following 3 parameters:
+- A string with the session ID of the user who will receive the notifications
+- A `JsonObject` with the data  to send. The receiver will get the
+  exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
+- A string with the message to show in the push notification
+
+Here's an example of a notification that informs other users that you are
+currently online:
+
+```
+JsonObject params = new JsonObject();
+//online = 1; offline = 0
+params.addProperty("online", 0); 
+MonkeyKit.instance().sendNotification(friend.getSessionID(), params, "Your best
+friend is online!");
+```
+Notifications are received as `MOKMessage` objects in the
+`onNotificationReceived()` callback of `MonkeyKitDelegate`. You can handle
+the previously sent notification like this:
+
+```
+@Override
+    public void onNotificationReceived(MOKMessage message) {
+        String friend = getFriendBySessionID(message.getSid());
+        String text = null;
+        if(message.getParams().get("online").getAsInt() == 1)
+            text = " is online";
+        else
+            text = " is offline";
+        Toast.makeText(this, friend + text, Toast.LENGTH_SHORT).show();
 ```

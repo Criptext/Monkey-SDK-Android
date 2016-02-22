@@ -1409,7 +1409,7 @@ public abstract class MonkeyKit extends Service {
      * @param sessionIDTo
      * @param paramsObject
      */
-    public void sendNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject, final String pushMessage){
+    public void sendNotification(final String sessionIDTo, final JSONObject paramsObject, final String pushMessage){
 
 
         try {
@@ -1417,7 +1417,7 @@ public abstract class MonkeyKit extends Service {
             JSONObject args = new JSONObject();
             JSONObject json=new JSONObject();
 
-            args.put("sid",sessionIDFrom);
+            args.put("sid",this.sessionid);
             args.put("rid",sessionIDTo);
             args.put("params", paramsObject.toString());
             args.put("type", MessageTypes.MOKNotif);
@@ -1438,10 +1438,10 @@ public abstract class MonkeyKit extends Service {
 
         } catch(NullPointerException ex){
             if(asynConnSocket == null)
-                startSocketConnection(sessionIDFrom, new Runnable() {
+                startSocketConnection(this.sessionid, new Runnable() {
                     @Override
                     public void run() {
-                        sendNotification(sessionIDFrom, sessionIDTo, paramsObject, pushMessage);
+                        sendNotification(sessionIDTo, paramsObject, pushMessage);
                     }
                 });
             else
@@ -1554,23 +1554,22 @@ public abstract class MonkeyKit extends Service {
                 params.put("file", finalData);
 
                 System.out.println("send file: " + params);
-                aq.auth(handle).ajax(URL+"/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
+                aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
                     @Override
                     public void callback(String url, JSONObject json, AjaxStatus status) {
-                        if(json != null){
+                        if (json != null) {
                             System.out.println(json);
                             try {
                                 JSONObject response = json.getJSONObject("data");
-                                System.out.println("MONKEY - sendFileMessage ok - "+response.toString()+" - "+response.getString("messageId"));
+                                System.out.println("MONKEY - sendFileMessage ok - " + response.toString() + " - " + response.getString("messageId"));
                                 executeInDelegates(CBTypes.onAcknowledgeReceived,
                                         new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, MonkeyKit.this.sessionid,
                                                 idnegative, "", "50", new JsonObject(), new JsonObject())});
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                        }
-                        else{
-                            System.out.println("MONKEY - sendFileMessage error - "+status.getCode()+" - "+status.getMessage());
+                        } else {
+                            System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
                         }
                     }
                 });
