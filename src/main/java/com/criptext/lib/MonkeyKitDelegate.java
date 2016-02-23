@@ -3,45 +3,44 @@ package com.criptext.lib;
 import org.json.JSONObject;
 
 import com.criptext.comunication.MOKMessage;
-import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 
 public interface MonkeyKitDelegate {
 
-	void onSessionOK();
-	void onSessionError(String errmsg);
+	public void onSessionOK();
+	public void onSessionError(String errmsg);
 	
-	void onConnectOK(String sessionID, String lastMessageID);
-	void onConnectError(String errmsg);
+	public void onConnectOK(String sessionID, String lastMessageID);
+	public void onConnectError(String errmsg);
 	
-	void onSocketConnected();
-	void onSocketDisconnected();
+	public void onSocketConnected();
+	public void onSocketDisconnected();
 	
-	void onGetOK();
+	public void onGetOK();
 	
-	void onOpenConversationOK(String sessionID);
-	void onOpenConversationError(String errmsg);
+	public void onOpenConversationOK(String sessionID);
+	public void onOpenConversationError(String errmsg);
 	
-	void onCreateGroupOK(String grupoID);
-	void onCreateGroupError(String errmsg);
+	public void onCreateGroupOK(String grupoID);
+	public void onCreateGroupError(String errmsg);
 	
-	void onDeleteGroupOK(String grupoID);
-	void onDeleteGroupError(String errmsg);
+	public void onDeleteGroupOK(String grupoID);
+	public void onDeleteGroupError(String errmsg);
+	
+	public void onAddMemberToGroupOK();
+	public void onAddMemberToGroupError(String errmsg);
+	
+	public void onGetGroupInfoOK(JSONObject json);
+	public void onGetGroupInfoError(String errmsg);
+	
+	public void onMessageRecieved(MOKMessage message);
+	public void onAcknowledgeRecieved(MOKMessage message);
+	public void onDeleteRecieved(MOKMessage message);
+        public void onMessageSaved(MOKMessage remote);
+	
+	public void onContactOpenMyConversation(String sessionID);
+	public void onNotificationReceived(MOKMessage message);
 
-	void onAddMemberToGroupOK();
-	void onAddMemberToGroupError(String errmsg);
-	
-	void onGetGroupInfoOK(JsonObject json);
-	void onGetGroupInfoError(String errmsg);
-
-	void onMessageRecieved(MOKMessage message);
-	void onAcknowledgeRecieved(MOKMessage message);
-	void onDeleteRecieved(MOKMessage message);
-    void onMessageSaved(MOKMessage remote);
-
-	void onContactOpenMyConversation(String sessionID);
-	void onNotificationReceived(MOKMessage message);
-
-	void onMessageBatchReady(ArrayList<MOKMessage> messages);
+	public void onMessageBatchReady(ArrayList<MOKMessage> messages);
 }

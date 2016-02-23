@@ -164,6 +164,7 @@ public class MonkeyKitRealm extends MonkeyKit{
 
 }
 ```
+
 ## Register user with MonkeyKit
 
 In order to send and receive messages a user must first register and get a session id. This process should be done only once: the first time the user opens your app. To do this, first, you must create a new `MonkeyInit` object
