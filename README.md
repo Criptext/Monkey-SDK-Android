@@ -68,10 +68,10 @@ that you should persist are:
   message's type. 
 
 Here is an example of a MonkeyKit implementation using
-[Realm](https://msgRealm.io/):
+[Realm](https://realm.io/):
 
 ```
-public class CriptextService extends MonkeyKit{
+public class MonkeyKitRealm extends MonkeyKit{
     private Realm msgRealm;
 
     public RealmConfiguration getMessagesConfig(){
