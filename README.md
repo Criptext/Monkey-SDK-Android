@@ -101,18 +101,20 @@ public class MyActivity extends Activity implements MonkeyKitDelegate {
 
 ## Sending messages
 
-You can easily send a text message using the `sendMessage()` method. It's 4
-parameters are:
+With MonkeyKit, you can easily send messages to other users. All you need is the
+receiver's session ID. Both parties do not need to be online at the same time,
+as MonkeyKit will persist the message and resend it if needed. You can easily 
+send a text message using the `sendMessage()` method. Its 4 parameters are:
 - A string with the text message
 - A string with the session ID of the user who will receive the message
 - A string with the message to show in the push notification
 - A `JsonObject` with additional parameters to send. The receiver will get the
-  exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
+  exact same `JsonObject` in the `params` attribute of the `MOKMessage` class.
   This allows you to send customized messages.
 
 The method immediately returns the message as a `MOKMessage` object as it
 asynchronously sends it into the network and stores it into the database using
-the store message method that you implemented. this `MOKMessage` object is 
+the store message method that you implemented. This `MOKMessage` object is 
 important because it contains the message ID and the timestamp that MonkeyKit 
 has given to your message. You can send a "Hello World" message like this:
 
@@ -123,6 +125,21 @@ MOKMessage sentMessage = MonkeyKit.instance().sendMessage(newMessage.getText(),
 friend.getSessionID(), "You have received a message via MonkeyKit!", params);
 newMessage.setID(sentMessage.getMessage_id());
 ```
+
+To handle the sent text message, the receiver should implement the
+`onMessageReceived()` method of `MonkeyKitDelegate` like this:
+
+```
+@Override
+    public void onMessageReceived(MOKMessage message){
+        String friend = getFriendBySessionID(message.getSid());
+        String text = friend.getName() + " says: " message.getMsg();
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+    }
+```
+
+
+
 ### Sending files
 
 If you want to send a photo or a voice note you should use the
@@ -150,6 +167,71 @@ MOKMessage sentMessage =
 MonkeyKit.instance().sendFileMessage(voiceNote.getAbsolutePath(), 
 friend.getSessionID(), "You have received a voice note via MonkeyKit!", params);
 ```
+To handle the sent file message, the receiver should implement the
+`onMessageReceived()` method of `MonkeyKitDelegate` like this:
+
+```
+@Override
+    public void onMessageReceived(MOKMessage message){
+        switch(message.getType()){
+            case MessageTypes.FileTypes.Default:
+                //handle text message
+                break;
+            case MessageTypes.FileTypes.Audio:
+                //handle audio message
+                break;
+            case MessageTypes.FileTypes.Photo:
+                //handle image message
+                break;
+        }
+    }
+```
+
+Using the `getType()` method you can easily distinguish between voice notes and
+photos. Please note that MOKMessages can only contain your file's metadata. To
+view the file, you must first download it via HTTP using MonkeyKit's
+`downloadFile()` method. It has 4 parameters:
+- A string with the path in which the file will be saved after downloading.
+- the `props` attribute from `MOKMessage`. It is a `JsonObject`.
+- A string with the session ID from the user who sent the file.
+- A runnable with any code that you want to execute once the download finishes.
+
+Here's an implementation of `onMessageReceived` that plays an audio file after
+download:
+
+```
+@Override
+    public void onMessageReceived(MOKMessage message){
+        switch(message.getType()){
+            case MessageTypes.FileTypes.Default:
+                //handle text message
+                break;
+            case MessageTypes.FileTypes.Audio:
+                final String senderID = message.getSid();
+                final String filePath = this.getCacheDir().getAbsolutePath()
+                +"/"+ message.getMsg(); //getMsg() has the filename
+                Runnable runnable = new Runnable(){
+                    @Override
+                    public void run(){
+			//Play Audio
+                        MediaPlayer mPlayer = new MediaPlayer();
+			mPlayer.setDataSource(filepath);
+			mPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);		
+			mPlayer.prepare();
+			mPlayer.start(); 
+                    }
+                });
+                MonkeyKit.instance().downloadFile(filepath, senderID,
+                message.getProps(), runnable);
+                break;
+            case MessageTypes.FileTypes.Photo:
+                //handle image message
+                break;
+        }
+    }
+```
+
+
 
 ## Sending notifications
 
@@ -157,12 +239,12 @@ Sometimes you want to send data in real time to other users, but this data is on
 useful if both parties are online. For example you might to notify other users
 that you just got online, or you just changed your profile picture. It's better
 to not receive these things than to receive them late, because by then the data
-might be out of date. MonkeyKit does not persist notifications. MonkeyKit's 
-notifications are exactly this. To send a notification, use the 
-`sendNotification()` method that has the following 3 parameters:
+might be out of date. MonkeyKit's notifications are exactly this, they are not
+persisted. To send a notification, use the `sendNotification()` method that has
+the following 3 parameters:
 - A string with the session ID of the user who will receive the notifications
 - A `JsonObject` with the data  to send. The receiver will get the
-  exact same `JsonObject in the `params` attribute of the `MOKMessage` class.
+  exact same `JsonObject` in the `params` attribute of the `MOKMessage` class.
 - A string with the message to show in the push notification
 
 Here's an example of a notification that informs other users that you are
@@ -189,4 +271,5 @@ the previously sent notification like this:
         else
             text = " is offline";
         Toast.makeText(this, friend + text, Toast.LENGTH_SHORT).show();
+    }
 ```

@@ -10,9 +10,6 @@ public class MOKMessage {
 	
 	private int protocolCommand;
 	private int protocolType;
-	private String eph;
-	private String cmpr;
-	private String str;
 	private String encr;
 	private String datetime;
 	private long datetimeorder;
@@ -127,30 +124,6 @@ public class MOKMessage {
 
 	public void setParams(JsonObject params) {
 		this.params = params;
-	}
-
-	public String getEph() {
-		return eph;
-	}
-
-	public void setEph(String eph) {
-		this.eph = eph;
-	}
-
-	public String getCmpr() {
-		return cmpr;
-	}
-
-	public void setCmpr(String cmpr) {
-		this.cmpr = cmpr;
-	}
-
-	public String getStr() {
-		return str;
-	}
-
-	public void setStr(String str) {
-		this.str = str;
 	}
 
 	public String getEncr() {
