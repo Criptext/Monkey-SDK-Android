@@ -1,9 +1,7 @@
 package com.criptext.lib;
 
-import org.json.JSONObject;
-
 import com.criptext.comunication.MOKMessage;
-
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 
 public interface MonkeyKitDelegate {
@@ -31,7 +29,7 @@ public interface MonkeyKitDelegate {
 	public void onAddMemberToGroupOK();
 	public void onAddMemberToGroupError(String errmsg);
 	
-	public void onGetGroupInfoOK(JSONObject json);
+	public void onGetGroupInfoOK(JsonObject json);
 	public void onGetGroupInfoError(String errmsg);
 	
 	public void onMessageRecieved(MOKMessage message);

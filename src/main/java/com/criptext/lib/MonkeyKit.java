@@ -740,11 +740,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 String clave = params[0];
                 try {
-<<<<<<< HEAD:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
-                    if (message.getProps().get("encr").toString().compareTo("1") == 0){
-=======
                     if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
->>>>>>> ab4ff74f599075b7f0fa9a8eb625f6a0ab6f554a:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
                         //Log.d("MonkeyKit", "Decrypt: "+  message.getMsg());
                         message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
                                 clave.split(":")[0], clave.split(":")[1]));
@@ -1948,8 +1944,6 @@ public abstract class MonkeyKit extends Service {
         intent.putExtra("pass", app_key);
         intent.putExtra("startsession", false);
         context.startService(intent);
-<<<<<<< HEAD:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
-
     }
     /**
      * Devuelve el context de la applicacion. Este metodo deberia implementarse usando el context
@@ -1960,19 +1954,6 @@ public abstract class MonkeyKit extends Service {
        return getApplicationContext();
     };
 
-=======
-
-    }
-    /**
-     * Devuelve el context de la applicacion. Este metodo deberia implementarse usando el context
-     * que se obtiene al usar la clase Application para asegurar que nunca sea null.
-     * @return El context de la aplicacion
-     */
-    public Context getContext(){
-       return getApplicationContext();
-    };
-
->>>>>>> ab4ff74f599075b7f0fa9a8eb625f6a0ab6f554a:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
     /**
      * Guarda un mensaje de MonkeyKit en la base de datos. La implementacion de este metodo deberia de
      * ser asincrona para mejorar el rendimiento del servicio. MonkeyKit llamara a este metodo cada
@@ -2006,7 +1987,6 @@ public abstract class MonkeyKit extends Service {
             }
         }.execute(lastTime);
     }
-<<<<<<< HEAD:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
 
     /**
      * Obtiene el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo cada
@@ -2078,78 +2058,5 @@ public abstract class MonkeyKit extends Service {
 
         return new String[0];
 
-=======
-
-    /**
-     * Obtiene el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo cada
-     * vez que haga sync. La implementacion de este metodo debe de ser sincrona y retornar lo mas
-     * rapido posible.
-     * @return El timestamp del ultimo sync
-     */
-    public long getLastTimeSynced(){
-        SharedPreferences prefs = getContext().getSharedPreferences(lastSyncPrefs, 0);
-        return prefs.getLong(lastSyncKey, 0);
-    };
-
-    /**
-     * Guarda un mensaje que aun no se envia exitosamente en la base de datos. Es necesario persistir esto
-     * para que se pueda retransimitir en caso de que falle.  La implementacion de este metodo deberia de
-     * ser asincrona para mejorar el rendimiento del servicio.
-     * @param id id del mensaje a guardar.
-     * @param message String serializado del mensaje a guardar
-     */
-    public void addPendingMessage(String id, String message){
-        new AsyncTask<String, Integer, Integer>(){
-            @Override
-            protected Integer doInBackground(String... params) {
-                SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(params[1], params[1]);
-                return 0;
-            }
-        }.execute(id, message);
-    }
-
-    /**
-     * Elimina un mensaje de la base de datos de mensajes pendientes. MonkeyKit llamara a esta funcion
-     * despues de una transmision exitosa.  La implementacion de este metodo deberia de
-     * ser asincrona para mejorar el rendimiento del servicio.
-     * @param id Id del mensaje a borrar
-     */
-    public void removePendingMessage(String id){
-        new AsyncTask<String, Integer, Integer>(){
-            @Override
-            protected Integer doInBackground(String... params) {
-                SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.remove(params[0]);
-                return 0;
-            }
-        }.execute(id);
-    }
-
-    /**
-     * Obtiene todos los mensajes pendientes de la base de datos. MonkeyKit llamara este metodo cuando
-     * este dispuesto a retransimitir datos. La implementacion de este metodo debe de ser sincrona y
-     * retornar lo mas rapido posible.
-     * @return
-     */
-    public String[] getPendingMessages(){
-        SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
-        Map<String, ?> prefsMap = prefs.getAll();
-
-        if(prefsMap != null) {
-            int index = 0;
-            final int size = prefsMap.size();
-            String[] result = new String[size];
-            for (Map.Entry<String, ?> entry : prefsMap.entrySet()) {
-                result[index++] = entry.getValue().toString();
-            }
-            return result;
-        }
-
-        return new String[0];
-
->>>>>>> ab4ff74f599075b7f0fa9a8eb625f6a0ab6f554a:monkeyKit/src/main/java/com/criptext/lib/MonkeyKit.java
     }
 }
