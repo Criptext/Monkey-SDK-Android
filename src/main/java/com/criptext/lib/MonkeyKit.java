@@ -2003,7 +2003,7 @@ public abstract class MonkeyKit extends Service {
             protected Long doInBackground(Long... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(lastSyncPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong(lastSyncKey, params[0]);
+                editor.putLong(lastSyncKey, params[0]).apply();
                 return params[0];
             }
         }.execute(lastTime);
@@ -2033,7 +2033,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(params[1], params[1]);
+                editor.putString(params[1], params[1]).apply();
                 return 0;
             }
         }.execute(id, message);
@@ -2051,7 +2051,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.remove(params[0]);
+                editor.remove(params[0]).apply();
                 return 0;
             }
         }.execute(id);
