@@ -1283,7 +1283,10 @@ public abstract class MonkeyKit extends Service {
             try {
                 JSONObject json = jo.getJSONObject("data");
                 System.out.println("MONKEY - onGetGroupInfo - " + json);
-                executeInDelegates(CBTypes.onGetGroupInfoOK, new Object[]{json});
+
+                JsonParser jsonParser = new JsonParser();
+                JsonObject gsonObject = (JsonObject)jsonParser.parse(json.toString());
+                executeInDelegates(CBTypes.onGetGroupInfoOK, new Object[]{gsonObject});
             }
             catch(Exception e){
                 executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{""});
