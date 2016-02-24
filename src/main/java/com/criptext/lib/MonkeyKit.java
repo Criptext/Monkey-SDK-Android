@@ -1500,9 +1500,7 @@ public abstract class MonkeyKit extends Service {
 
         MOKMessage newMessage = null;
         if(pathToFile.length()>0){
-
             try {
-
                 long datetimeorder = System.currentTimeMillis();
                 long datetime = datetimeorder/1000;
                 final String idnegative = "-" + datetime;
