@@ -1271,7 +1271,10 @@ public abstract class MonkeyKit extends Service {
             try {
                 JSONObject json = jo.getJSONObject("data");
                 System.out.println("MONKEY - onGetGroupInfo - " + json);
-                executeInDelegates(CBTypes.onGetGroupInfoOK, new Object[]{json});
+
+                JsonParser jsonParser = new JsonParser();
+                JsonObject gsonObject = (JsonObject)jsonParser.parse(json.toString());
+                executeInDelegates(CBTypes.onGetGroupInfoOK, new Object[]{gsonObject});
             }
             catch(Exception e){
                 executeInDelegates(CBTypes.onGetGroupInfoError, new Object[]{""});
@@ -1494,6 +1497,7 @@ public abstract class MonkeyKit extends Service {
      */
     public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
                                 final String pushMessage){
+
         MOKMessage newMessage = null;
         if(pathToFile.length()>0){
 
@@ -1520,6 +1524,7 @@ public abstract class MonkeyKit extends Service {
                     });
                     return newMessage;
                 }
+
                 JSONObject args = new JSONObject();
                 JSONObject propsMessage = new JSONObject();
                 propsMessage.put("cmpr", "gzip");
@@ -1981,7 +1986,7 @@ public abstract class MonkeyKit extends Service {
             protected Long doInBackground(Long... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(lastSyncPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong(lastSyncKey, params[0]);
+                editor.putLong(lastSyncKey, params[0]).apply();
                 return params[0];
             }
         }.execute(lastTime);
@@ -2011,7 +2016,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(params[1], params[1]);
+                editor.putString(params[1], params[1]).apply();
                 return 0;
             }
         }.execute(id, message);
@@ -2029,7 +2034,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.remove(params[0]);
+                editor.remove(params[0]).apply();
                 return 0;
             }
         }.execute(id);

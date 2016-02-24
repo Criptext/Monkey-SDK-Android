@@ -23,7 +23,7 @@ public interface MonkeyKitDelegate {
 
 	void onAddMemberToGroupOK();
 	void onAddMemberToGroupError(String errmsg);
-	
+
 	void onGetGroupInfoOK(JsonObject json);
 	void onGetGroupInfoError(String errmsg);
 	
