@@ -361,32 +361,68 @@ download:
     }
 ```
 
-
-
 ## Sending notifications
 
-Sometimes you want to send data in real time to other users, but this data is only
-useful if both parties are online. For example you might to notify other users
-that you just got online, or you just changed your profile picture. It's better
-to not receive these things than to receive them late, because by then the data
-might be out of date. MonkeyKit's notifications are exactly this, they are not
-persisted. To send a notification, use the `sendNotification()` method that has
-the following 3 parameters:
+Notifications are messages that are not persisted in the database. Once the
+notification is received, it is processed but never stored in the database. You
+should use notifications when you want to send custom data that aren't files or
+text messages. To send a temporal notification, use the `sendNotification()` 
+method which has the following 3 parameters:
 - A string with the session ID of the user who will receive the notifications
 - A `JsonObject` with the data  to send. The receiver will get the
   exact same `JsonObject` in the `params` attribute of the `MOKMessage` class.
 - A string with the message to show in the push notification
 
-Here's an example of a notification that informs other users that you are
-currently online:
+Here's an example of a notification that informs other users that you changed
+your avatar:
+
+```
+JsonObject params = new JsonObject();
+params.addProperty("profileUpdate", "avatar"); 
+String text = user.getName() + " updated his avatar");
+MonkeyKit.instance().sendTemporalNotification(friend.getSessionID(), params,
+text);
+```
+
+Notifications are received as `MOKMessage` objects in the 
+`onNotificationReceived()` callback of `MonkeyKitDelegate`.The receiver can 
+handle the notification like this:
+
+```
+@Override
+    public void onNotificationReceived(MOKMessage message) {
+        String friend = getFriendBySessionID(message.getSid());
+        String text = null;
+        if(message.getParams().get("profileUpdate") != null && 
+            message.getParams().get("profileUpdate").getAsString.equals("avatar"))
+            updateAvatar(message.getSid());
+    }
+```
+
+## Sending temporal notifications
+
+Sometimes you want to send data in real time to other users, but this data is only
+useful if both parties are online. For example you might to notify other users
+that you just got online, or you want to tell them that you are currently typing
+a new message. It's better to not receive these things than to receive them 
+late, because by then the data might be out of date. MonkeyKit's temporal 
+notifications are exactly this, they are not resent. To send a temporal 
+notification, use the `sendTemporalNotification()` method which has the 
+following 2 parameters:
+- A string with the session ID of the user who will receive the notifications
+- A `JsonObject` with the data  to send. The receiver will get the
+  exact same `JsonObject` in the `params` attribute of the `MOKMessage` class.
+
+Here's an example of a temporal notification that informs other users that you 
+are currently online:
 
 ```
 JsonObject params = new JsonObject();
 //online = 1; offline = 0
 params.addProperty("online", 0); 
-MonkeyKit.instance().sendNotification(friend.getSessionID(), params, "Your best
-friend is online!");
+MonkeyKit.instance().sendTemporalNotification(friend.getSessionID(), params);
 ```
+
 Notifications are received as `MOKMessage` objects in the
 `onNotificationReceived()` callback of `MonkeyKitDelegate`. You can handle
 the previously sent notification like this:
@@ -396,7 +432,8 @@ the previously sent notification like this:
     public void onNotificationReceived(MOKMessage message) {
         String friend = getFriendBySessionID(message.getSid());
         String text = null;
-        if(message.getParams().get("online").getAsInt() == 1)
+        if(message.getParams().get("online") != null && 
+            message.getParams().get("online").getAsInt() == 1)
             text = " is online";
         else
             text = " is offline";
