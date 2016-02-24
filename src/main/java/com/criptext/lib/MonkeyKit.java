@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.crypto.BadPaddingException;
 
@@ -39,6 +40,7 @@ import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -1491,11 +1493,11 @@ public abstract class MonkeyKit extends Service {
      * @param pathToFile Ruta del archivo
      * @param sessionIDTo session ID del destinatario del archivo
      * @param file_type tipo de archivo. Debe de ser igual a una de las constantes de MessageTypes.FileTypes
-     * @param paramsMessage JsonObject con parametros adicionales que necesita la aplicacion
+     * @param gsonParamsMessage JsonObject con parametros adicionales que necesita la aplicacion
      * @param pushMessage Mensaje a mostrar en el push notification
      * @return
      */
-    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
+    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
                                 final String pushMessage){
 
         MOKMessage newMessage = null;
@@ -1510,14 +1512,14 @@ public abstract class MonkeyKit extends Service {
                 props.addProperty("device", "android");
 
                 newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, pathToFile,
-                       "" + datetime, "" + file_type, paramsMessage, props);
+                       "" + datetime, "" + file_type, gsonParamsMessage, props);
                 newMessage.setDatetimeorder(datetimeorder);
 
                 if(aesutil == null) {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendFileMessage(pathToFile, sessionIDTo, file_type, paramsMessage, pushMessage);
+                            sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage);
                         }
                     });
                     return newMessage;
@@ -1525,6 +1527,7 @@ public abstract class MonkeyKit extends Service {
 
                 JSONObject args = new JSONObject();
                 JSONObject propsMessage = new JSONObject();
+                JSONObject paramsMessage = new JSONObject();
                 propsMessage.put("cmpr", "gzip");
                 propsMessage.put("device", "android");
                 propsMessage.put("encr", "1");
@@ -1535,8 +1538,12 @@ public abstract class MonkeyKit extends Service {
                 args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);
                 args.put("props",propsMessage);
-                if(paramsMessage != null)
-                    args.put("params",paramsMessage);
+
+                if(gsonParamsMessage != null) {
+                    paramsMessage = new JSONObject(gsonParamsMessage.toString());
+                }
+
+                args.put("params", paramsMessage);
                 args.put("id",idnegative);
                 args.put("push", pushMessage.replace("\\\\","\\"));
 
