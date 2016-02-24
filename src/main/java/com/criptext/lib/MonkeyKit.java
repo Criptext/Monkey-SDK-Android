@@ -1504,7 +1504,6 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
-
     /**
      * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
      * y posteriormente el archivo es subido por HTTP al servidor
@@ -1515,8 +1514,7 @@ public abstract class MonkeyKit extends Service {
      * @param pushMessage Mensaje a mostrar en el push notification
      * @return
      */
-    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
-                                final String pushMessage){
+    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject paramsMessage, final String pushMessage){
         MOKMessage newMessage = null;
         if(pathToFile.length()>0){
 
