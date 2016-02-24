@@ -666,6 +666,13 @@ public abstract class MonkeyKit extends Service {
     }
     /************************************************************************/
 
+    /**
+     * Descarga un archivo del servidor de MonkeyKit por HTTP.
+     * @param filepath ruta absoluta del lugar donde se guardara el archivo
+     * @param props JsonObject con los props del MOKMessage que tenia el mensaje al ser transmitido
+     * @param sender_id session ID del usuario que envio el archivo
+     * @param runnable Runnable con el codigo que se desee ejecutar una vez que la descarga termine.
+     */
     public void downloadFile(String filepath, final JsonObject props, final String sender_id,
                              final Runnable runnable){
 
@@ -1402,10 +1409,11 @@ public abstract class MonkeyKit extends Service {
     }
 
     /**
-     * Envia una notificación.
-     * @param sessionIDFrom
-     * @param sessionIDTo
-     * @param paramsObject
+     * Envia una notificación a traves de MonkeyKit. Las notificaciones no se persisten. Si el
+     * destinatario no la pudo recibir a tiempo, no la recibira nunca
+     * @param sessionIDTo session ID del usuario que recibira la notificacion
+     * @param paramsObject JsonObject con parametros adicionales que necesita la aplicacion
+     * @param pushMessage Mensaje a mostrar en el push notification
      */
     public void sendNotification(final String sessionIDTo, final JSONObject paramsObject, final String pushMessage){
 
@@ -1455,14 +1463,14 @@ public abstract class MonkeyKit extends Service {
      * @param sessionIDTo
      * @param paramsObject
      */
-    public void sendTemporalNotification(final String sessionIDFrom, final String sessionIDTo, final JSONObject paramsObject){
+    public void sendTemporalNotification(final String sessionIDTo, final JSONObject paramsObject){
 
         try {
 
             JSONObject args = new JSONObject();
             JSONObject json=new JSONObject();
 
-            args.put("sid",sessionIDFrom);
+            args.put("sid",this.sessionid);
             args.put("rid",sessionIDTo);
             args.put("params", paramsObject.toString());
             args.put("type", MessageTypes.MOKTempNote);
@@ -1480,10 +1488,10 @@ public abstract class MonkeyKit extends Service {
 
         } catch(NullPointerException ex){
             if(asynConnSocket == null)
-                startSocketConnection(sessionIDFrom, new Runnable() {
+                startSocketConnection(MonkeyKit.this.sessionid, new Runnable() {
                     @Override
                     public void run() {
-                        sendTemporalNotification(sessionIDFrom, sessionIDTo, paramsObject);
+                        sendTemporalNotification(sessionIDTo, paramsObject);
                     }
                 });
             else
@@ -1493,10 +1501,20 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
-    public MOKMessage sendFileMessage(final String elmensaje, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
+    /**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor
+     * @param pathToFile Ruta del archivo
+     * @param sessionIDTo session ID del destinatario del archivo
+     * @param file_type tipo de archivo. Debe de ser igual a una de las constantes de MessageTypes.FileTypes
+     * @param paramsMessage JsonObject con parametros adicionales que necesita la aplicacion
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return
+     */
+    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject paramsMessage,
                                 final String pushMessage){
         MOKMessage newMessage = null;
-        if(elmensaje.length()>0){
+        if(pathToFile.length()>0){
 
             try {
 
@@ -1508,7 +1526,7 @@ public abstract class MonkeyKit extends Service {
                 props.addProperty("encr", "1");
                 props.addProperty("device", "android");
 
-                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
+                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, pathToFile,
                        "" + datetime, "" + file_type, paramsMessage, props);
                 newMessage.setDatetimeorder(datetimeorder);
 
@@ -1516,7 +1534,7 @@ public abstract class MonkeyKit extends Service {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendMessage(elmensaje, sessionIDTo, pushMessage, paramsMessage);
+                            sendFileMessage(pathToFile, sessionIDTo, file_type, paramsMessage, pushMessage);
                         }
                     });
                     return newMessage;
@@ -1528,7 +1546,7 @@ public abstract class MonkeyKit extends Service {
                 propsMessage.put("encr", "1");
                 propsMessage.put("file_type", file_type);
                 propsMessage.put("str", "0");
-                propsMessage.put("ext", FilenameUtils.getExtension(elmensaje));
+                propsMessage.put("ext", FilenameUtils.getExtension(pathToFile));
 
                 args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);
@@ -1540,7 +1558,7 @@ public abstract class MonkeyKit extends Service {
 
                 Map<String, Object> params = new HashMap<String, Object>();
                 params.put("data", args.toString());
-                byte[] finalData=IOUtils.toByteArray(new FileInputStream(elmensaje));
+                byte[] finalData=IOUtils.toByteArray(new FileInputStream(pathToFile));
 
                 //COMPRIMIMOS CON GZIP
                 Compressor compressor = new Compressor();
