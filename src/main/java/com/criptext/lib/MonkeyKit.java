@@ -151,12 +151,6 @@ public abstract class MonkeyKit extends Service {
 
     public void executeInDelegates(CBTypes method, Object[] info){
         switch(method){
-            case onSessionOK:{
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onSessionOK();
-                }
-            }
-            break;
             case onConnectOK: {
                 for(int i=0;i<delegates.size();i++){
                     delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
@@ -169,9 +163,7 @@ public abstract class MonkeyKit extends Service {
             break;
             case onMessageReceived:
             {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onMessageRecieved((MOKMessage)info[0]);
-                }
+
                 //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
                 MOKMessage message = (MOKMessage)info[0];
                 int tipo = CriptextDBHandler.getMonkeyActionType(message);
@@ -184,13 +176,6 @@ public abstract class MonkeyKit extends Service {
                          //       CriptextDBHandler.getMonkeyActionType(message), getContext()));
                         break;
                     }
-                }
-            }
-            break;
-            case onMessageSaved:
-            {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onMessageSaved((MOKMessage) info[0]);
                 }
             }
             break;
@@ -227,12 +212,6 @@ public abstract class MonkeyKit extends Service {
             case onConnectError:{
                 for(int i=0;i<delegates.size();i++){
                     delegates.get(i).onConnectError((String) info[0]);
-                }
-            }
-            break;
-            case onGetOK: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onGetOK();
                 }
             }
             break;
@@ -315,6 +294,7 @@ public abstract class MonkeyKit extends Service {
             }
             break;
             case onMessageBatchReady: {
+                sendGetOK();
                 final ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
                 storeMessageBatch(batch);
             }
@@ -329,9 +309,10 @@ public abstract class MonkeyKit extends Service {
     }
 
     public void messageStored(MOKMessage message){
-
-        executeInDelegates(MonkeyKit.CBTypes.onMessageSaved, new Object[]{message});
-
+        if(!message.getSid().equals(this.sessionid))
+            for(int i=0;i<delegates.size();i++){
+                        delegates.get(i).onMessageRecieved(message);
+            }
     }
 
     private void initAESUtilAsync(final String sessionId, final Runnable runnable){
@@ -1939,11 +1920,11 @@ public abstract class MonkeyKit extends Service {
                     break;
                 }
                 case MessageTypes.MOKProtocolGet: {
-                    libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onNotificationReceived, new Object[]{message});
                     break;
                 }
                 case MessageTypes.MOKProtocolSync: {
-                    libWeakReference.get().executeInDelegates(CBTypes.onMessageReceived, new Object[]{message});
+                    libWeakReference.get().executeInDelegates(CBTypes.onNotificationReceived, new Object[]{message});
                     break;
                 }
                 default:

@@ -191,7 +191,6 @@ public class AsyncConnSocket implements ComServerDelegate{
 		System.out.println("MOK PROTOCOL SYNC");
 		JsonObject props = new JsonObject(), params = new JsonObject();
         MonkeyKit.instance().watchdog.didResponseGet=true;
-        MonkeyKit.instance().sendGetOK();
 		MOKMessage remote;
         if(args.get("type").getAsInt() == 1) {
             JsonArray array = args.get("messages").getAsJsonArray();
