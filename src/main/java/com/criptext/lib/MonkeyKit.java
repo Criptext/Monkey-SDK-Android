@@ -2021,7 +2021,7 @@ public abstract class MonkeyKit extends Service {
             protected Integer doInBackground(String... params) {
                 SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(params[1], params[1]).apply();
+                editor.putString(params[0], params[1]).apply();
                 return 0;
             }
         }.execute(id, message);
@@ -2034,6 +2034,8 @@ public abstract class MonkeyKit extends Service {
      * @param id Id del mensaje a borrar
      */
     public void removePendingMessage(String id){
+        if(id!=null && id.length()==0)
+            return;
         new AsyncTask<String, Integer, Integer>(){
             @Override
             protected Integer doInBackground(String... params) {
