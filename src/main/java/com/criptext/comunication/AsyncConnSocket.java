@@ -333,7 +333,6 @@ public class AsyncConnSocket implements ComServerDelegate{
                             claves.split(":")[0], claves.split(":")[1]));
             } catch (IOException ex){
                 Log.d("MonkeyKit", "Message with content no encrypted");
-                ex.printStackTrace();
             }
             catch (Exception e){
                 Log.d("MonkeyKit", "BadPaddingException Wrong Keys");
