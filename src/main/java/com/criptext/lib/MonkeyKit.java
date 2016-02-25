@@ -243,18 +243,6 @@ public abstract class MonkeyKit extends Service {
                 }
             }
             break;
-            case onAddMemberToGroupOK: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onAddMemberToGroupOK();
-                }
-            }
-            break;
-            case onAddMemberToGroupError: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onAddMemberToGroupError((String) info[0]);
-                }
-            }
-            break;
             case onContactOpenMyConversation: {
                 for(int i=0;i<delegates.size();i++){
                     delegates.get(i).onContactOpenMyConversation((String) info[0]);
@@ -1515,9 +1503,12 @@ public abstract class MonkeyKit extends Service {
                             try {
                                 JSONObject response = json.getJSONObject("data");
                                 System.out.println("MONKEY - sendFileMessage ok - " + response.toString() + " - " + response.getString("messageId"));
+                                JsonObject props = new JsonObject();
+                                props.addProperty("status", MessageTypes.Status.delivered);
+                                props.addProperty("old_id", "-" + response.getString("messageId"));
                                 executeInDelegates(CBTypes.onAcknowledgeReceived,
                                         new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, MonkeyKit.this.sessionid,
-                                                idnegative, "", "50", new JsonObject(), new JsonObject())});
+                                                idnegative, "", "50", new JsonObject(), props)});
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
