@@ -57,10 +57,9 @@ import android.util.Log;
 
 public abstract class MonkeyKit extends Service {
 
-    public enum CBTypes { onSessionOK, onSessionError, onConnectOK, onMessageReceived,
-        onMessageSaved, onAcknowledgeReceived, onSocketConnected, onSocketDisconnected, onConnectError,
-        onGetOK, onOpenConversationOK, onOpenConversationError, onDeleteReceived, onCreateGroupOK,
-        onCreateGroupError, onDeleteGroupOK, onDeleteGroupError, onAddMemberToGroupOK, onAddMemberToGroupError,
+    public enum CBTypes { onMessageReceived, onAcknowledgeReceived, onSocketConnected, onSocketDisconnected,
+        onConnectOK, onNetworkError, onDeleteReceived, onCreateGroupOK, onCreateGroupError,
+        onDeleteGroupOK, onDeleteGroupError, onAddMemberToGroupOK, onAddMemberToGroupError,
         onContactOpenMyConversation, onGetGroupInfoOK, onGetGroupInfoError, onNotificationReceived,
         onMessageBatchReady}
 
@@ -154,12 +153,9 @@ public abstract class MonkeyKit extends Service {
     public void executeInDelegates(CBTypes method, Object[] info){
         switch(method){
             case onConnectOK: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onConnectOK((String)info[0],(String)info[1]);
-                }
-                if(info[1]!=null && ((String)info[1]).compareTo("null")!=0) {
-                    if(Long.parseLong((String)info[1]) >= getLastTimeSynced())
-                        setLastTimeSynced(Long.parseLong((String) info[1]));
+                if(info[0]!=null && ((String)info[0]).compareTo("null")!=0) {
+                    if(Long.parseLong((String)info[0]) >= getLastTimeSynced())
+                        setLastTimeSynced(Long.parseLong((String) info[0]));
                 }
             }
             break;
@@ -211,21 +207,9 @@ public abstract class MonkeyKit extends Service {
                 }
             }
             break;
-            case onConnectError:{
+            case onNetworkError:{
                 for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onConnectError((String) info[0]);
-                }
-            }
-            break;
-            case onOpenConversationOK: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onOpenConversationOK((String) info[0]);
-                }
-            }
-            break;
-            case onOpenConversationError: {
-                for(int i=0;i<delegates.size();i++){
-                    delegates.get(i).onOpenConversationError((String) info[0]);
+                    delegates.get(i).onNetworkError((Exception) info[0]);
                 }
             }
             break;
@@ -380,7 +364,7 @@ public abstract class MonkeyKit extends Service {
                         didGenerateAESKeys();
                     } else {
                         System.out.println("CRIPTEXTLIB - no hago startsession");
-                        executeInDelegates(CBTypes.onConnectOK, new Object[]{sessionId, null});
+                        executeInDelegates(CBTypes.onConnectOK, new Object[]{null});
                         /****COMIENZA CONEXION CON EL SOCKET*****/
                         startSocketConnection(sessionId, null);
                     }
@@ -432,7 +416,7 @@ public abstract class MonkeyKit extends Service {
                     try {
                         JSONObject json = jo.getJSONObject("data");
 
-                        executeInDelegates(CBTypes.onConnectOK, new Object[]{sessionid, json.getString("last_time_synced")});
+                        executeInDelegates(CBTypes.onConnectOK, new Object[]{json.getString("last_time_synced")});
                         shouldAskForGroups=true;
                         //Get data from JSON
                         Log.d("RSADecrypt", json.toString());
@@ -467,12 +451,13 @@ public abstract class MonkeyKit extends Service {
                         }.execute();
                     }
                     catch (Exception e) {
-                        executeInDelegates(CBTypes.onConnectError, new Object[]{"Error at onUserSync"});
+                        executeInDelegates(CBTypes.onNetworkError, new Object[]{e});
                         e.printStackTrace();
                     }
                 }
                 else{
-                    executeInDelegates(CBTypes.onConnectError, new Object[]{status.getCode()+" - "+status.getMessage()});
+                    executeInDelegates(CBTypes.onNetworkError, new Object[]{
+                            new Exception(status.getCode()+" - "+status.getMessage())});
                 }
             }
 
@@ -553,8 +538,6 @@ public abstract class MonkeyKit extends Service {
                     String pubKey=json.getString("publicKey");
                     pubKey=pubKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("\n-----END PUBLIC KEY-----", "");
 
-                    executeInDelegates(CBTypes.onSessionOK,new Object[]{""});
-
                     //Encrypt workers
                     RSAUtil rsa = new RSAUtil(Base64.decode(pubKey.getBytes(),0));
                     String usk=rsa.encrypt(aesutil.strKey+":"+aesutil.strIV);
@@ -580,12 +563,13 @@ public abstract class MonkeyKit extends Service {
                     aq.auth(handle).ajax(cb);
 
             } catch (Exception e) {
-                executeInDelegates(CBTypes.onSessionError, new Object[]{"Error at onSession"});
+                executeInDelegates(CBTypes.onNetworkError, new Object[]{e});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates(CBTypes.onSessionError, new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onNetworkError, new Object[]{
+                    new Exception(status.getCode()+" - "+status.getMessage())});
         }
 
     }
@@ -604,12 +588,13 @@ public abstract class MonkeyKit extends Service {
                 startSocketConnection(sessionId, null);
 
             } catch (Exception e) {
-                executeInDelegates(CBTypes.onConnectError, new Object[]{"Error at onConnect"});
+                executeInDelegates(CBTypes.onNetworkError, new Object[]{e});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates(CBTypes.onConnectError, new Object[]{status.getCode()+" - "+status.getMessage()});
+            executeInDelegates(CBTypes.onNetworkError, new Object[]{
+                    new Exception(status.getCode()+" - "+status.getMessage())});
         }
     }
 
@@ -768,7 +753,7 @@ public abstract class MonkeyKit extends Service {
      */
     public void sendGetOK(){
         Log.d("MonkeyKit", "SyncOK");
-        executeInDelegates(CBTypes.onGetOK, new Object[]{});
+        //executeInDelegates(CBTypes.onGetOK, new Object[]{});
     }
 
     /************************************************************************/
@@ -946,7 +931,6 @@ public abstract class MonkeyKit extends Service {
                 String desencriptConvKey=aesutil.decrypt(convKey);
 
                 KeyStoreCriptext.putString(getContext(), json.getString("session_to"), desencriptConvKey);
-                executeInDelegates(CBTypes.onOpenConversationOK, new Object[]{json.getString("session_to")});
 
                 //SI HAY MENSAJES QUE NO SE HAN PODIDO DESENCRIPTAR
                 if(messagesToSendAfterOpen.size()>0){
@@ -985,12 +969,10 @@ public abstract class MonkeyKit extends Service {
                 }
             }
             catch (Exception e) {
-                executeInDelegates(CBTypes.onOpenConversationError, new Object[]{""});
                 e.printStackTrace();
             }
         }
         else{
-            executeInDelegates(CBTypes.onOpenConversationError, new Object[]{status.getCode()+" - "+status.getMessage()});
         }
     }
 
@@ -1073,41 +1055,6 @@ public abstract class MonkeyKit extends Service {
         } catch (IOException ex){
             ex.printStackTrace();
         }
-    }
-
-    public void subscribePush(String token, String sessionId){
-
-        try {
-
-            String urlconnect = URL+"/push/subscribe";
-            AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
-
-            JSONObject localJSONObject1 = new JSONObject();
-            localJSONObject1.put("token",token);
-            localJSONObject1.put("device","android");
-            localJSONObject1.put("mode","1");
-            localJSONObject1.put("userid",sessionId);
-
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("data", localJSONObject1.toString());
-
-            cb.url(urlconnect).type(JSONObject.class).weakHandler(MonkeyKit.this, "onSubscribePush");
-            cb.params(params);
-
-            aq.auth(handle).ajax(cb);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void onSubscribePush(String url, final JSONObject json, com.androidquery.callback.AjaxStatus status) {
-
-        if(json!=null){
-            System.out.println("MONKEY - onSubscribePushOK");
-        }
-        else
-            System.out.println("MONKEY - onSubscribePushError - "+status.getCode()+" - "+status.getMessage());
     }
 
     /************************************************************************/
