@@ -311,10 +311,16 @@ public abstract class MonkeyKit extends Service {
     }
 
     public void messageStored(MOKMessage message){
-        if(!message.getSid().equals(this.sessionid))
-            for(int i=0;i<delegates.size();i++){
-                        delegates.get(i).onMessageRecieved(message);
+        if(!message.getSid().equals(this.sessionid)) {
+            for (int i = 0; i < delegates.size(); i++) {
+                delegates.get(i).onMessageRecieved(message);
             }
+        }
+        else{
+            JSONObject jsonMessage = getPendingMessage(message.getMessage_id());
+            if(jsonMessage!=null && jsonMessage.length()>0)
+                sendJSONviaSocket(jsonMessage);
+        }
     }
 
     private void initAESUtilAsync(final String sessionId, final Runnable runnable){
@@ -1370,9 +1376,6 @@ public abstract class MonkeyKit extends Service {
                         }
                     });
                     return newMessage;
-                } else if(asynConnSocket.isConnected()){
-                    System.out.println("MONKEY - Enviando mensaje:"+json.toString());
-                    asynConnSocket.sendMessage(json);
                 }
 
                 storeMessage(newMessage);
@@ -1445,7 +1448,6 @@ public abstract class MonkeyKit extends Service {
 
     /**
      * Envia una notificación.
-     * @param sessionIDFrom
      * @param sessionIDTo
      * @param paramsObject
      */
@@ -2025,6 +2027,21 @@ public abstract class MonkeyKit extends Service {
                 return 0;
             }
         }.execute(id, message);
+    }
+
+    /**
+     * Obtiene un mensaje pendiente de la base de datos. MonkeyKit llamara este metodo despues
+     * de que termine de grabar en la base
+     * @param id id del mensaje a recuperar.
+     * @return
+     */
+    public JSONObject getPendingMessage(String id){
+        SharedPreferences prefs = getContext().getSharedPreferences(transitionMessagesPrefs, 0);
+        try {
+            return new JSONObject(prefs.getString(id,""));
+        } catch (JSONException e) {
+            return null;
+        }
     }
 
     /**
