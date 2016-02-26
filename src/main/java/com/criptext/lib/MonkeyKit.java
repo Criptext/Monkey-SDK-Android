@@ -1318,8 +1318,6 @@ public abstract class MonkeyKit extends Service {
             JSONObject json= createSendJSON(newMessage.getMessage_id(), newMessage.getRid(),
                     newMessage.getMsg(), pushMessage, newMessage.getParams(), newMessage.getProps());
 
-            addMessageToWatchdog(json);
-
             if(asynConnSocket == null) {
                 System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
                 startSocketConnection(this.sessionid, new Runnable() {
@@ -1331,6 +1329,8 @@ public abstract class MonkeyKit extends Service {
 
                 return newMessage;
             }
+
+            addMessageToWatchdog(json);
 
             if(persist)
                 storeMessage(newMessage);
@@ -1385,8 +1385,6 @@ public abstract class MonkeyKit extends Service {
                 JSONObject json= createSendJSON(idnegative, sessionIDTo, elmensaje, pushMessage,
                         params, props);
 
-                addMessageToWatchdog(json);
-
                 if(asynConnSocket == null) {
                     System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
                     startSocketConnection(this.sessionid, new Runnable() {
@@ -1398,6 +1396,7 @@ public abstract class MonkeyKit extends Service {
                     return newMessage;
                 }
 
+                addMessageToWatchdog(json);
                 if(persist)
                     storeMessage(newMessage);
                 return newMessage;
