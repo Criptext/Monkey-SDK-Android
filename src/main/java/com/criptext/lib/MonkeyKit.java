@@ -276,13 +276,13 @@ public abstract class MonkeyKit extends Service {
 
     }
 
-    public void batchStored(ArrayList<MOKMessage> batch){
+    public void notifyBatchStored(ArrayList<MOKMessage> batch){
         for (int i = 0; i < delegates.size(); i++) {
             delegates.get(i).onMessageBatchReady(batch);
          }
     }
 
-    public void messageStored(MOKMessage message){
+    public void notifyMessageStored(MOKMessage message){
         if(!message.getSid().equals(this.sessionid)) {
             for (int i = 0; i < delegates.size(); i++) {
                 delegates.get(i).onMessageRecieved(message);
