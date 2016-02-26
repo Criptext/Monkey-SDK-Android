@@ -1255,7 +1255,95 @@ public abstract class MonkeyKit extends Service {
 
     }
 
-    public MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
+    public MOKMessage createMOKMessage(String textMessage, String sessionIDTo, int type, JsonObject params){
+        long datetimeorder = System.currentTimeMillis();
+        long datetime = datetimeorder/1000;
+        final String idnegative = "-" + datetime;
+        MOKMessage message = new MOKMessage(idnegative, this.sessionid, sessionIDTo, textMessage,
+               "" + datetime, "" + type, params, null);
+        message.setDatetimeorder(datetimeorder);
+        return message;
+    }
+
+    private JSONObject createSendJSON(String idnegative, String sessionIDTo, String elmensaje,
+                                      String pushMessage, JsonObject params, JsonObject props){
+
+        JSONObject args=new JSONObject();
+        JSONObject json=new JSONObject();
+        try {
+            args.put("id", idnegative);
+            args.put("sid", this.sessionid);
+            args.put("rid", sessionIDTo);
+            args.put("msg", aesutil.encrypt(elmensaje));
+            args.put("type", MessageTypes.MOKText);
+            args.put("push", pushMessage.replace("\\\\", "\\"));
+            if (params != null)
+                args.put("params", params.toString());
+            if (props != null)
+                args.put("props", props.toString());
+
+            json.put("args", args);
+            json.put("cmd", MessageTypes.MOKProtocolMessage);
+        } catch(Exception ex){
+            ex.printStackTrace();
+        }
+
+        return json;
+    }
+
+    private JsonObject createSendProps(){
+        JsonObject props = new JsonObject();
+        props.addProperty("str", "0");
+        props.addProperty("encr", "1");
+        props.addProperty("device", "android");
+        return props;
+    }
+
+
+    public MOKMessage persistMessageAndSend(final MOKMessage newMessage, final String pushMessage){
+
+        try {
+
+            JsonObject props = createSendProps();
+            newMessage.setProps(props);
+
+            if(aesutil == null) {
+                initAESUtilAsync(this.sessionid, new Runnable() {
+                    @Override
+                    public void run() {
+                        persistMessageAndSend(newMessage, pushMessage);
+                    }
+                });
+               return newMessage;
+            }
+
+            JSONObject json= createSendJSON(newMessage.getMessage_id(), newMessage.getRid(),
+                    newMessage.getMsg(), pushMessage, newMessage.getParams(), newMessage.getProps());
+
+            addMessageToWatchdog(json);
+
+            if(asynConnSocket == null) {
+                System.out.println("MONKEY - no pudo enviar mensaje - socket desconectado");
+                startSocketConnection(this.sessionid, new Runnable() {
+                    @Override
+                    public void run() {
+                        persistMessageAndSend(newMessage, pushMessage);
+                    }
+                });
+
+                return newMessage;
+            }
+
+            storeMessage(newMessage);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    return newMessage;
+
+    }
+    public MOKMessage persistMessageAndSend(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params){
 
         MOKMessage newMessage = null;
@@ -1265,10 +1353,7 @@ public abstract class MonkeyKit extends Service {
                 long datetimeorder = System.currentTimeMillis();
                 long datetime = datetimeorder/1000;
                 final String idnegative = "-" + datetime;
-                JsonObject props = new JsonObject();
-                props.addProperty("str", "0");
-                props.addProperty("encr", "1");
-                props.addProperty("device", "android");
+                JsonObject props = createSendProps();
 
                 newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
                         "" + datetime, "" + MessageTypes.blMessageDefault, params, props);
@@ -1278,27 +1363,14 @@ public abstract class MonkeyKit extends Service {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendMessage(elmensaje, sessionIDTo, pushMessage, params);
+                            persistMessageAndSend(elmensaje, sessionIDTo, pushMessage, params);
                         }
                     });
                     return newMessage;
                 }
-                JSONObject args=new JSONObject();
-                JSONObject json=new JSONObject();
 
-                args.put("id",idnegative);
-                args.put("sid", this.sessionid);
-                args.put("rid", sessionIDTo);
-                args.put("msg", aesutil.encrypt(elmensaje));
-                args.put("type", MessageTypes.MOKText);
-                args.put("push", pushMessage.replace("\\\\","\\"));
-                if(params != null)
-                    args.put("params", params.toString());
-                if(props != null)
-                    args.put("props", props.toString());
-
-                json.put("args", args);
-                json.put("cmd", MessageTypes.MOKProtocolMessage);
+                JSONObject json= createSendJSON(idnegative, sessionIDTo, elmensaje, pushMessage,
+                        params, props);
 
                 addMessageToWatchdog(json);
 
@@ -1307,7 +1379,7 @@ public abstract class MonkeyKit extends Service {
                     startSocketConnection(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendMessage(elmensaje, sessionIDTo, pushMessage, params);
+                            persistMessageAndSend(elmensaje, sessionIDTo, pushMessage, params);
                         }
                     });
                     return newMessage;
