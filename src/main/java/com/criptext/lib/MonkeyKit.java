@@ -1299,9 +1299,7 @@ public abstract class MonkeyKit extends Service {
         return props;
     }
 
-
-    public MOKMessage persistMessageAndSend(final MOKMessage newMessage, final String pushMessage){
-
+    private MOKMessage sendMessage(final MOKMessage newMessage, final String pushMessage, boolean persist){
         try {
 
             JsonObject props = createSendProps();
@@ -1334,17 +1332,32 @@ public abstract class MonkeyKit extends Service {
                 return newMessage;
             }
 
-            storeMessage(newMessage);
+            if(persist)
+                storeMessage(newMessage);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
 
     return newMessage;
+    }
 
+
+    /**
+     * Guarda un mensaje en la base de datos usando el metodo storeMessage() y luego lo envia.
+     * @param newMessage
+     * @param pushMessage
+     * @return
+     */
+    public MOKMessage persistMessageAndSend(final MOKMessage newMessage, final String pushMessage){
+        return sendMessage(newMessage, pushMessage, true);
     }
     public MOKMessage persistMessageAndSend(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params){
+        return sendMessage(elmensaje, sessionIDTo, pushMessage, params, true);
+                            }
+    private MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
+                            final String pushMessage, final JsonObject params, final boolean persist){
 
         MOKMessage newMessage = null;
         if(elmensaje.length()>0){
@@ -1363,7 +1376,7 @@ public abstract class MonkeyKit extends Service {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            persistMessageAndSend(elmensaje, sessionIDTo, pushMessage, params);
+                            sendMessage(elmensaje, sessionIDTo, pushMessage, params, persist);
                         }
                     });
                     return newMessage;
@@ -1379,13 +1392,14 @@ public abstract class MonkeyKit extends Service {
                     startSocketConnection(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            persistMessageAndSend(elmensaje, sessionIDTo, pushMessage, params);
+                            sendMessage(elmensaje, sessionIDTo, pushMessage, params, persist);
                         }
                     });
                     return newMessage;
                 }
 
-                storeMessage(newMessage);
+                if(persist)
+                    storeMessage(newMessage);
                 return newMessage;
             }
             catch (Exception e) {
@@ -1395,6 +1409,20 @@ public abstract class MonkeyKit extends Service {
         }
 
         return null;
+    }
+
+    /**
+     * Envia un mensaje sin guardarlo en la base de datos.
+     * @param elmensaje el texto del mensaje
+     * @param sessionIDTo session ID del remitente
+     * @param pushMessage mensaje a enviar en el push notification
+     * @param params JsonObject con el params a enviar en el MOKMessage
+     * @return el MOKMessage enviado.
+     */
+    public MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
+                            final String pushMessage, final JsonObject params){
+        return sendMessage(elmensaje, sessionIDTo, pushMessage, params, false);
+
     }
 
     public void sendJSONviaSocket(JSONObject params){
@@ -1496,6 +1524,99 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    private void handleSentFile(JSONObject json, MOKMessage newMessage){
+        System.out.println(json);
+        try {
+            JSONObject response = json.getJSONObject("data");
+            System.out.println("MONKEY - sendFileMessage ok - " + response.toString() + " - " + response.getString("messageId"));
+            JsonObject props = new JsonObject();
+            props.addProperty("status", MessageTypes.Status.delivered);
+            props.addProperty("old_id", "-" + response.getString("messageId"));
+            executeInDelegates(CBTypes.onAcknowledgeReceived,
+                    new Object[]{new MOKMessage(response.getString("messageId"), newMessage.getRid(), MonkeyKit.this.sessionid,
+                            newMessage.getMessage_id(), "", "50", new JsonObject(), props)});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+/**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor
+     * @param newMessage MOKMessage a enviar
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return
+     */
+    private MOKMessage sendFileMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
+
+            try {
+                long datetimeorder = System.currentTimeMillis();
+                long datetime = datetimeorder/1000;
+                final String idnegative = "-" + datetime;
+                JsonObject propsMessage = createSendProps();
+                propsMessage.addProperty("cmpr", "gzip");
+                propsMessage.addProperty("file_type", newMessage.getType());
+                propsMessage.addProperty("ext", FilenameUtils.getExtension(newMessage.getMsg()));
+                newMessage.setProps(propsMessage);
+
+                if(aesutil == null) {
+                    initAESUtilAsync(this.sessionid, new Runnable() {
+                        @Override
+                        public void run() {
+                            sendFileMessage(newMessage, pushMessage, persist);
+                        }
+                    });
+                    return newMessage;
+                }
+
+                JSONObject args = new JSONObject();
+                JSONObject paramsMessage = new JSONObject();
+
+                args.put("sid",this.sessionid);
+                args.put("rid",newMessage.getRid());
+                args.put("props", new JSONObject(propsMessage.toString()));
+
+                if(newMessage.getParams() != null) {
+                    paramsMessage = new JSONObject(newMessage.getParams().toString());
+                }
+
+                args.put("params", paramsMessage);
+                args.put("id",idnegative);
+                args.put("push", pushMessage.replace("\\\\","\\"));
+
+                Map<String, Object> params = new HashMap<String, Object>();
+                params.put("data", args.toString());
+                byte[] finalData=IOUtils.toByteArray(new FileInputStream(newMessage.getMsg()));
+
+                //COMPRIMIMOS CON GZIP
+                Compressor compressor = new Compressor();
+                finalData = compressor.gzipCompress(finalData);
+
+                //ENCRIPTAMOS
+                finalData=aesutil.encrypt(finalData);
+
+                params.put("file", finalData);
+
+                System.out.println("send file: " + params);
+                aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
+                    @Override
+                    public void callback(String url, JSONObject json, AjaxStatus status) {
+                        if (json != null) {
+                            handleSentFile(json, newMessage);
+                        } else {
+                            System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
+                        }
+                    }
+                });
+
+                if(persist)
+                    storeMessage(newMessage);
+
+            }  catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        return newMessage;
+    }
     /**
      * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
      * y posteriormente el archivo es subido por HTTP al servidor
@@ -1506,47 +1627,39 @@ public abstract class MonkeyKit extends Service {
      * @param pushMessage Mensaje a mostrar en el push notification
      * @return
      */
-    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
-                                final String pushMessage){
+    private MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
+                                final String pushMessage, final boolean persist){
 
-        MOKMessage newMessage = null;
         if(pathToFile.length()>0){
             try {
                 long datetimeorder = System.currentTimeMillis();
                 long datetime = datetimeorder/1000;
                 final String idnegative = "-" + datetime;
-                JsonObject props = new JsonObject();
-                props.addProperty("str", "0");
-                props.addProperty("encr", "1");
-                props.addProperty("device", "android");
+                JsonObject propsMessage = createSendProps();
+                propsMessage.addProperty("cmpr", "gzip");
+                propsMessage.addProperty("file_type", file_type);
+                propsMessage.addProperty("ext", FilenameUtils.getExtension(pathToFile));
 
-                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, pathToFile,
-                       "" + datetime, "" + file_type, gsonParamsMessage, props);
+                final MOKMessage newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, pathToFile,
+                       "" + datetime, "" + file_type, gsonParamsMessage, propsMessage);
                 newMessage.setDatetimeorder(datetimeorder);
 
                 if(aesutil == null) {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage);
+                            sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage, persist);
                         }
                     });
                     return newMessage;
                 }
 
                 JSONObject args = new JSONObject();
-                JSONObject propsMessage = new JSONObject();
                 JSONObject paramsMessage = new JSONObject();
-                propsMessage.put("cmpr", "gzip");
-                propsMessage.put("device", "android");
-                propsMessage.put("encr", "1");
-                propsMessage.put("file_type", file_type);
-                propsMessage.put("str", "0");
-                propsMessage.put("ext", FilenameUtils.getExtension(pathToFile));
 
                 args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);
-                args.put("props",propsMessage);
+                args.put("props", new JSONObject(propsMessage.toString()));
 
                 if(gsonParamsMessage != null) {
                     paramsMessage = new JSONObject(gsonParamsMessage.toString());
@@ -1574,32 +1687,76 @@ public abstract class MonkeyKit extends Service {
                     @Override
                     public void callback(String url, JSONObject json, AjaxStatus status) {
                         if (json != null) {
-                            System.out.println(json);
-                            try {
-                                JSONObject response = json.getJSONObject("data");
-                                System.out.println("MONKEY - sendFileMessage ok - " + response.toString() + " - " + response.getString("messageId"));
-                                JsonObject props = new JsonObject();
-                                props.addProperty("status", MessageTypes.Status.delivered);
-                                props.addProperty("old_id", "-" + response.getString("messageId"));
-                                executeInDelegates(CBTypes.onAcknowledgeReceived,
-                                        new Object[]{new MOKMessage(response.getString("messageId"), sessionIDTo, MonkeyKit.this.sessionid,
-                                                idnegative, "", "50", new JsonObject(), props)});
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                            handleSentFile(json, newMessage);
                         } else {
                             System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
                         }
                     }
                 });
-                storeMessage(newMessage);
+
+                if(persist)
+                    storeMessage(newMessage);
 
             }  catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return newMessage;
+        return null;
+    }
+/**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor. El mensaje no se guarda en la base
+     * de datos local.
+     * @param message MOKMessage a enviar. La ruta absoluta del archivo a enviar debe de estar en msg.
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return MOKMessage enviado.
+     */
+    public MOKMessage sendFileMessage(MOKMessage message, final String pushMessage){
+        return sendFileMessage(message, pushMessage, false);
+    }
+
+    /**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor. El mensaje se guarda en la base
+     * de datos local antes de enviarse.
+     * @param message MOKMessage a enviar. La ruta absoluta del archivo a enviar debe de estar en msg.
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return MOKMessage enviado.
+     */
+    public MOKMessage persistFileMessageAndSend(MOKMessage message, final String pushMessage){
+        return sendFileMessage(message, pushMessage, true);
+    }
+    /**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor. El mensaje no se guarda en la base
+     * de datos local.
+     * @param pathToFile Ruta del archivo
+     * @param sessionIDTo session ID del destinatario del archivo
+     * @param file_type tipo de archivo. Debe de ser igual a una de las constantes de MessageTypes.FileTypes
+     * @param gsonParamsMessage JsonObject con parametros adicionales que necesita la aplicacion
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return MOKMessage enviado.
+     */
+    public MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
+                                final String pushMessage){
+        return sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage, false);
+    }
+
+    /**
+     * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
+     * y posteriormente el archivo es subido por HTTP al servidor. El mensaje se guarda en la base
+     * de datos local antes de enviarse.
+     * @param pathToFile Ruta del archivo
+     * @param sessionIDTo session ID del destinatario del archivo
+     * @param file_type tipo de archivo. Debe de ser igual a una de las constantes de MessageTypes.FileTypes
+     * @param gsonParamsMessage JsonObject con parametros adicionales que necesita la aplicacion
+     * @param pushMessage Mensaje a mostrar en el push notification
+     * @return MOKMessage enviado.
+     */
+    public MOKMessage persistFileMessageAndSend(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
+                                final String pushMessage){
+        return sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage, true);
     }
 
     public void sendGet(final String since){
