@@ -153,6 +153,8 @@ public class DarkStarSocketClient implements DarkStarClient {
         reader.setDisconnected(true);
         writer.setDisconnected(true);
         this.loggedIn = false;
+        s.shutdownInput();
+        s.shutdownOutput();
         s.close();
         responseHandler.disconnected(true, "no hay conexion");
     }

@@ -1530,7 +1530,7 @@ public abstract class MonkeyKit extends Service {
             System.out.println("MONKEY - sendFileMessage ok - " + response.toString() + " - " + response.getString("messageId"));
             JsonObject props = new JsonObject();
             props.addProperty("status", MessageTypes.Status.delivered);
-            props.addProperty("old_id", "-" + response.getString("messageId"));
+            props.addProperty("old_id", newMessage.getMessage_id());
             executeInDelegates(CBTypes.onAcknowledgeReceived,
                     new Object[]{new MOKMessage(response.getString("messageId"), newMessage.getRid(), MonkeyKit.this.sessionid,
                             newMessage.getMessage_id(), "", "50", new JsonObject(), props)});
@@ -1548,9 +1548,6 @@ public abstract class MonkeyKit extends Service {
     private MOKMessage sendFileMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
 
             try {
-                long datetimeorder = System.currentTimeMillis();
-                long datetime = datetimeorder/1000;
-                final String idnegative = "-" + datetime;
                 JsonObject propsMessage = createSendProps();
                 propsMessage.addProperty("cmpr", "gzip");
                 propsMessage.addProperty("file_type", newMessage.getType());
@@ -1579,7 +1576,7 @@ public abstract class MonkeyKit extends Service {
                 }
 
                 args.put("params", paramsMessage);
-                args.put("id",idnegative);
+                args.put("id", newMessage.getMessage_id());
                 args.put("push", pushMessage.replace("\\\\","\\"));
 
                 Map<String, Object> params = new HashMap<String, Object>();
@@ -1610,6 +1607,7 @@ public abstract class MonkeyKit extends Service {
                 if(persist)
                     storeMessage(newMessage);
 
+                return newMessage;
             }  catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1647,7 +1645,7 @@ public abstract class MonkeyKit extends Service {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendFileMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage, pushMessage, persist);
+                            sendFileMessage(newMessage, pushMessage, persist);
                         }
                     });
                     return newMessage;
@@ -1695,6 +1693,8 @@ public abstract class MonkeyKit extends Service {
 
                 if(persist)
                     storeMessage(newMessage);
+
+                return newMessage;
 
             }  catch (Exception e) {
                 e.printStackTrace();
