@@ -1533,7 +1533,7 @@ public abstract class MonkeyKit extends Service {
             props.addProperty("old_id", newMessage.getMessage_id());
             executeInDelegates(CBTypes.onAcknowledgeReceived,
                     new Object[]{new MOKMessage(response.getString("messageId"), newMessage.getRid(), MonkeyKit.this.sessionid,
-                            newMessage.getMessage_id(), "", "50", new JsonObject(), props)});
+                            newMessage.getMessage_id(), "", "2", new JsonObject(), props)});
         } catch (Exception e) {
             e.printStackTrace();
         }
