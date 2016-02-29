@@ -22,6 +22,12 @@ public class MessageTypes {
     public static final int blMessageDocument = 4;
     public static final int blMessageShareAFriend = 14;
 
+	public class Status {
+		public static final int sending = 50;
+		public static final int delivered = 51;
+		public static final int read = 52;
+	}
+
 	public class NotificationTypes {
 		public static final int GroupAdded = 5;
         public static final int GroupNewMember = 7;

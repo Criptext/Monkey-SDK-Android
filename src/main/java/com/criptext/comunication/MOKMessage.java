@@ -143,6 +143,26 @@ public class MOKMessage {
 		this.file = file;
 	}
 
+	/**
+	 * Obtiene el estado del mensaje. Este valor debe de compararse con las constantes de
+	 * MessageTypes.Status. Si props es null, o no tiene estado, retorna 0.
+	 * @return Si props es null, o no tiene estado, retorna 0. De lo contrario retorna el
+	 * valor correspondiente de MessageTypes.Status.
+	 */
+	public int getStatus(){
+		if(props == null || props.get("status") == null)
+			return 0;
+
+		return props.get("status").getAsInt();
+	}
+
+	public String getOldId(){
+		if(props == null || props.get("old_id") == null)
+			return null;
+
+		return props.get("old_id").getAsString();
+	}
+
 	public long getDatetimeorder() {
 		return datetimeorder;
 	}
