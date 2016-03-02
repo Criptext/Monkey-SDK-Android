@@ -163,6 +163,12 @@ public class MOKMessage {
 		return props.get("old_id").getAsString();
 	}
 
+	public String getFileExtension(){
+		if(props == null || props.get("ext") == null)
+			return null;
+
+		return "." + props.get("ext").getAsString();
+	}
 	public long getDatetimeorder() {
 		return datetimeorder;
 	}
