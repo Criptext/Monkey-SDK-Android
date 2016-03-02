@@ -647,9 +647,10 @@ public abstract class MonkeyKit extends Service {
         }
 
         final String claves=KeyStoreCriptext.getString(getContext(),sender_id);
+        String name = FilenameUtils.getBaseName(filepath);
         File target = new File(filepath);
-        System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+target.getName());
-        aq.auth(handle).download(URL + "/file/open/" + target.getName(), target, new AjaxCallback<File>() {
+        System.out.println("MONKEY - Descargando:"+ filepath + " " + URL+"/file/open/"+ name);
+        aq.auth(handle).download(URL + "/file/open/" + name, target, new AjaxCallback<File>() {
             public void callback(String url, File file, com.androidquery.callback.AjaxStatus status) {
                 if (file != null) {
                     try {
