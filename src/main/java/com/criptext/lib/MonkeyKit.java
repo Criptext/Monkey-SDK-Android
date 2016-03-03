@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
@@ -1259,8 +1260,9 @@ public abstract class MonkeyKit extends Service {
     public MOKMessage createMOKMessage(String textMessage, String sessionIDTo, int type, JsonObject params){
         long datetimeorder = System.currentTimeMillis();
         long datetime = datetimeorder/1000;
+        String srand = RandomStringBuilder.build(3);
         final String idnegative = "-" + datetime;
-        MOKMessage message = new MOKMessage(idnegative, this.sessionid, sessionIDTo, textMessage,
+        MOKMessage message = new MOKMessage(idnegative + srand, this.sessionid, sessionIDTo, textMessage,
                "" + datetime, "" + type, params, null);
         message.setDatetimeorder(datetimeorder);
         return message;
@@ -1300,11 +1302,13 @@ public abstract class MonkeyKit extends Service {
         return props;
     }
 
-    private MOKMessage sendMessage(final MOKMessage newMessage, final String pushMessage, boolean persist){
+    private MOKMessage sendMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
         try {
 
-            JsonObject props = createSendProps();
-            newMessage.setProps(props);
+            if(newMessage.getProps() == null) {
+                JsonObject props = createSendProps();
+                newMessage.setProps(props);
+            }
 
             if(aesutil == null) {
                 initAESUtilAsync(this.sessionid, new Runnable() {
@@ -1324,7 +1328,7 @@ public abstract class MonkeyKit extends Service {
                 startSocketConnection(this.sessionid, new Runnable() {
                     @Override
                     public void run() {
-                        persistMessageAndSend(newMessage, pushMessage);
+                        sendMessage(newMessage, pushMessage, persist);
                     }
                 });
 
@@ -1360,30 +1364,25 @@ public abstract class MonkeyKit extends Service {
     private MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params, final boolean persist){
 
-        MOKMessage newMessage = null;
         if(elmensaje.length()>0){
             try {
 
-                long datetimeorder = System.currentTimeMillis();
-                long datetime = datetimeorder/1000;
-                final String idnegative = "-" + datetime;
                 JsonObject props = createSendProps();
 
-                newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, elmensaje,
-                        "" + datetime, "" + MessageTypes.blMessageDefault, params, props);
-                newMessage.setDatetimeorder(datetimeorder);
+                final MOKMessage newMessage = createMOKMessage(elmensaje, sessionIDTo, MessageTypes.blMessageDefault, params);
+                newMessage.setProps(props);
 
                 if(aesutil == null) {
                     initAESUtilAsync(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendMessage(elmensaje, sessionIDTo, pushMessage, params, persist);
+                            sendMessage(newMessage, pushMessage, persist);
                         }
                     });
                     return newMessage;
                 }
 
-                JSONObject json= createSendJSON(idnegative, sessionIDTo, elmensaje, pushMessage,
+                JSONObject json= createSendJSON(newMessage.getMessage_id(), sessionIDTo, elmensaje, pushMessage,
                         params, props);
 
                 if(asynConnSocket == null) {
@@ -1391,7 +1390,7 @@ public abstract class MonkeyKit extends Service {
                     startSocketConnection(this.sessionid, new Runnable() {
                         @Override
                         public void run() {
-                            sendMessage(elmensaje, sessionIDTo, pushMessage, params, persist);
+                            sendMessage(newMessage, pushMessage, persist);
                         }
                     });
                     return newMessage;
@@ -1549,11 +1548,13 @@ public abstract class MonkeyKit extends Service {
     private MOKMessage sendFileMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
 
             try {
-                JsonObject propsMessage = createSendProps();
-                propsMessage.addProperty("cmpr", "gzip");
-                propsMessage.addProperty("file_type", newMessage.getType());
-                propsMessage.addProperty("ext", FilenameUtils.getExtension(newMessage.getMsg()));
-                newMessage.setProps(propsMessage);
+                if(newMessage.getProps() == null) {
+                    JsonObject propsMessage = createSendProps();
+                    propsMessage.addProperty("cmpr", "gzip");
+                    propsMessage.addProperty("file_type", newMessage.getType());
+                    propsMessage.addProperty("ext", FilenameUtils.getExtension(newMessage.getMsg()));
+                    newMessage.setProps(propsMessage);
+                }
 
                 if(aesutil == null) {
                     initAESUtilAsync(this.sessionid, new Runnable() {
@@ -1570,7 +1571,7 @@ public abstract class MonkeyKit extends Service {
 
                 args.put("sid",this.sessionid);
                 args.put("rid",newMessage.getRid());
-                args.put("props", new JSONObject(propsMessage.toString()));
+                args.put("props", new JSONObject(newMessage.getProps().toString()));
 
                 if(newMessage.getParams() != null) {
                     paramsMessage = new JSONObject(newMessage.getParams().toString());
@@ -1630,17 +1631,13 @@ public abstract class MonkeyKit extends Service {
 
         if(pathToFile.length()>0){
             try {
-                long datetimeorder = System.currentTimeMillis();
-                long datetime = datetimeorder/1000;
-                final String idnegative = "-" + datetime;
                 JsonObject propsMessage = createSendProps();
                 propsMessage.addProperty("cmpr", "gzip");
                 propsMessage.addProperty("file_type", file_type);
                 propsMessage.addProperty("ext", FilenameUtils.getExtension(pathToFile));
 
-                final MOKMessage newMessage = new MOKMessage(idnegative, this.sessionid, sessionIDTo, pathToFile,
-                       "" + datetime, "" + file_type, gsonParamsMessage, propsMessage);
-                newMessage.setDatetimeorder(datetimeorder);
+                final MOKMessage newMessage = createMOKMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage);
+                newMessage.setProps(propsMessage);
 
                 if(aesutil == null) {
                     initAESUtilAsync(this.sessionid, new Runnable() {
@@ -1664,7 +1661,7 @@ public abstract class MonkeyKit extends Service {
                 }
 
                 args.put("params", paramsMessage);
-                args.put("id",idnegative);
+                args.put("id", newMessage.getMessage_id());
                 args.put("push", pushMessage.replace("\\\\","\\"));
 
                 Map<String, Object> params = new HashMap<String, Object>();
