@@ -431,7 +431,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 				mainMessageHandler.sendMessage(msg);
 			}
             else if(args.get("type").getAsInt()==MessageTypes.MOKProtocolDelete){
-                remote=new MOKMessage("",
+                remote=new MOKMessage(props.get("message_id").getAsString(),
                         args.get("sid").getAsString(),args.get("rid").getAsString(),
                         "",args.get("datetime").getAsString(),
                         args.get("type").getAsString(), params, props);
@@ -487,7 +487,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 			break;
 		}
 		case MessageTypes.MOKProtocolDelete:{
-			remote=new MOKMessage("",
+			remote=new MOKMessage(props.get("message_id").getAsString(),
 					args.get("sid").getAsString(),args.get("rid").getAsString(),
 					"",args.get("datetime").getAsString(), 
 					args.get("type").getAsString(), params, props);

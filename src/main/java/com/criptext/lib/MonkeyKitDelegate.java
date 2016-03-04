@@ -103,8 +103,21 @@ public interface MonkeyKitDelegate {
 	 * @param message mensaje transmitido satisfactoriamente al servidor.
 	 */
 	void onAcknowledgeRecieved(MOKMessage message);
+
+	/**
+	 * Cuando un mensaje es borrado en el servidor, MonkeyKit recibe una notificacion. La
+	 * implementacion de este callback puede optar por borrar el mensaje de la base de datos local
+	 * del dispositivo.
+	 * @param message MOKMessage representando el mensaje a borrar. EL MOKMesssage no tiene datos del
+	 *                mensaje, unicamente el ID.
+	 */
 	void onDeleteRecieved(MOKMessage message);
 
+
+	/**
+	 *
+	 * @param sessionID
+	 */
 	void onContactOpenMyConversation(String sessionID);
 	void onNotificationReceived(MOKMessage message);
 
