@@ -370,6 +370,32 @@ download:
     }
 ```
 
+To view the actual file, you must first download it using the `downloadFile()`
+method. Its 4 parameters are:
+
+- A string with the absolute path where the file will be saved to.
+- A Json object with the `props` attribute of the `MOKMessage` received.
+- A string with the session ID of the user who sent the file.
+- A `Runnable` with code to execute once the download finishes.
+
+For example you could download a photo and show it to the user using the AQuery
+library like this:
+```
+
+final String path = getCacheDir().getAbsolutePath();
+JsonObject props = parser.parse(message.getProps()).getAsJsonObject();
+String session = friend.getSessionId();
+
+MonkeyKit.instance().downloadFile(path, props, session, new Runnable(){
+    public void run(){
+        AQuery aq = new AQuery(MainActivity.this);
+        aq.id(R.id.image_in_view).image(path + '/' + message.getMessage(), 200);
+
+    }
+});
+
+```
+
 ## Sending notifications
 
 Notifications are messages that are not persisted in the database. Once the
