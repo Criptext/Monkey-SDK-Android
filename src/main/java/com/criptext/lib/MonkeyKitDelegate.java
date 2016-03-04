@@ -115,11 +115,25 @@ public interface MonkeyKitDelegate {
 
 
 	/**
-	 *
+	 *Cuando un contacto abre una conversacion con el usuario se ejecuta este callback. La implementacion
+	 * de este callback debe de marcar como leido los mensajes que se le enviaron a ese contacto.
 	 * @param sessionID
 	 */
 	void onContactOpenMyConversation(String sessionID);
+
+	/**
+	 * Al recibir una notificacion, MonkeyKit ejecuta este callback. La implementacion de este metodo
+	 * debe de procesar la notificacion y notificar al usuario la informacion relevante.
+	 * @param message Objeto MOKMessage que representa al mensaje recibido.
+	 */
 	void onNotificationReceived(MOKMessage message);
 
+	/**
+	 * Despues de ejecutar un sync o un get, MonkeyKit recibe todos los mensajes que le debieron haber
+	 * llegado mientras estaba desconectado. En este callback se reciben todos esos mensajes tras
+	 * guardarlos en la base de datos. La implementacion de este metodo debe de actualizar las conversaciones
+	 * que tienen nuevos mensajes
+	 * @param messages La lista de mensajes recibidos.
+	 */
 	void onMessageBatchReady(ArrayList<MOKMessage> messages);
 }
