@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 
 import javax.crypto.BadPaddingException;
 
@@ -41,7 +39,6 @@ import com.criptext.comunication.Compressor;
 import com.criptext.comunication.MessageTypes;
 import com.criptext.comunication.MOKMessage;
 import com.criptext.database.CriptextDBHandler;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -277,12 +274,23 @@ public abstract class MonkeyKit extends Service {
 
     }
 
+    /**
+     * Este metodo debe de ser llamado en la implementacion de storeMessageBatch() cuando se termine
+     * de guardar los mensajes en la base de datos. Al llamar a esta funcion MonkeyKit pasa los mensajes
+     * a los delegates en onMessageBatchReady().
+     * @param batch La lista de mensajes recibidos
+     */
     public void notifyBatchStored(ArrayList<MOKMessage> batch){
         for (int i = 0; i < delegates.size(); i++) {
             delegates.get(i).onMessageBatchReady(batch);
          }
     }
-
+    /**
+     * Este metodo debe de ser llamado en la implementacion de storeMessage() cuando se termine
+     * de guardar el mensaje en la base de datos. Al llamar a esta funcion MonkeyKit pasa el mensaje
+     * a los delegates en onMessageReceived().
+     * @param message el mensaje recibido
+     */
     public void notifyMessageStored(MOKMessage message){
         if(!message.getSid().equals(this.sessionid)) {
             for (int i = 0; i < delegates.size(); i++) {
@@ -1049,7 +1057,13 @@ public abstract class MonkeyKit extends Service {
 
     /************************************************************************/
 
-    public void createGroup(String members, String groupname, String sessionId){
+    /**
+     * Crea un nuevo chat de grupo de forma asincrona. Si no hay errores en el servidor la respuesta
+     * llegara en onCreateGroupOK() del MonkeyKitDelegate, De lo contrario se ejecuta onCreateGroupError()
+     * @param members String con los sessionID de los miembros del grupo separados por comas.
+     * @param groupname String con el nombre del grupo
+     */
+    public void createGroup(String members, String groupname){
         try {
 
             String urlconnect = URL+"/group/create";
@@ -1061,7 +1075,7 @@ public abstract class MonkeyKit extends Service {
             JSONObject localJSONObject1 = new JSONObject();
             localJSONObject1.put("members",members);
             localJSONObject1.put("info",localJSONObjectInfo);
-            localJSONObject1.put("session_id",sessionId);
+            localJSONObject1.put("session_id", this.sessionid);
 
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
@@ -1094,7 +1108,12 @@ public abstract class MonkeyKit extends Service {
 
     /************************************************************************/
 
-    public void deleteGroup(String sessionId, String groupID){
+    /**
+     * Elimina un grupo de manera asincrona en el servidor de MonkeyKit. Si no hay errores en el servidor la respuesta
+     * llegara en onDeleteGroupOK() del MonkeyKitDelegate, De lo contrario se ejecuta onDeleteGroupError()
+     * @param groupID ID del grupo
+     */
+    public void deleteGroup(String groupID){
         try {
 
             String urlconnect = URL+"/group/delete";
@@ -1102,7 +1121,7 @@ public abstract class MonkeyKit extends Service {
 
             JSONObject localJSONObject1 = new JSONObject();
             localJSONObject1.put("group_id",groupID);
-            localJSONObject1.put("session_id",sessionId);
+            localJSONObject1.put("session_id", this.sessionid);
 
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("data", localJSONObject1.toString());
@@ -1136,14 +1155,20 @@ public abstract class MonkeyKit extends Service {
 
     /************************************************************************/
 
-    public void addMemberToGroup(String new_member, String groupID, String sessionId ){
+    /**
+     * Agrega un miembro a un grupo de manera asincrona. Si no hay errores en el servidor la respuesta
+     * llegara en onAddMemberToGroupOK() del MonkeyKitDelegate, De lo contrario se ejecuta onAddMemberToGroupError()
+     * @param new_member Session ID del nuevo miembro del grupo
+     * @param groupID ID del grupo
+     */
+    public void addMemberToGroup(String new_member, String groupID){
         try {
 
             String urlconnect = URL+"/group/addmember";
             AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>();
 
             JSONObject localJSONObject1 = new JSONObject();
-            localJSONObject1.put("session_id",sessionId);
+            localJSONObject1.put("session_id",this.sessionid);
             localJSONObject1.put("group_id",groupID);
             localJSONObject1.put("new_member",new_member);
 
@@ -1232,6 +1257,11 @@ public abstract class MonkeyKit extends Service {
 
     /************************************************************************/
 
+    /**
+     * Notifica al contacto que el usuario ha abierto la conversacion. Este metodo debe de llamarse
+     * cada vex que el usuario abre una conversacion.
+     * @param sessionIDTo session ID del usuario cuya conversacion se abrio.
+     */
     public void sendOpen(String sessionIDTo){
 
         try {
@@ -1257,6 +1287,16 @@ public abstract class MonkeyKit extends Service {
 
     }
 
+    /**
+     * Crea un nuevo MOKMessage con Id unico y con un timestamp actual. Al crear un nuevo MOKMessage
+     * para ser enviado siempre debe de usarse este metodo en lugar del constructor por defecto que
+     * tiene MOKMessage ya que inicializa varios atributos de la manera correcta para ser enviado.
+     * @param textMessage texto a enviar en el mensaje
+     * @param sessionIDTo session ID del destinatario
+     * @param type tipo del mensaje. Debe de ser uno de los valores de MessageTypes.FileTypes
+     * @param params JsonObject con parametros adicionales a enviar.
+     * @return Una nueva instancia de MOK Message lista para ser enviada por el socket.
+     */
     public MOKMessage createMOKMessage(String textMessage, String sessionIDTo, int type, JsonObject params){
         long datetimeorder = System.currentTimeMillis();
         long datetime = datetimeorder/1000;
@@ -1350,13 +1390,19 @@ public abstract class MonkeyKit extends Service {
 
     /**
      * Guarda un mensaje en la base de datos usando el metodo storeMessage() y luego lo envia.
-     * @param newMessage
-     * @param pushMessage
-     * @return
+     * @param newMessage MOKMesssage a enviar. Debe de haber sido creado con createMOKMessage()
+     * @param pushMessage texto a enviar en push notification.
+     * @return el MOKMessage enviado
      */
     public MOKMessage persistMessageAndSend(final MOKMessage newMessage, final String pushMessage){
         return sendMessage(newMessage, pushMessage, true);
     }
+    /**
+     * Guarda un mensaje en la base de datos usando el metodo storeMessage() y luego lo envia.
+     * @param newMessage MOKMesssage a enviar. Debe de haber sido creado con createMOKMessage()
+     * @param pushMessage texto a enviar en push notification.
+     * @return el MOKMessage enviado
+     */
     public MOKMessage persistMessageAndSend(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params){
         return sendMessage(elmensaje, sessionIDTo, pushMessage, params, true);
@@ -1481,9 +1527,10 @@ public abstract class MonkeyKit extends Service {
     }
 
     /**
-     * Envia una notificación.
-     * @param sessionIDTo
-     * @param paramsObject
+     * Envia una notificación temporal. Si la notificacion no llega al destinatario con el primer intento
+     * no se vuelve a enviar.
+     * @param sessionIDTo session ID del destinatario de la notificacion
+     * @param paramsObject JsonObject con parametros a enviar en la notificacion
      */
     public void sendTemporalNotification(final String sessionIDTo, final JSONObject paramsObject){
 
@@ -1543,7 +1590,7 @@ public abstract class MonkeyKit extends Service {
      * y posteriormente el archivo es subido por HTTP al servidor
      * @param newMessage MOKMessage a enviar
      * @param pushMessage Mensaje a mostrar en el push notification
-     * @return
+     * @return el MOKMessage enviado.
      */
     private MOKMessage sendFileMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
 
@@ -1624,7 +1671,7 @@ public abstract class MonkeyKit extends Service {
      * @param file_type tipo de archivo. Debe de ser igual a una de las constantes de MessageTypes.FileTypes
      * @param gsonParamsMessage JsonObject con parametros adicionales que necesita la aplicacion
      * @param pushMessage Mensaje a mostrar en el push notification
-     * @return
+     * @return El MOKMessage enviado
      */
     private MOKMessage sendFileMessage(final String pathToFile, final String sessionIDTo, final int file_type, final JsonObject gsonParamsMessage,
                                 final String pushMessage, final boolean persist){
@@ -1887,7 +1934,11 @@ public abstract class MonkeyKit extends Service {
             e.printStackTrace();
         }
     }
-
+    /**
+     * Notifica al contacto que el usuario ha cerrado la conversacion. Este metodo debe de llamarse
+     * cada vex que el usuario cierra una conversacion o esta deja de ser visible.
+     * @param sessionid session ID del usuario cuya conversacion se cerro.
+     */
     public void sendClose(final String sessionid){
 
         try {
@@ -1922,6 +1973,13 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    /**
+     * Borra un mensaje de la base de datos del servidor de MonkeyKit de manera asincrona. Los usuarios que
+     * recibieron el mensaje tambien recibiran un mensaje especial que indica que deben de borrarlo localmente
+     * en el callback onDeleteReceived() de MonkeyKitDelegate.
+     * @param sessionid session ID del contacto o grupo que recibio el mensaje a borrar
+     * @param messageid ID del mensaje a borrar
+     */
     public void sendDelete(final String sessionid, final String messageid){
 
         try {
@@ -1955,12 +2013,21 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    /**
+     * verifica que el socket esta conectado. MonkeyKit automaticamente tratara de reconectarse.
+     * Este metodo es unicamente util para saber que el usuario aun no esta conectado y notificarselo.
+     * @return true si el socket esta conectado y listo para recibir y enviar mensajes. de lo contrario
+     * false
+     */
     public boolean monkeyIsConnected(){
         if(asynConnSocket != null && asynConnSocket.getSocketStatus() == AsyncConnSocket.Status.conectado)
             return asynConnSocket.isConnected();
         return false;
     }
 
+    /**
+     * Libera recursos de monkeyKit. Esto debe de llamarse en el onDestroy() del activity principal
+     */
     public void destroyMonkeyKit(){
         if(asynConnSocket != null) {
             asynConnSocket.removeContext();
@@ -2110,6 +2177,15 @@ public abstract class MonkeyKit extends Service {
         }
     }
 
+    /**
+     * Inicia el servicio de MonkeyKit.
+     * @param context Referencia a context
+     * @param service clase que extiende MonkeyKit service
+     * @param fullname Nombre completo del usuario
+     * @param session_id session ID del usuario
+     * @param app_id APP ID de MonkeyKit
+     * @param app_key APP KEY de MonkeyKit
+     */
     public static void startMonkeyService(Context context, Class<?> service, String fullname, String session_id, String app_id,
                                          String app_key){
         Intent intent = new Intent(context, service);
