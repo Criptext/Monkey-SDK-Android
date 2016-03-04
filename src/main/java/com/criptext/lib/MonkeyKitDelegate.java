@@ -67,11 +67,10 @@ public interface MonkeyKitDelegate {
 	void onDeleteGroupError(String errmsg);
 
 	/**
-	 * Despues de pedir la informacion de un grupo con el metodo deleteGroup, el servidor respondera
+	 * Despues de pedir la informacion de un grupo con el metodo getGroupInfo(), el servidor respondera
 	 * con un JSON que contenga la informacion del grupo. Cuando llegue la respuesta, y si no hay
 	 * algun error se ejecutara este callback. La implementacion de este callback debe de guardar
 	 * la informacion del grupo en la base de datos local.
-	 * de la base de datos local de la aplicacion.
 	 * @param json JsonObject con la informacion del grupo requerida. Contiene 3 atributos:
 	 *             - "group_id" : un String con el ID del grupo
 	 *             - "members" : un JsonArray con los session ID de cada miembro del grupo
@@ -124,9 +123,9 @@ public interface MonkeyKitDelegate {
 	/**
 	 * Al recibir una notificacion, MonkeyKit ejecuta este callback. La implementacion de este metodo
 	 * debe de procesar la notificacion y notificar al usuario la informacion relevante.
-	 * @param message Objeto MOKMessage que representa al mensaje recibido.
+	 * @param notification Objeto MOKMessage que representa a la notificacion recibida.
 	 */
-	void onNotificationReceived(MOKMessage message);
+	void onNotificationReceived(MOKMessage notification);
 
 	/**
 	 * Despues de ejecutar un sync o un get, MonkeyKit recibe todos los mensajes que le debieron haber

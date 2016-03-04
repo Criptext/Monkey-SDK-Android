@@ -28,11 +28,11 @@ To use MonkeyKit service, you need to extend `MonkeyKit.java` in your applicatio
 
 - `public abstract void storeMessage(MOKMessage message);`
   
-This method stores a message received by MonkeyKit into your database. You should store them in a way that is convenient for your application to access, since MonkeyKit does not query this messages, only stores them. This is specially useful for messages that are received while your activites are closed. The implementation should be asynchronous to maximize your apps performance. Once you have successfully stored your message, you must call `messageStored()` so that it is forwarded to your delegates.
+This method stores a message received by MonkeyKit into your database. You should store them in a way that is convenient for your application to access, since MonkeyKit does not query this messages, only stores them. This is specially useful for messages that are received while your activites are closed. The implementation should be asynchronous to maximize your apps performance. Once you have successfully stored your message, you must call `notifyMessageStored()` so that it is forwarded to your delegates.
 
 - `public abstract void storeMessageBatch(ArrayList<MOKMessage> messages);`
   
-This method stores a group of messages received by MonkeyKit into your database. Whenever MonkeyKit reconnects, it catches up with the server and receives all the messages that should have been received during the down time. You should store them in a way that is convenient for your application to access, since MonkeyKit does not query this messages, only stores them. Since this method could receive a list of potentially hundreds of messages, the implementation should be asynchronous. Once you have successfully stored your batch, you must call `batchStored()` so that it is forwarded to your delegates.
+This method stores a group of messages received by MonkeyKit into your database. Whenever MonkeyKit reconnects, it catches up with the server and receives all the messages that should have been received during the down time. You should store them in a way that is convenient for your application to access, since MonkeyKit does not query this messages, only stores them. Since this method could receive a list of potentially hundreds of messages, the implementation should be asynchronous. Once you have successfully stored your batch, you must call `notifyBatchStored()` so that it is forwarded to your delegates.
 
 ### How to persist MOKMessages
 
@@ -229,11 +229,14 @@ public class MyActivity extends Activity implements MonkeyKitDelegate {
     }
 ```
 
+You can read more about delegates
+[here.](https://github.com/Criptext/MonkeyKitAndroid/wiki/MonkeyKitDelegate-Callbacks)
+
 ## Sending messages
 
 With MonkeyKit, you can easily send messages to other users. All you need is the
 receiver's session ID. Both parties do not need to be online at the same time,
-as MonkeyKit will persist the message and resend it if needed. You can easily 
+as MonkeyKit will resend the message if needed. You can easily 
 send a text message using the `sendMessage()` method. Its 4 parameters are:
 - A string with the text message
 - A string with the session ID of the user who will receive the message
@@ -243,10 +246,13 @@ send a text message using the `sendMessage()` method. Its 4 parameters are:
   This allows you to send customized messages.
 
 The method immediately returns the message as a `MOKMessage` object as it
-asynchronously sends it into the network and stores it into the database using
-the store message method that you implemented. This `MOKMessage` object is 
+asynchronously sends it into the network. This `MOKMessage` object is 
 important because it contains the message ID and the timestamp that MonkeyKit 
-has given to your message. You can send a "Hello World" message like this:
+has given to your message. If you want MonkeyKit to store the message into the
+database using the `storeMessage()` method that you implemented before sending
+the message, you can use the `persistMessageAndSend()` method instead. 
+
+You can send a "Hello World" message like this:
 
 ```
 MyMessage newMessage = new MyMessage("Hello World!");
@@ -284,10 +290,13 @@ If you want to send a photo or a voice note you should use the
 - A string with the message to show in the push notification
 
 The method immediately returns the message as a `MOKMessage` object as it
-asynchronously sends it into the network and stores it into the database using
-the store message method that you implemented. this `MOKMessage` object is 
-important because it contains the message ID and the timestamp that MonkeyKit 
-has given to your message. Here's an example for a voice note message:
+asynchronously sends it into the network. this `MOKMessage` object is important 
+because it contains the message ID and the timestamp that MonkeyKit has given to
+your message.If you want MonkeyKit to store the message into the database using
+the `storeMessage()` method that you implemented before sending the message, you
+can use the `persistFileMessageAndSend()` method instead. 
+
+Here's an example for a voice note message:
 
 ```
 //send voice note's duration in params
