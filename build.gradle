@@ -16,7 +16,7 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
 
 group = 'com.criptext'
-version = '1.1.0'
+version = '1.1.1'
 
 
 android {
@@ -85,7 +85,7 @@ bintray {
         name = 'com.criptext'
 
         version {
-            name = '1.1.0'
+            name = '1.1.1'
             desc = 'MonkeyKit'
             released = new Date()
             vcsTag = '1.0.1'

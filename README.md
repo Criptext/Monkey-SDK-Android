@@ -16,7 +16,7 @@ repositories {
 Then add the following to your app's build.gradle file dependencies block:
 ```
 dependencies {
-    compile ('com.criptext:MonkeyKit:1.1.0@aar') {
+    compile ('com.criptext:MonkeyKit:1.1.1@aar') {
         transitive = true;
     }
 }
