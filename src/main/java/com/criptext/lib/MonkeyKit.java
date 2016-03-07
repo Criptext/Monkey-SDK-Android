@@ -313,7 +313,10 @@ public abstract class MonkeyKit extends Service {
                         aesutil = new AESUtil(getContext(), sessionId);
                     }
                     catch (Exception e){
-                        e.printStackTrace();
+                        System.out.println("AES - BAD BASE-64 - borrando claves guardadas");
+                        KeyStoreCriptext.putString(getContext(), sessionId, "");
+                        startCriptext(fullname, "", "0", urlUser, urlPass, true);
+                        sessionid=sessionId;
                     }
                     return null;
                 }
