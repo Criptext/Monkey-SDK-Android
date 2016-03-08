@@ -249,6 +249,9 @@ public class AsyncConnSocket implements ComServerDelegate{
 				else if(protocol == MessageTypes.MOKProtocolGet)
 					MonkeyKit.instance().sendGet(lastMessageId);
             }
+            else{
+                MonkeyKit.instance().portionsMessages=15;
+            }
         } else {
             //PARSE GROUPS UPDATES
             parseGroupUpdates(MessageTypes.MOKProtocolSync, args, params, props);
