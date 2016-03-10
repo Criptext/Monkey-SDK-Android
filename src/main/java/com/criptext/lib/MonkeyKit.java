@@ -1704,7 +1704,6 @@ public abstract class MonkeyKit extends Service {
 
                 args.put("sid",this.sessionid);
                 args.put("rid",sessionIDTo);
-                args.put("props", new JSONObject(propsMessage.toString()));
 
                 if(gsonParamsMessage != null) {
                     paramsMessage = new JSONObject(gsonParamsMessage.toString());
@@ -1712,11 +1711,14 @@ public abstract class MonkeyKit extends Service {
 
                 args.put("params", paramsMessage);
                 args.put("id", newMessage.getMessage_id());
-                args.put("push", pushMessage.replace("\\\\","\\"));
+                args.put("push", pushMessage.replace("\\\\", "\\"));
 
                 Map<String, Object> params = new HashMap<String, Object>();
-                params.put("data", args.toString());
+
                 byte[] finalData=IOUtils.toByteArray(new FileInputStream(pathToFile));
+
+                propsMessage.addProperty("size",finalData.length);
+                args.put("props", new JSONObject(propsMessage.toString()));
 
                 //COMPRIMIMOS CON GZIP
                 Compressor compressor = new Compressor();
@@ -1726,6 +1728,7 @@ public abstract class MonkeyKit extends Service {
                 finalData=aesutil.encrypt(finalData);
 
                 params.put("file", finalData);
+                params.put("data", args.toString());
 
                 System.out.println("send file: " + params);
                 aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
