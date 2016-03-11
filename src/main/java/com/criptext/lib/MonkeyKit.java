@@ -52,6 +52,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 public abstract class MonkeyKit extends Service {
 
@@ -159,17 +160,21 @@ public abstract class MonkeyKit extends Service {
             break;
             case onMessageReceived:
             {
-
                 //GUARDO EL MENSAJE EN LA BASE DE MONKEY SOLO SI NO HAY DELEGATES
-                MOKMessage message = (MOKMessage)info[0];
+                final MOKMessage message = (MOKMessage)info[0];
                 int tipo = CriptextDBHandler.getMonkeyActionType(message);
                 switch (tipo) {
                     case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
                     case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: case MessageTypes.blMessageScreenCapture:
                     {
-                        storeMessage(message);
-                        //CriptextDBHandler.addMessage(CriptextDBHandler.createIncomingRemoteMessage(message,
-                         //       CriptextDBHandler.getMonkeyActionType(message), getContext()));
+                        storeMessage(message, new Runnable() {
+                            @Override
+                            public void run() {
+                                for (int i = 0; i < delegates.size(); i++) {
+                                    delegates.get(i).onMessageRecieved(message);
+                                }
+                            }
+                        });
                         break;
                     }
                 }
@@ -268,40 +273,17 @@ public abstract class MonkeyKit extends Service {
             case onMessageBatchReady: {
                 sendGetOK();
                 final ArrayList<MOKMessage> batch = (ArrayList<MOKMessage>)info[0];
-                storeMessageBatch(batch);
+                storeMessageBatch(batch, new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < delegates.size(); i++) {
+                            delegates.get(i).onMessageBatchReady(batch);
+                        }
+                    }
+                });
             }
         }
 
-    }
-
-    /**
-     * Este metodo debe de ser llamado en la implementacion de storeMessageBatch() cuando se termine
-     * de guardar los mensajes en la base de datos. Al llamar a esta funcion MonkeyKit pasa los mensajes
-     * a los delegates en onMessageBatchReady().
-     * @param batch La lista de mensajes recibidos
-     */
-    public void notifyBatchStored(ArrayList<MOKMessage> batch){
-        for (int i = 0; i < delegates.size(); i++) {
-            delegates.get(i).onMessageBatchReady(batch);
-         }
-    }
-    /**
-     * Este metodo debe de ser llamado en la implementacion de storeMessage() cuando se termine
-     * de guardar el mensaje en la base de datos. Al llamar a esta funcion MonkeyKit pasa el mensaje
-     * a los delegates en onMessageReceived().
-     * @param message el mensaje recibido
-     */
-    public void notifyMessageStored(MOKMessage message){
-        if(!message.getSid().equals(this.sessionid)) {
-            for (int i = 0; i < delegates.size(); i++) {
-                delegates.get(i).onMessageRecieved(message);
-            }
-        }
-        else{
-            JSONObject jsonMessage = getPendingMessage(message.getMessage_id());
-            if(jsonMessage!=null && jsonMessage.length()>0)
-                sendJSONviaSocket(jsonMessage);
-        }
     }
 
     private void initAESUtilAsync(final String sessionId, final Runnable runnable){
@@ -1337,11 +1319,12 @@ public abstract class MonkeyKit extends Service {
         return json;
     }
 
-    private JsonObject createSendProps(){
+    private JsonObject createSendProps(String old_id){
         JsonObject props = new JsonObject();
         props.addProperty("str", "0");
         props.addProperty("encr", "1");
         props.addProperty("device", "android");
+        props.addProperty("old_id", old_id);
         return props;
     }
 
@@ -1349,7 +1332,7 @@ public abstract class MonkeyKit extends Service {
         try {
 
             if(newMessage.getProps() == null) {
-                JsonObject props = createSendProps();
+                JsonObject props = createSendProps(newMessage.getMessage_id());
                 newMessage.setProps(props);
             }
 
@@ -1363,7 +1346,7 @@ public abstract class MonkeyKit extends Service {
                return newMessage;
             }
 
-            JSONObject json= createSendJSON(newMessage.getMessage_id(), newMessage.getRid(),
+            final JSONObject json= createSendJSON(newMessage.getMessage_id(), newMessage.getRid(),
                     newMessage.getMsg(), pushMessage, newMessage.getParams(), newMessage.getProps());
 
             if(asynConnSocket == null) {
@@ -1374,20 +1357,28 @@ public abstract class MonkeyKit extends Service {
                         sendMessage(newMessage, pushMessage, persist);
                     }
                 });
-
                 return newMessage;
             }
 
             addMessageToWatchdog(json);
 
-            if(persist)
-                storeMessage(newMessage);
+            if(persist) {
+                storeMessage(newMessage, new Runnable() {
+                    @Override
+                    public void run() {
+                        sendJSONviaSocket(json);
+                    }
+                });
+            }
+            else{
+                sendJSONviaSocket(json);
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
         }
 
-    return newMessage;
+        return newMessage;
     }
 
 
@@ -1402,23 +1393,24 @@ public abstract class MonkeyKit extends Service {
     }
     /**
      * Guarda un mensaje en la base de datos usando el metodo storeMessage() y luego lo envia.
-     * @param newMessage MOKMesssage a enviar. Debe de haber sido creado con createMOKMessage()
+     * @param elmensaje Mensaje a enviar
      * @param pushMessage texto a enviar en push notification.
      * @return el MOKMessage enviado
      */
     public MOKMessage persistMessageAndSend(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params){
+
         return sendMessage(elmensaje, sessionIDTo, pushMessage, params, true);
-                            }
+
+    }
     private MOKMessage sendMessage(final String elmensaje, final String sessionIDTo,
                             final String pushMessage, final JsonObject params, final boolean persist){
 
         if(elmensaje.length()>0){
             try {
 
-                JsonObject props = createSendProps();
-
                 final MOKMessage newMessage = createMOKMessage(elmensaje, sessionIDTo, MessageTypes.blMessageDefault, params);
+                JsonObject props = createSendProps(newMessage.getMessage_id());
                 newMessage.setProps(props);
 
                 if(aesutil == null) {
@@ -1431,7 +1423,7 @@ public abstract class MonkeyKit extends Service {
                     return newMessage;
                 }
 
-                JSONObject json= createSendJSON(newMessage.getMessage_id(), sessionIDTo, elmensaje, pushMessage,
+                final JSONObject json= createSendJSON(newMessage.getMessage_id(), sessionIDTo, elmensaje, pushMessage,
                         params, props);
 
                 if(asynConnSocket == null) {
@@ -1446,8 +1438,18 @@ public abstract class MonkeyKit extends Service {
                 }
 
                 addMessageToWatchdog(json);
-                if(persist)
-                    storeMessage(newMessage);
+                if(persist) {
+                    storeMessage(newMessage, new Runnable() {
+                        @Override
+                        public void run() {
+                            sendJSONviaSocket(json);
+                        }
+                    });
+                }
+                else{
+                    sendJSONviaSocket(json);
+                }
+
                 return newMessage;
             }
             catch (Exception e) {
@@ -1598,11 +1600,14 @@ public abstract class MonkeyKit extends Service {
     private MOKMessage sendFileMessage(final MOKMessage newMessage, final String pushMessage, final boolean persist){
 
             try {
+                JsonObject propsMessage=null;
                 if(newMessage.getProps() == null) {
-                    JsonObject propsMessage = createSendProps();
+                    propsMessage = createSendProps(newMessage.getMessage_id());
                     propsMessage.addProperty("cmpr", "gzip");
                     propsMessage.addProperty("file_type", newMessage.getType());
                     propsMessage.addProperty("ext", FilenameUtils.getExtension(newMessage.getMsg()));
+                    propsMessage.addProperty("filename", FilenameUtils.getName(newMessage.getMsg()));
+                    propsMessage.addProperty("mime_type", MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(newMessage.getMsg())));
                     newMessage.setProps(propsMessage);
                 }
 
@@ -1621,7 +1626,6 @@ public abstract class MonkeyKit extends Service {
 
                 args.put("sid",this.sessionid);
                 args.put("rid",newMessage.getRid());
-                args.put("props", new JSONObject(newMessage.getProps().toString()));
 
                 if(newMessage.getParams() != null) {
                     paramsMessage = new JSONObject(newMessage.getParams().toString());
@@ -1631,9 +1635,13 @@ public abstract class MonkeyKit extends Service {
                 args.put("id", newMessage.getMessage_id());
                 args.put("push", pushMessage.replace("\\\\","\\"));
 
-                Map<String, Object> params = new HashMap<String, Object>();
+                final Map<String, Object> params = new HashMap<String, Object>();
                 params.put("data", args.toString());
                 byte[] finalData=IOUtils.toByteArray(new FileInputStream(newMessage.getMsg()));
+
+                if(propsMessage!=null)
+                    propsMessage.addProperty("size",finalData.length);
+                args.put("props", new JSONObject(newMessage.getProps().toString()));
 
                 //COMPRIMIMOS CON GZIP
                 Compressor compressor = new Compressor();
@@ -1644,20 +1652,17 @@ public abstract class MonkeyKit extends Service {
 
                 params.put("file", finalData);
 
-                System.out.println("send file: " + params);
-                aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
-                    @Override
-                    public void callback(String url, JSONObject json, AjaxStatus status) {
-                        if (json != null) {
-                            handleSentFile(json, newMessage);
-                        } else {
-                            System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
+                if(persist) {
+                    storeMessage(newMessage, new Runnable() {
+                        @Override
+                        public void run() {
+                            uploadFile(params, newMessage);
                         }
-                    }
-                });
-
-                if(persist)
-                    storeMessage(newMessage);
+                    });
+                }
+                else{
+                    uploadFile(params, newMessage);
+                }
 
                 return newMessage;
             }  catch (Exception e) {
@@ -1681,12 +1686,15 @@ public abstract class MonkeyKit extends Service {
 
         if(pathToFile.length()>0){
             try {
-                JsonObject propsMessage = createSendProps();
+
+                final MOKMessage newMessage = createMOKMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage);
+                JsonObject propsMessage = createSendProps(newMessage.getMessage_id());
                 propsMessage.addProperty("cmpr", "gzip");
                 propsMessage.addProperty("file_type", file_type);
                 propsMessage.addProperty("ext", FilenameUtils.getExtension(pathToFile));
+                propsMessage.addProperty("filename", FilenameUtils.getName(pathToFile));
+                propsMessage.addProperty("mime_type", MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(pathToFile)));
 
-                final MOKMessage newMessage = createMOKMessage(pathToFile, sessionIDTo, file_type, gsonParamsMessage);
                 newMessage.setProps(propsMessage);
 
                 if(aesutil == null) {
@@ -1713,7 +1721,7 @@ public abstract class MonkeyKit extends Service {
                 args.put("id", newMessage.getMessage_id());
                 args.put("push", pushMessage.replace("\\\\", "\\"));
 
-                Map<String, Object> params = new HashMap<String, Object>();
+                final Map<String, Object> params = new HashMap<String, Object>();
 
                 byte[] finalData=IOUtils.toByteArray(new FileInputStream(pathToFile));
 
@@ -1730,20 +1738,17 @@ public abstract class MonkeyKit extends Service {
                 params.put("file", finalData);
                 params.put("data", args.toString());
 
-                System.out.println("send file: " + params);
-                aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
-                    @Override
-                    public void callback(String url, JSONObject json, AjaxStatus status) {
-                        if (json != null) {
-                            handleSentFile(json, newMessage);
-                        } else {
-                            System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
+                if(persist) {
+                    storeMessage(newMessage, new Runnable() {
+                        @Override
+                        public void run() {
+                            uploadFile(params, newMessage);
                         }
-                    }
-                });
-
-                if(persist)
-                    storeMessage(newMessage);
+                    });
+                }
+                else{
+                    uploadFile(params, newMessage);
+                }
 
                 return newMessage;
 
@@ -1754,7 +1759,22 @@ public abstract class MonkeyKit extends Service {
 
         return null;
     }
-/**
+
+    public void uploadFile(Map<String, Object> params, final MOKMessage newMessage){
+        System.out.println("send file: " + params);
+        aq.auth(handle).ajax(URL + "/file/new", params, JSONObject.class, new AjaxCallback<JSONObject>() {
+            @Override
+            public void callback(String url, JSONObject json, AjaxStatus status) {
+                if (json != null) {
+                    handleSentFile(json, newMessage);
+                } else {
+                    System.out.println("MONKEY - sendFileMessage error - " + status.getCode() + " - " + status.getMessage());
+                }
+            }
+        });
+    }
+
+    /**
      * Envia un archivo a traves de MonkeyKit. Se envia un mensaje por el socket con metadata del archivo
      * y posteriormente el archivo es subido por HTTP al servidor. El mensaje no se guarda en la base
      * de datos local.
@@ -2216,16 +2236,18 @@ public abstract class MonkeyKit extends Service {
      * ser asincrona para mejorar el rendimiento del servicio. MonkeyKit llamara a este metodo cada
      * vez que reciba un mensaje para guardarlo.
      * @param message
+     * @param runnable Este runnable debe ejecutarse despues de guardar el mensaje
      */
-    public abstract void storeMessage(MOKMessage message);
+    public abstract void storeMessage(MOKMessage message, final Runnable runnable);
 
     /**
      * Guarda un grupo de mensajes de MonkeyKit que se recibieron despues de un sync en la base de datos.
      * Es sumamente importante implementar esto de forma asincrona porque potencialmente, podrian
      * llegar cientos de mensajes, haciendo la operacion sumamente costosa.
      * @param messages
+     * @param runnable Este runnable debe ejecutarse despues de guardar el batch de mensajes
      */
-    public abstract void storeMessageBatch(ArrayList<MOKMessage> messages);
+    public abstract void storeMessageBatch(ArrayList<MOKMessage> messages, final Runnable runnable);
 
     /**
      * Guarda el timestamp de la ultima vez que se llamo a sync. MonkeyKit llamara a este metodo
