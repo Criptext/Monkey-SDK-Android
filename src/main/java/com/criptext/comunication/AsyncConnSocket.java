@@ -141,7 +141,7 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 		socketStatus = Status.reconectando;
 		userServerListener=new ComServerListener((ComServerDelegate) this);//central.criptext.com
-		socketClient = new DarkStarSocketClient(MonkeyKit.URL.substring(7),1139,(DarkStarListener)userServerListener);
+		socketClient = new DarkStarSocketClient(MonkeyKit.URL.substring(8),1139,(DarkStarListener)userServerListener);
 		retries = 0;
 		Thread connThread = new Thread(new Runnable() {
 			@Override

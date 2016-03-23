@@ -62,7 +62,7 @@ public abstract class MonkeyKit extends Service {
         onContactOpenMyConversation, onGetGroupInfoOK, onGetGroupInfoError, onNotificationReceived,
         onMessageBatchReady}
 
-    public static String URL="http://secure.criptext.com";
+    public static String URL="https://monkey.criptext.com";
     private static String transitionMessagesPrefs = "MonkeyKit.transitionMessages";
     private static String lastSyncPrefs = "MonkeyKit.lastSyncTime";
     private static String lastSyncKey = "MonkeyKit.lastSyncKey";

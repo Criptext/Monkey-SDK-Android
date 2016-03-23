@@ -44,6 +44,7 @@ package com.criptext.socket;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -68,13 +69,13 @@ import android.util.Log;
 
 /**
  * Sockets based implementation of the DarkStarClient interface.
- * 
+ *
  * @author Karel Herink
  */
 public class DarkStarSocketClient implements DarkStarClient {
 
     private boolean debug = true;
-    
+
     private String host;
     private int port;
     private DarkStarListener responseHandler;
@@ -84,45 +85,45 @@ public class DarkStarSocketClient implements DarkStarClient {
 
     private byte[] reconnectKey;
     private boolean loggedIn;
-    private Hashtable channels = new Hashtable();    
+    private Hashtable channels = new Hashtable();
     private Vector requests = new Vector();
-    
-    
+
+
     public DarkStarSocketClient(String host, int port, DarkStarListener responseHandler) {
-    	//Log.d("DarkStarSocketClient - DarkStarSocketClient", "host: "+host+"port: "+port+"responseHandler: "+responseHandler);
+        //Log.d("DarkStarSocketClient - DarkStarSocketClient", "host: "+host+"port: "+port+"responseHandler: "+responseHandler);
         this.responseHandler = responseHandler;
         this.host = host;
         this.port = port;
     }
-    
+
     public void printDebugInfo(boolean debug) {
         this.debug = debug;
     }
 
     /**
-     * @see DarkStarClient#connect() 
-     * 
+     * @see DarkStarClient#connect()
+     *
      * @throws java.io.IOException
      */
     public void connect() throws IOException {
-    	
+
         //s = (SocketConnection) Connector.open("socket://" + this.host + ":" + this.port+"?"+ConnectionType.getConnectionString(), Connector.READ_WRITE);
         try{
-        	s = new Socket(this.host,this.port);
-        	s.setReceiveBufferSize(2048*2048);
-        	s.setSendBufferSize(2048*2048);
-        	//Log.d("DarkStarSocketClient - connect", "creando socket s:"+ s+"host"+this.host+"port"+this.port);
-        	
+            s = new Socket(this.host,this.port);
+            s.setReceiveBufferSize(2048*2048);
+            s.setSendBufferSize(2048*2048);
+            //Log.d("DarkStarSocketClient - connect", "creando socket s:"+ s+"host"+this.host+"port"+this.port);
+
         }
         catch(Exception e){
-        	System.out.println(e.toString());
+            System.out.println(e.toString());
         }
-    	
-    	InputStream in = s.getInputStream();
-    	//Log.d("DarkStarSocketClient - connect", "definiendo in: "+in);
-        OutputStream out = s.getOutputStream();
+
+        DataInputStream in = new DataInputStream(s.getInputStream());
+        //Log.d("DarkStarSocketClient - connect", "definiendo in: "+in);
+        DataOutputStream out = new DataOutputStream(s.getOutputStream());
         //Log.d("DarkStarSocketClient - connect", "definiendo out: "+out);
-        
+
         reader = new InputReader(this, in);
         //Log.d("DarkStarSocketClient - connect", "reader: "+reader);
         writer = new OutputWriter(this, out);
@@ -131,25 +132,25 @@ public class DarkStarSocketClient implements DarkStarClient {
         //Log.d("DarkStarSocketClient - connect", "Empezar hilo reader");
         new Thread(writer).start();
         //Log.d("DarkStarSocketClient - connect", "Empezar hilo writer");
-        
+
         //give the threads some time to set-up (should be done in a better way)
         try {
-        	//Log.d("DarkStarSocketClient - connect", "Empieza suspension del hilo durante 1000 (s)");
+            //Log.d("DarkStarSocketClient - connect", "Empieza suspension del hilo durante 1000 (s)");
             Thread.sleep(1000);
             //Log.d("DarkStarSocketClient - connect", "Terminaron los 1000 (s) de la suspension del hilo");
         } catch (InterruptedException ex) {
-        	//Log.d("DarkStarSocketClient - connect", "Exception: "+ex);
+            //Log.d("DarkStarSocketClient - connect", "Exception: "+ex);
             ex.printStackTrace();
         }
     }
 
     /**
-     * @see DarkStarClient#disconnect() 
-     * 
+     * @see DarkStarClient#disconnect()
+     *
      * @throws java.io.IOException
      */
     public void disconnect() throws IOException {
-    	System.out.println("User  disconnect, trying to connect..");
+        System.out.println("User  disconnect, trying to connect..");
         reader.setDisconnected(true);
         writer.setDisconnected(true);
         this.loggedIn = false;
@@ -164,52 +165,44 @@ public class DarkStarSocketClient implements DarkStarClient {
 
     private class InputReader implements Runnable {
         private DarkStarSocketClient main;
-        private InputStream in;
+        private DataInputStream in;
         private boolean disconnected = false;
 
-        public InputReader(DarkStarSocketClient main, InputStream in) {
-        	//Log.d("InputReader - InputReader", "main: "+main+"inputstream"+in);
+        public InputReader(DarkStarSocketClient main, DataInputStream in) {
+            //Log.d("InputReader - InputReader", "main: "+main+"inputstream"+in);
             this.main = main;
             this.in = in;
         }
 
         public void run() {
-        	//Log.d("InputReader - run", "main: "+main+"inputstream"+in);
+            //Log.d("InputReader - run", "main: "+main+"inputstream"+in);
             if (debug) System.out.println("InputReader ready..");
-            //Log.d("InputReader - run", "disconnected: "+disconnected);
             while (!disconnected) {
                 try {
-                	
-                    byte hi = (byte) in.read();
-                    //Log.d("InputReader - run", "hi: "+hi);
-                    if (hi == -1) {
-                    	Log.d("InputReader - run", "hi=-1 mandando a disconnect()");
-                        main.disconnect();
-                        //Log.d("InputReader - run", "main desconectado");
-                        //post a dummy empty message to wake up the writer - it will realize that we;return disconnected
-                        MessageBuffer dummy = new MessageBuffer(new byte[0]);
-                        //Log.d("InputReader - run", "dummy: "+dummy);
-                        postRequest(dummy);
-                        break;
-                    }
-                    byte lo = (byte) in.read();
-                    //Log.d("InputReader - run", "lo: "+lo);
-                    int len = ((hi & 255) << 8) + (lo & 255) << 0;
-                    //Log.d("InputReader - run", "len: "+len);
-                	
-                    //System.out.println("Dark - Received response lenght: " + len + " ó " + in.available() + " y " + s.getReceiveBufferSize());
-                    
-                    byte[] msgBytes = new byte[len];
-                    
-                    //Log.d("InputReader - run", "msgBytes: "+msgBytes);
-                    in.read(msgBytes);
+                    //http://stackoverflow.com/questions/36161105/socket-java-cant-receive-too-much-data/
+                    int length = in.readShort() & 0xFFFF;
+                    byte[] msgBytes = new byte[length];
+                    //Log.d("InputReader - run", "len: "+length);
+                    in.readFully(msgBytes);
                     MessageBuffer buf = new MessageBuffer(msgBytes);
                     //Log.d("InputReader - run", "buf: "+buf);
-
                     handleApplicationMessage(buf);
-				
-                } catch (Exception ex) {
+                }
+                catch (EOFException ex) {
+                    Log.d("InputReader - run", "EOFException mandando a disconnect()");
+                    try {
+                        main.disconnect();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    //post a dummy empty message to wake up the writer - it will realize that we;return disconnected
+                    MessageBuffer dummy = new MessageBuffer(new byte[0]);
+                    postRequest(dummy);
+                    break;
+                }
+                catch (Exception ex) {
                     ex.printStackTrace();
+                    break;
                 }
             }
             if (debug) System.out.println("InputReader finished..");
@@ -218,7 +211,7 @@ public class DarkStarSocketClient implements DarkStarClient {
         public void setDisconnected(boolean disconnected) {
             this.disconnected = disconnected;
         }
-        
+
         public boolean isDisconnected() {
             return disconnected;
         }
@@ -226,17 +219,17 @@ public class DarkStarSocketClient implements DarkStarClient {
 
     private class OutputWriter implements Runnable {
         private DarkStarSocketClient main;
-        private OutputStream out;
+        private DataOutputStream out;
         private boolean disconnected = false;
 
-        public OutputWriter(DarkStarSocketClient main, OutputStream out) {
-        	//Log.d("OutputWriter - OutputWriter", "main: "+main+"outputstream"+out);
+        public OutputWriter(DarkStarSocketClient main, DataOutputStream out) {
+            //Log.d("OutputWriter - OutputWriter", "main: "+main+"outputstream"+out);
             this.main = main;
             this.out = out;
         }
 
         public void run() {
-        	//Log.d("OutputWriter - run", "main: "+main+"outputstream"+out);
+            //Log.d("OutputWriter - run", "main: "+main+"outputstream"+out);
             if (debug) System.out.println("OutputWriter ready..");
             //Log.d("OutputWriter - run", "disconnected: "+disconnected);
             while (!disconnected) {
@@ -270,13 +263,13 @@ public class DarkStarSocketClient implements DarkStarClient {
                                 main.disconnect();
                             } catch (IOException ex1) {
                                 //ignore
-                            	ex1.printStackTrace();
+                                ex1.printStackTrace();
                             }
                         }
                     }
                 }
             }
-            if (debug) System.out.println("OutputWriter finished..");            
+            if (debug) System.out.println("OutputWriter finished..");
         }
 
         public void setDisconnected(boolean disconnected) {
@@ -287,12 +280,12 @@ public class DarkStarSocketClient implements DarkStarClient {
             return disconnected;
         }
     }
-    
+
     private void handleApplicationMessage(MessageBuffer msg) throws Exception {
         byte command = msg.getByte();
         //Log.d("InputReader - handleApplicationMessage", "command: "+command);
         System.out.println("Dark - handleApplicationMessage command: "+command);
-        
+
         switch (command) {
             case SimpleSgsProtocol.LOGIN_SUCCESS:
                 if (debug) System.out.println("Logged in");
@@ -313,7 +306,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                 int port = msg.getInt();
                 if (debug) System.out.println("Login redirect: " + host + ":" + port);
 
-               break;
+                break;
             }
 
             case SimpleSgsProtocol.SESSION_MESSAGE: {
@@ -348,7 +341,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                 checkLoggedIn();
                 String channelName = msg.getString();
                 byte[] channelId = msg.getBytes(msg.limit() - msg.position());
-                
+
                 if (channels.get(channelName) == null) {
                     channels.put(channelName, channelId);
                 }
@@ -364,7 +357,7 @@ public class DarkStarSocketClient implements DarkStarClient {
                 checkLoggedIn();
                 byte[] channelId = msg.getBytes(msg.limit() - msg.position());
                 String channelName = getChannelNameById(channelId);
-                
+
                 if (channelName != null) {
                     channels.remove(channelName);
                     responseHandler.leftChannel(channelName);
@@ -391,22 +384,22 @@ public class DarkStarSocketClient implements DarkStarClient {
                 throw new IOException("Unknown session opcode: " + command);
         }
     }
-    
+
     // -------------------------------------------------------------------------
     // DarkStarClient methods
     // -------------------------------------------------------------------------
-    
+
     //methods dealing with server session
-    
+
     /**
-     * @see DarkStarClient#login(java.lang.String, java.lang.String) 
-     * 
+     * @see DarkStarClient#login(java.lang.String, java.lang.String)
+     *
      * @param userName
      * @param password
      * @throws java.io.IOException
      */
     public void login(String userName, String password) throws IOException {
-    	Log.d("DarkStarSocketClient", "userName: "+userName+"password: "+password);
+        Log.d("DarkStarSocketClient", "userName: "+userName+"password: "+password);
         int len = 2 + MessageBuffer.getSize(userName) + MessageBuffer.getSize(password);
         Log.d("DarkStarSocketClient", "len: "+len);
         MessageBuffer msg = new MessageBuffer(2 + len);
@@ -418,19 +411,19 @@ public class DarkStarSocketClient implements DarkStarClient {
                 putString(password);
         postRequest(msg);
     }
-    
+
     /**
-     * @see DarkStarClient#isConnected() 
-     * 
+     * @see DarkStarClient#isConnected()
+     *
      * @return
      * @throws java.io.IOException
      */
     public boolean isConnected() throws IOException {
         return loggedIn;
     }
-    
+
     /**
-     * @see DarkStarClient#logout(boolean) 
+     * @see DarkStarClient#logout(boolean)
      * @param force
      * @throws java.io.IOException
      */
@@ -441,31 +434,31 @@ public class DarkStarSocketClient implements DarkStarClient {
                 putByte(SimpleSgsProtocol.LOGOUT_REQUEST);
         postRequest(msg);
     }
-    
+
     /**
-     * @see DarkStarClient#sendToSession(byte[]) 
-     * 
+     * @see DarkStarClient#sendToSession(byte[])
+     *
      * @param message
      * @throws java.io.IOException
      */
     public void  sendToSession(byte[] message) throws IOException {
-    	//Log.d("DarkStarSocketClient - sendToSession", "message: "+message);
+        //Log.d("DarkStarSocketClient - sendToSession", "message: "+message);
         int len = 1 + message.length;
         //Log.d("DarkStarSocketClient - sendToSession", "len: "+len);
         MessageBuffer msg = new MessageBuffer(2 + len);
         //Log.d("DarkStarSocketClient - sendToSession", "msg: "+msg);
         msg.putShort(len).
-                putByte(SimpleSgsProtocol.SESSION_MESSAGE).                
+                putByte(SimpleSgsProtocol.SESSION_MESSAGE).
                 putBytes(message);
         //Log.d("DarkStarSocketClient - sendToSession", "otra vez msg: "+msg);
         postRequest(msg);
     }
 
     //methods dealing with client channels
-    
+
     /**
-     * @see DarkStarClient#sendToChannel(java.lang.String, byte[]) 
-     * 
+     * @see DarkStarClient#sendToChannel(java.lang.String, byte[])
+     *
      * @param channelName
      * @param message
      * @throws java.io.IOException
@@ -480,26 +473,26 @@ public class DarkStarSocketClient implements DarkStarClient {
                 putBytes(message);
         postRequest(msg);
     }
-    
-    
+
+
     //utility methods
-    
+
     private void checkLoggedIn() {
         if (!loggedIn) {
             throw new IllegalStateException("Client not logged in");
         }
     }
-    
+
     private void postRequest(MessageBuffer msg) {
-    	//Log.d("DarkStarSocketClient - postRequest", "msg: "+msg);
+        //Log.d("DarkStarSocketClient - postRequest", "msg: "+msg);
         synchronized(requests) {
-        	//Log.d("DarkStarSocketClient - postRequest", "requests: "+requests);
+            //Log.d("DarkStarSocketClient - postRequest", "requests: "+requests);
             requests.addElement(msg);
             //Log.d("DarkStarSocketClient - postRequest", "requests: "+requests);
             requests.notifyAll();
         }
     }
-    
+
     private String getChannelNameById(byte[] channelId) {
         Enumeration keys = channels.keys();
         while (keys.hasMoreElements()) {
@@ -512,7 +505,7 @@ public class DarkStarSocketClient implements DarkStarClient {
         }
         return null;
     }
-    
+
     private boolean byteArraysEqual(byte[] a, byte[] b) {
         if ((a == null && b != null) || (a != null && b == null)) {
             return false;
