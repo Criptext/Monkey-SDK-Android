@@ -147,7 +147,7 @@ public class AESUtil {
     	System.out.println("MONKEY - Desencriptado msg con key:***"+key+"***iv:"+stripGarbage(iv));
     	
     	byte[] encryptedTextBytes;
-    	encryptedTextBytes = NewBase64.decode(encryptedText,0);
+    	encryptedTextBytes = NewBase64.decode(encryptedText,Base64.NO_WRAP);
     	
         SecretKeySpec secret = new SecretKeySpec(Base64.decode(key, Base64.NO_WRAP), "AES");
         
