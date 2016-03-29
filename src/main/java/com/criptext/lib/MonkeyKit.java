@@ -697,6 +697,7 @@ public abstract class MonkeyKit extends Service {
 
         });
     }
+
     private void procesarMokMessage(final MOKMessage message, final String claves) throws Exception{
         new AsyncTask<String , Void, Integer>() {
 
@@ -706,10 +707,12 @@ public abstract class MonkeyKit extends Service {
                 try {
                     if (message.getProps().get("encr").getAsString().compareTo("1") == 0){
                         //Log.d("MonkeyKit", "Decrypt: "+  message.getMsg());
-                        message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
+                        if(!message.getType().equals(MessageTypes.MOKFile))
+                            message.setMsg(AESUtil.decryptWithCustomKeyAndIV(message.getMsg(),
                                 clave.split(":")[0], clave.split(":")[1]));
                     }
-                } catch (Exception ex) {
+                }
+                catch (Exception ex) {
                     ex.printStackTrace();
                     return 0;
                 }
@@ -724,9 +727,6 @@ public abstract class MonkeyKit extends Service {
                 }
             }
         }.execute(claves);
-
-
-
     }
 
     /************************************************************************/
