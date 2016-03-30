@@ -2096,6 +2096,9 @@ public abstract class MonkeyKit extends Service {
             return;
         }
         System.out.println("CRIPTEXTLIB - Reconectando socket");
+        for (int i = 0; i < delegates.size(); i++) {
+            delegates.get(i).onSocketDisconnected();
+        }
         startSocketConnection(this.sessionid, run);
     }
 
