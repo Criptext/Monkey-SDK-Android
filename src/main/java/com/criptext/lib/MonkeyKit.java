@@ -664,11 +664,16 @@ public abstract class MonkeyKit extends Service {
                         }
                         //COMPRUEBO SI EL ARCHIVO ESTA COMPRIMIDO
                         if (props.has("cmpr")) {
-                            if (props.get("cmpr").getAsString().compareTo("gzip") == 0) {
+                            if (props.get("cmpr").getAsString().compareTo("gzip") == 0 && finalData!=null) {
                                 Compressor compressor = new Compressor();
                                 finalData = compressor.gzipDeCompress(finalData);
                             }
                         }
+
+                        //VALIDACION
+                        if(finalData==null)
+                            finalData=new byte[]{};
+
                         //VUELVO A GUARDAR EL ARCHIVO
                         FileOutputStream fos = new FileOutputStream(file);
                         fos.write(finalData);
