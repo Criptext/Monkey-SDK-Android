@@ -10,7 +10,7 @@ import org.json.JSONObject;
  * Created by gesuwall on 10/5/15.
  */
 public class Watchdog {
-    private static int TIMEOUT = 5000;
+    private static int TIMEOUT = 8000;
     private final Handler handler;
     private Runnable runnable;
     private boolean working;
