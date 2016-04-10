@@ -167,7 +167,7 @@ public abstract class MonkeyKit extends Service {
                     case MessageTypes.blMessageDefault: case MessageTypes.blMessageAudio: case MessageTypes.blMessageDocument:
                     case MessageTypes.blMessagePhoto: case MessageTypes.blMessageShareAFriend: case MessageTypes.blMessageScreenCapture:
                     {
-                        storeMessage(message, new Runnable() {
+                        storeMessage(message, true, new Runnable() {
                             @Override
                             public void run() {
                                 for (int i = 0; i < delegates.size(); i++) {
@@ -1368,7 +1368,7 @@ public abstract class MonkeyKit extends Service {
             addMessageToWatchdog(json);
 
             if(persist) {
-                storeMessage(newMessage, new Runnable() {
+                storeMessage(newMessage, false, new Runnable() {
                     @Override
                     public void run() {
                         sendJSONviaSocket(json);
@@ -1444,7 +1444,7 @@ public abstract class MonkeyKit extends Service {
 
                 addMessageToWatchdog(json);
                 if(persist) {
-                    storeMessage(newMessage, new Runnable() {
+                    storeMessage(newMessage, false, new Runnable() {
                         @Override
                         public void run() {
                             sendJSONviaSocket(json);
@@ -1658,7 +1658,7 @@ public abstract class MonkeyKit extends Service {
                 params.put("file", finalData);
 
                 if(persist) {
-                    storeMessage(newMessage, new Runnable() {
+                    storeMessage(newMessage, false, new Runnable() {
                         @Override
                         public void run() {
                             uploadFile(params, newMessage);
@@ -1744,7 +1744,7 @@ public abstract class MonkeyKit extends Service {
                 params.put("data", args.toString());
 
                 if(persist) {
-                    storeMessage(newMessage, new Runnable() {
+                    storeMessage(newMessage, false, new Runnable() {
                         @Override
                         public void run() {
                             uploadFile(params, newMessage);
@@ -2244,9 +2244,10 @@ public abstract class MonkeyKit extends Service {
      * ser asincrona para mejorar el rendimiento del servicio. MonkeyKit llamara a este metodo cada
      * vez que reciba un mensaje para guardarlo.
      * @param message
+     * @param incoming
      * @param runnable Este runnable debe ejecutarse despues de guardar el mensaje
      */
-    public abstract void storeMessage(MOKMessage message, final Runnable runnable);
+    public abstract void storeMessage(MOKMessage message, boolean incoming, final Runnable runnable);
 
     /**
      * Guarda un grupo de mensajes de MonkeyKit que se recibieron despues de un sync en la base de datos.
