@@ -74,7 +74,7 @@ import android.util.Log;
  */
 public class DarkStarSocketClient implements DarkStarClient {
 
-    private boolean debug = true;
+    private boolean debug = false;
 
     private String host;
     private int port;
