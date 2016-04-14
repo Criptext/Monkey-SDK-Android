@@ -215,26 +215,36 @@ public class AsyncConnSocket implements ComServerDelegate{
 
 					if (currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKText) == 0
 							|| currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKFile) == 0) {
-						remote = createMOKMessageFromJSON(currentMessage, params, props);
 
-						if (remote.getType().equals("1") || remote.getType().equals("2")) {
-							if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
-								remote = getKeysAndDecryptMOKMessage(remote, false);
-							if (remote != null)
-								batch.add(remote);
-						} else {
-							Message msg = mainMessageHandler.obtainMessage();
-							msg.what = MessageTypes.MOKProtocolDelete;
-							msg.obj = remote;
-							mainMessageHandler.sendMessage(msg);
-						}
+                        remote = createMOKMessageFromJSON(currentMessage, params, props);
+                        if (remote.getProps().get("encr").getAsString().compareTo("1") == 0)
+                            remote = getKeysAndDecryptMOKMessage(remote, false);
+                        if (remote != null)
+                            batch.add(remote);
 					}
-				} catch( Exception ex){
+                    else if(currentMessage.get("type").getAsString().compareTo(MessageTypes.MOKNotif)==0){
+                        remote = createMOKMessageFromJSON(currentMessage, params, props);
+                        Message msg = mainMessageHandler.obtainMessage();
+                        msg.what=MessageTypes.MOKProtocolMessage;
+                        msg.obj =remote;
+                        mainMessageHandler.sendMessage(msg);
+                    }
+                    else if(currentMessage.get("type").getAsString().compareTo(""+MessageTypes.MOKProtocolDelete)==0){
+                        remote=new MOKMessage(props.get("message_id").getAsString(),
+                                currentMessage.get("sid").getAsString(),currentMessage.get("rid").getAsString(),
+                                "",currentMessage.get("datetime").getAsString(),
+                                currentMessage.get("type").getAsString(), params, props);
+                        Message msg = mainMessageHandler.obtainMessage();
+                        msg.what = MessageTypes.MOKProtocolDelete;
+                        msg.obj = remote;
+                        mainMessageHandler.sendMessage(msg);
+                    }
+				}
+                catch( Exception ex){
 					if(currentMessage != null)
 						Log.d("MissingDateTime", currentMessage.toString());
 					ex.printStackTrace();
 				}
-                //buildMessage(MessageTypes.MOKProtocolMessage, currentMessage);ssage
             }
 
             Message msg = mainMessageHandler.obtainMessage();
@@ -487,6 +497,17 @@ public class AsyncConnSocket implements ComServerDelegate{
 				msg.obj =remote;
 				mainMessageHandler.sendMessage(msg);
 			}
+            else if(args.get("type").getAsString().compareTo(""+MessageTypes.MOKProtocolDelete)==0){
+                remote=new MOKMessage(props.get("message_id").getAsString(),
+                        args.get("sid").getAsString(),args.get("rid").getAsString(),
+                        "",args.get("datetime").getAsString(),
+                        args.get("type").getAsString(), params, props);
+                Message msg = mainMessageHandler.obtainMessage();
+                msg.what=MessageTypes.MOKProtocolDelete;
+                msg.obj =remote;
+                mainMessageHandler.sendMessage(msg);
+                break;
+            }
 			break;
 		}
 		case MessageTypes.MOKProtocolDelete:{

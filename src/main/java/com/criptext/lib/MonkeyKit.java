@@ -1496,12 +1496,12 @@ public abstract class MonkeyKit extends Service {
      */
     public void sendNotification(final String sessionIDTo, final JSONObject paramsObject, final String pushMessage){
 
-
         try {
 
             JSONObject args = new JSONObject();
             JSONObject json=new JSONObject();
 
+            args.put("id", "-"+(System.currentTimeMillis()/1000));
             args.put("sid",this.sessionid);
             args.put("rid",sessionIDTo);
             args.put("params", paramsObject.toString());
