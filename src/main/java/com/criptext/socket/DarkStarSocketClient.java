@@ -74,8 +74,6 @@ import android.util.Log;
  */
 public class DarkStarSocketClient implements DarkStarClient {
 
-    private boolean debug = false;
-
     private String host;
     private int port;
     private DarkStarListener responseHandler;
@@ -94,10 +92,6 @@ public class DarkStarSocketClient implements DarkStarClient {
         this.responseHandler = responseHandler;
         this.host = host;
         this.port = port;
-    }
-
-    public void printDebugInfo(boolean debug) {
-        this.debug = debug;
     }
 
     /**
@@ -176,7 +170,6 @@ public class DarkStarSocketClient implements DarkStarClient {
 
         public void run() {
             //Log.d("InputReader - run", "main: "+main+"inputstream"+in);
-            if (debug) System.out.println("InputReader ready..");
             while (!disconnected) {
                 try {
                     //http://stackoverflow.com/questions/36161105/socket-java-cant-receive-too-much-data/
@@ -205,7 +198,6 @@ public class DarkStarSocketClient implements DarkStarClient {
                     break;
                 }
             }
-            if (debug) System.out.println("InputReader finished..");
         }
 
         public void setDisconnected(boolean disconnected) {
@@ -230,7 +222,6 @@ public class DarkStarSocketClient implements DarkStarClient {
 
         public void run() {
             //Log.d("OutputWriter - run", "main: "+main+"outputstream"+out);
-            if (debug) System.out.println("OutputWriter ready..");
             //Log.d("OutputWriter - run", "disconnected: "+disconnected);
             while (!disconnected) {
                 synchronized (requests) {
@@ -269,7 +260,6 @@ public class DarkStarSocketClient implements DarkStarClient {
                     }
                 }
             }
-            if (debug) System.out.println("OutputWriter finished..");
         }
 
         public void setDisconnected(boolean disconnected) {
@@ -288,7 +278,6 @@ public class DarkStarSocketClient implements DarkStarClient {
 
         switch (command) {
             case SimpleSgsProtocol.LOGIN_SUCCESS:
-                if (debug) System.out.println("Logged in");
                 reconnectKey = msg.getBytes(msg.limit() - msg.position());
                 loggedIn = true;
                 responseHandler.loggedIn();
@@ -304,13 +293,11 @@ public class DarkStarSocketClient implements DarkStarClient {
             case SimpleSgsProtocol.LOGIN_REDIRECT: {
                 String host = msg.getString();
                 int port = msg.getInt();
-                if (debug) System.out.println("Login redirect: " + host + ":" + port);
 
                 break;
             }
 
             case SimpleSgsProtocol.SESSION_MESSAGE: {
-                if (debug) System.out.println("Session message");
                 checkLoggedIn();
                 //System.out.println("Dark - limit:"+msg.limit()+" - position:"+msg.position());
                 byte[] msgBytes = msg.getBytes(msg.limit() - msg.position());
@@ -319,7 +306,6 @@ public class DarkStarSocketClient implements DarkStarClient {
             }
 
             case SimpleSgsProtocol.RECONNECT_SUCCESS:
-                if (debug) System.out.println("Reconnected success");
                 loggedIn = true;
                 reconnectKey = msg.getBytes(msg.limit() - msg.position());
                 responseHandler.reconnected();
@@ -327,17 +313,14 @@ public class DarkStarSocketClient implements DarkStarClient {
 
             case SimpleSgsProtocol.RECONNECT_FAILURE:
                 String reason = msg.getString();
-                if (debug) System.out.println("Reconnect failure: " + reason);
                 this.disconnect();
                 break;
 
             case SimpleSgsProtocol.LOGOUT_SUCCESS:
-                if (debug) System.out.println("Logged out gracefully");
                 loggedIn = false;
                 break;
 
             case SimpleSgsProtocol.CHANNEL_JOIN: {
-                if (debug) System.out.println("Channel join");
                 checkLoggedIn();
                 String channelName = msg.getString();
                 byte[] channelId = msg.getBytes(msg.limit() - msg.position());
@@ -346,14 +329,13 @@ public class DarkStarSocketClient implements DarkStarClient {
                     channels.put(channelName, channelId);
                 }
                 else {
-                    if (debug) System.out.println("Cannot join channel " + channelName + ": already a member");
+
                 }
                 responseHandler.joinedChannel(channelName);
                 break;
             }
 
             case SimpleSgsProtocol.CHANNEL_LEAVE: {
-                if (debug) System.out.println("Channel leave");
                 checkLoggedIn();
                 byte[] channelId = msg.getBytes(msg.limit() - msg.position());
                 String channelName = getChannelNameById(channelId);
@@ -362,18 +344,16 @@ public class DarkStarSocketClient implements DarkStarClient {
                     channels.remove(channelName);
                     responseHandler.leftChannel(channelName);
                 } else {
-                    if (debug) System.out.println("Cannot leave channel: not a member");
+
                 }
                 break;
             }
 
             case SimpleSgsProtocol.CHANNEL_MESSAGE:
-                if (debug) System.out.println("Channel message");
                 checkLoggedIn();
                 byte[] channelId = msg.getBytes(msg.getShort());
                 String channelName = getChannelNameById(channelId);
                 if (channelName == null) {
-                    if (debug) System.out.println("Ignore message on channel: not a member");
                     return;
                 }
                 byte[] msgBytes = msg.getBytes(msg.limit() - msg.position());
