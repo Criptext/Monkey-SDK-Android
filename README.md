@@ -16,7 +16,7 @@ repositories {
 Then add the following to your app's build.gradle file dependencies block:
 ```
 dependencies {
-    compile ('com.criptext:MonkeyKit:1.1.1@aar') {
+    compile ('com.criptext:MonkeyKit:1.2@aar') {
         transitive = true;
     }
 }
@@ -24,7 +24,11 @@ dependencies {
 
 ## Extending MonkeyKit service
 
-To use MonkeyKit service, you need to extend `MonkeyKit.java` in your application and implement all of its abstract methods. You must create a database that MonkeyKit can access to store messages that are received while your activites are closed. The following methods must be implemented:
+To use MonkeyKit service, you need to create a class that extend `MonkeyKit.java` in your application and declare it in your `AndroidManifest.xml` inside Application tag:
+
+- `<service android:name=".MyServiceClass"/>`
+
+In this class you need to implement all of its abstract methods. You must create a database that MonkeyKit can access to store messages that are received while your activites are closed. The following methods must be implemented:
 
 - `public abstract void storeMessage(MOKMessage message);`
   
