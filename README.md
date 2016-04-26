@@ -1,6 +1,6 @@
 # Getting Started
 
-MonkeyKit on Android supports 4.1 (API 16) and above.
+MonkeyKit on Android supports 4.0 (API 14) and above.
 
 ## Using Gradle + Maven
 
@@ -16,7 +16,7 @@ repositories {
 Then add the following to your app's build.gradle file dependencies block:
 ```
 dependencies {
-    compile ('com.criptext:MonkeyKit:1.2@aar') {
+    compile ('com.criptext:monkeyKit:1.2.2@aar') {
         transitive = true;
     }
 }

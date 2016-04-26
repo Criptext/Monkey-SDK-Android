@@ -378,7 +378,7 @@ public abstract class MonkeyKit extends Service {
                 try{
                     localJSONObject1.put("session_id", sessionid);
                     localJSONObject1.put("public_key", "-----BEGIN PUBLIC KEY-----\n"+rsaUtil.pubKeyStr+"\n-----END PUBLIC KEY-----");
-                    System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
+                    //System.out.println("-----BEGIN PUBLIC KEY-----\n" + rsaUtil.pubKeyStr + "\n-----END PUBLIC KEY-----");
 
                     Map<String, Object> params = new HashMap<String, Object>();
                     params.put("data", localJSONObject1.toString());

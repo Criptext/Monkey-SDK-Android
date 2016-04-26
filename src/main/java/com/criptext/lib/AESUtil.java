@@ -52,7 +52,7 @@ public class AESUtil {
             secret = new SecretKeySpec(Base64.decode(strKey.getBytes("UTF-8"), Base64.NO_WRAP), "AES");
         }
 
-        System.out.println("strKey:***"+strKey+"***");
+        //System.out.println("strKey:***"+strKey+"***");
 
         cipherENC = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipherDEC = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -78,14 +78,14 @@ public class AESUtil {
                 KeyStoreCriptext.putString(context, sessionId, strKey + ":" + strIV);
         }
         else{
-            System.out.println("AES - SI TIENE IV - ***"+KeyStoreCriptext.getString(context, sessionId).split(":")[1]+"***");
+            //System.out.println("AES - SI TIENE IV - ***"+KeyStoreCriptext.getString(context, sessionId).split(":")[1]+"***");
             //SI TIENE KEY
             strIV = RSAUtil.stripGarbage(KeyStoreCriptext.getString(context, sessionId).split(":")[1]);
             cipherENC.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
             cipherDEC.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(Base64.decode(strIV.getBytes("UTF-8"), Base64.NO_WRAP)));
         }
 
-        System.out.println("strIV:***" + strIV + "***");
+        //System.out.println("strIV:***" + strIV + "***");
     }
     
     /***/
