@@ -1,14 +1,3 @@
-buildscript {
-    repositories {
-        jcenter()
-        mavenCentral()
-        mavenLocal()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.4'
-        classpath 'com.github.dcendents:android-maven-plugin:1.2'
-    }
-}
 
 apply plugin: 'com.android.library'
 apply plugin: 'com.jfrog.bintray'
@@ -17,14 +6,13 @@ apply plugin: 'com.github.dcendents.android-maven'
 group = 'com.criptext'
 version = '1.2.2'
 
-
 android {
-    compileSdkVersion 21
+    compileSdkVersion 22
     buildToolsVersion "22.0.1"
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 19
+        targetSdkVersion 22
     }
 
     buildTypes {
