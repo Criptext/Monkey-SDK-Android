@@ -796,8 +796,8 @@ public abstract class MonkeyKit extends Service {
      */
     public static HttpClient newMonkeyHttpClient(){
         HttpParams httpParams = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(httpParams, 3000);
-        HttpConnectionParams.setSoTimeout(httpParams, 5000);
+        HttpConnectionParams.setConnectionTimeout(httpParams, 20000);
+        HttpConnectionParams.setSoTimeout(httpParams, 25000);
         return new DefaultHttpClient(httpParams);
     }
 
@@ -836,8 +836,8 @@ public abstract class MonkeyKit extends Service {
      */
     public String requestTextWithLatestKeys(String messageId){
         HttpParams httpParams = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(httpParams, 3000);
-        HttpConnectionParams.setSoTimeout(httpParams, 5000);
+        HttpConnectionParams.setConnectionTimeout(httpParams, 20000);
+        HttpConnectionParams.setSoTimeout(httpParams, 25000);
         // Create a new HttpClient and Post Header
         HttpClient httpclient = newMonkeyHttpClient();
         HttpGet httppost = new HttpGet(URL+"/message/"+messageId+"/open/secure");
